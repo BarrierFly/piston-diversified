@@ -319,7 +319,7 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
     }
 
     private void markFast(BlockEntity be) {
-        if (this.marksMovingPistonsFast() && be instanceof dev.zcode.piston_diversified.mixin.PistonDuck duck) {
+        if (this.marksMovingPistonsFast() && be instanceof dev.zcode.piston_diversified.duck.PistonDuck duck) {
             duck.pistonDiversified$setFast(true);
         }
     }

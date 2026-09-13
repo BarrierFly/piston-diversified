@@ -1,5 +1,6 @@
 package dev.zcode.piston_diversified.mixin;
 
+import dev.zcode.piston_diversified.duck.PistonDuck;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.Level;
