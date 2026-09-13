@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "redstone",
+  "ingredients": [
+    "minecraft:piston",
+    "minecraft:end_rod",
+    "minecraft:redstone"
+  ],
+  "result": {
+    "count": 1,
+    "id": "piston_diversified:redstone_end_rod_piston"
+  }
+}

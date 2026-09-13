@@ -1,0 +1,6 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "piston_diversified:block/long_push_piston_inventory"
+  }
+}

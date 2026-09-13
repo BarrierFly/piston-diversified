@@ -1,0 +1,21 @@
+{
+  "block.piston_diversified.honey_piston": "蜂蜜活塞",
+  "block.piston_diversified.projectile_piston": "抛射活塞",
+  "block.piston_diversified.chain_piston": "连锁型活塞",
+  "block.piston_diversified.chain_sticky_piston": "连锁型黏塞",
+  "block.piston_diversified.loop_piston": "循环型活塞",
+  "block.piston_diversified.wind_charge_piston": "风弹活塞",
+  "block.piston_diversified.silent_piston": "静音活塞",
+  "block.piston_diversified.recoil_piston": "后坐活塞",
+  "block.piston_diversified.end_rod_piston": "活塞端杆",
+  "block.piston_diversified.skull_piston": "头颅活塞",
+  "block.piston_diversified.qc_piston": "随朝向QC活塞",
+  "block.piston_diversified.qc_sticky_piston": "随朝向QC黏塞",
+  "block.piston_diversified.observer_piston": "侦测器活塞",
+  "block.piston_diversified.observer_sticky_piston": "侦测器黏塞",
+  "block.piston_diversified.redstone_end_rod_piston": "活塞红石端杆",
+  "block.piston_diversified.long_push_piston": "长推活塞",
+  "block.piston_diversified.weak_piston": "虚弱活塞",
+  "block.piston_diversified.fast_piston": "快速活塞",
+  "block.piston_diversified.fast_sticky_piston": "快速黏塞"
+}

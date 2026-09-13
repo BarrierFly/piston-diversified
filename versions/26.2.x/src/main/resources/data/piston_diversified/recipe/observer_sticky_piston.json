@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "redstone",
+  "ingredients": [
+    "piston_diversified:observer_piston",
+    "minecraft:slime_ball"
+  ],
+  "result": {
+    "count": 1,
+    "id": "piston_diversified:observer_sticky_piston"
+  }
+}

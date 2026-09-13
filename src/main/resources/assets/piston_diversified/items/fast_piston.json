@@ -1,0 +1,6 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "piston_diversified:block/fast_piston_inventory"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "block.piston_diversified.honey_piston": "Honey Piston",
+  "block.piston_diversified.projectile_piston": "Projectile Piston",
+  "block.piston_diversified.chain_piston": "Chain Piston",
+  "block.piston_diversified.chain_sticky_piston": "Chain Sticky Piston",
+  "block.piston_diversified.loop_piston": "Loop Piston",
+  "block.piston_diversified.wind_charge_piston": "Wind Charge Piston",
+  "block.piston_diversified.silent_piston": "Silent Piston",
+  "block.piston_diversified.recoil_piston": "Recoil Piston",
+  "block.piston_diversified.end_rod_piston": "Piston End Rod",
+  "block.piston_diversified.skull_piston": "Skull Piston",
+  "block.piston_diversified.qc_piston": "Directional QC Piston",
+  "block.piston_diversified.qc_sticky_piston": "Directional QC Sticky Piston",
+  "block.piston_diversified.observer_piston": "Observer Piston",
+  "block.piston_diversified.observer_sticky_piston": "Observer Sticky Piston",
+  "block.piston_diversified.redstone_end_rod_piston": "Piston Redstone End Rod",
+  "block.piston_diversified.long_push_piston": "Long Push Piston",
+  "block.piston_diversified.weak_piston": "Weak Piston",
+  "block.piston_diversified.fast_piston": "Fast Piston",
+  "block.piston_diversified.fast_sticky_piston": "Fast Sticky Piston"
+}

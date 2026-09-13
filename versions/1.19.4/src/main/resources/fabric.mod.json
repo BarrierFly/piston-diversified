@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "id": "${id}",
+  "version": "${version}",
+  "name": "${name}",
+  "description": "Adds piston variants. v1 batch: 19 pistons (honey, projectile, chain, loop, wind charge, silent, recoil, end rod, skull, directional QC, observer, redstone end rod, long push, weak, fast).",
+  "authors": [
+    "ZCode"
+  ],
+  "license": "WTFPL",
+  "icon": "assets/piston_diversified/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "dev.zcode.piston_diversified.PistonDiversified"
+    ],
+    "client": [
+      "dev.zcode.piston_diversified.PistonDiversifiedClient"
+    ]
+  },
+  "mixins": [
+    "piston_diversified.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "fabric-api": "*",
+    "minecraft": "${minecraft}"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "redstone",
+  "key": {
+    "T": "minecraft:planks",
+    "R": "minecraft:redstone",
+    "#": "minecraft:cobblestone",
+    "X": "minecraft:iron_ingot",
+    "P": "minecraft:planks"
+  },
+  "pattern": [
+    "TRT",
+    "#X#",
+    "#P#"
+  ],
+  "result": {
+    "count": 1,
+    "id": "piston_diversified:qc_piston"
+  }
+}

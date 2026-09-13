@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "redstone",
+  "ingredients": [
+    {
+      "item": "minecraft:piston"
+    },
+    {
+      "item": "minecraft:observer"
+    }
+  ],
+  "result": {
+    "item": "piston_diversified:observer_piston",
+    "count": 1
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "redstone",
+  "key": {
+    "T": {
+      "item": "minecraft:planks"
+    },
+    "P": {
+      "item": "minecraft:planks"
+    },
+    "#": {
+      "item": "minecraft:cobblestone"
+    },
+    "X": {
+      "item": "minecraft:iron_ingot"
+    },
+    "R": {
+      "item": "minecraft:redstone"
+    }
+  },
+  "pattern": [
+    "TTT",
+    "PXP",
+    "#R#"
+  ],
+  "result": {
+    "item": "piston_diversified:recoil_piston",
+    "count": 1
+  }
+}

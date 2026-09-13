@@ -1,0 +1,50 @@
+{
+  "variants": {
+    "extended=False,facing=north": {
+      "model": "piston_diversified:block/chain_piston"
+    },
+    "extended=False,facing=south": {
+      "model": "piston_diversified:block/chain_piston",
+      "y": 180
+    },
+    "extended=False,facing=west": {
+      "model": "piston_diversified:block/chain_piston",
+      "y": 270
+    },
+    "extended=False,facing=east": {
+      "model": "piston_diversified:block/chain_piston",
+      "y": 90
+    },
+    "extended=False,facing=up": {
+      "model": "piston_diversified:block/chain_piston",
+      "x": 270
+    },
+    "extended=False,facing=down": {
+      "model": "piston_diversified:block/chain_piston",
+      "x": 90
+    },
+    "extended=True,facing=north": {
+      "model": "piston_diversified:block/chain_piston_extended"
+    },
+    "extended=True,facing=south": {
+      "model": "piston_diversified:block/chain_piston_extended",
+      "y": 180
+    },
+    "extended=True,facing=west": {
+      "model": "piston_diversified:block/chain_piston_extended",
+      "y": 270
+    },
+    "extended=True,facing=east": {
+      "model": "piston_diversified:block/chain_piston_extended",
+      "y": 90
+    },
+    "extended=True,facing=up": {
+      "model": "piston_diversified:block/chain_piston_extended",
+      "x": 270
+    },
+    "extended=True,facing=down": {
+      "model": "piston_diversified:block/chain_piston_extended",
+      "x": 90
+    }
+  }
+}

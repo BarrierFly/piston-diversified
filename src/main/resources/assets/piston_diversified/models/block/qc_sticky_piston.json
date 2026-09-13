@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/template_piston",
+  "textures": {
+    "bottom": "piston_diversified:block/qc_sticky_piston_bottom",
+    "platform": "piston_diversified:block/qc_sticky_piston_top_sticky",
+    "side": "piston_diversified:block/qc_sticky_piston_side"
+  }
+}

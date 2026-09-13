@@ -1,0 +1,31 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "redstone",
+  "ingredients": [
+    {
+      "item": "minecraft:piston"
+    },
+    {
+      "item": "minecraft:skeleton_skull"
+    },
+    {
+      "item": "minecraft:wither_skeleton_skull"
+    },
+    {
+      "item": "minecraft:zombie_head"
+    },
+    {
+      "item": "minecraft:player_head"
+    },
+    {
+      "item": "minecraft:creeper_head"
+    },
+    {
+      "item": "minecraft:dragon_head"
+    }
+  ],
+  "result": {
+    "item": "piston_diversified:skull_piston",
+    "count": 1
+  }
+}

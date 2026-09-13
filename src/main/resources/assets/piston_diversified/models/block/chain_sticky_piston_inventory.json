@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/cube_bottom_top",
+  "textures": {
+    "bottom": "piston_diversified:block/chain_sticky_piston_bottom",
+    "side": "piston_diversified:block/chain_sticky_piston_side",
+    "top": "piston_diversified:block/chain_sticky_piston_top_sticky"
+  }
+}

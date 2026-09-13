@@ -1,0 +1,15 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "dev.zcode.piston_diversified.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "mixins": [
+    "FallingBlockEntityAccessor",
+    "PistonMovingBlockEntityAccessor",
+    "PistonMovingBlockEntityMixin"
+  ],
+  "client": [],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

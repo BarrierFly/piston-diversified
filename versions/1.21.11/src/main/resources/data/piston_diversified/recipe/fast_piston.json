@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "redstone",
+  "key": {
+    "T": "minecraft:planks",
+    "#": "minecraft:cobblestone",
+    "I": "minecraft:ice",
+    "R": "minecraft:redstone"
+  },
+  "pattern": [
+    "TTT",
+    "#I#",
+    "#R#"
+  ],
+  "result": {
+    "count": 1,
+    "id": "piston_diversified:fast_piston"
+  }
+}

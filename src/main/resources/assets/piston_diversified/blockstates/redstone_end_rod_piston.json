@@ -1,0 +1,40 @@
+{
+  "variants": {
+    "extended=False,facing=north": {
+      "model": "piston_diversified:block/redstone_end_rod_piston_base"
+    },
+    "extended=False,facing=south": {
+      "model": "piston_diversified:block/redstone_end_rod_piston_base"
+    },
+    "extended=False,facing=west": {
+      "model": "piston_diversified:block/redstone_end_rod_piston_base"
+    },
+    "extended=False,facing=east": {
+      "model": "piston_diversified:block/redstone_end_rod_piston_base"
+    },
+    "extended=False,facing=up": {
+      "model": "piston_diversified:block/redstone_end_rod_piston_base"
+    },
+    "extended=False,facing=down": {
+      "model": "piston_diversified:block/redstone_end_rod_piston_base"
+    },
+    "extended=True,facing=north": {
+      "model": "piston_diversified:block/redstone_end_rod_piston_base"
+    },
+    "extended=True,facing=south": {
+      "model": "piston_diversified:block/redstone_end_rod_piston_base"
+    },
+    "extended=True,facing=west": {
+      "model": "piston_diversified:block/redstone_end_rod_piston_base"
+    },
+    "extended=True,facing=east": {
+      "model": "piston_diversified:block/redstone_end_rod_piston_base"
+    },
+    "extended=True,facing=up": {
+      "model": "piston_diversified:block/redstone_end_rod_piston_base"
+    },
+    "extended=True,facing=down": {
+      "model": "piston_diversified:block/redstone_end_rod_piston_base"
+    }
+  }
+}

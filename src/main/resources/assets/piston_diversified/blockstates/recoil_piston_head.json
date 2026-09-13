@@ -1,0 +1,50 @@
+{
+  "variants": {
+    "facing=north,short=false,type=normal": {
+      "model": "piston_diversified:block/recoil_piston_head"
+    },
+    "facing=south,short=false,type=normal": {
+      "model": "piston_diversified:block/recoil_piston_head",
+      "y": 180
+    },
+    "facing=west,short=false,type=normal": {
+      "model": "piston_diversified:block/recoil_piston_head",
+      "y": 270
+    },
+    "facing=east,short=false,type=normal": {
+      "model": "piston_diversified:block/recoil_piston_head",
+      "y": 90
+    },
+    "facing=up,short=false,type=normal": {
+      "model": "piston_diversified:block/recoil_piston_head",
+      "x": 270
+    },
+    "facing=down,short=false,type=normal": {
+      "model": "piston_diversified:block/recoil_piston_head",
+      "x": 90
+    },
+    "facing=north,short=true,type=normal": {
+      "model": "piston_diversified:block/recoil_piston_head"
+    },
+    "facing=south,short=true,type=normal": {
+      "model": "piston_diversified:block/recoil_piston_head",
+      "y": 180
+    },
+    "facing=west,short=true,type=normal": {
+      "model": "piston_diversified:block/recoil_piston_head",
+      "y": 270
+    },
+    "facing=east,short=true,type=normal": {
+      "model": "piston_diversified:block/recoil_piston_head",
+      "y": 90
+    },
+    "facing=up,short=true,type=normal": {
+      "model": "piston_diversified:block/recoil_piston_head",
+      "x": 270
+    },
+    "facing=down,short=true,type=normal": {
+      "model": "piston_diversified:block/recoil_piston_head",
+      "x": 90
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "redstone",
+  "key": {
+    "T": {
+      "item": "minecraft:planks"
+    },
+    "#": {
+      "item": "minecraft:cobblestone"
+    },
+    "N": {
+      "item": "minecraft:iron_nugget"
+    },
+    "R": {
+      "item": "minecraft:redstone"
+    }
+  },
+  "pattern": [
+    "TTT",
+    "#N#",
+    "#R#"
+  ],
+  "result": {
+    "item": "piston_diversified:weak_piston",
+    "count": 1
+  }
+}

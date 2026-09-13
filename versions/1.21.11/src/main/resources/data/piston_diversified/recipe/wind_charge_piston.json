@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "redstone",
+  "ingredients": [
+    "minecraft:piston",
+    "minecraft:wind_charge"
+  ],
+  "result": {
+    "count": 1,
+    "id": "piston_diversified:wind_charge_piston"
+  }
+}
