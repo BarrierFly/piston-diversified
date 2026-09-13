@@ -42,46 +42,46 @@ import net.minecraft.world.level.material.PushReaction;
  */
 public final class ModBlocks {
     // ---- v1 bases ----
-    public static final Block HONEY_PISTON = registerBase("honey_piston", new HoneyPistonBlock(baseProperties()));
-    public static final Block PROJECTILE_PISTON = registerBase("projectile_piston", new ProjectilePistonBlock(baseProperties()));
-    public static final Block CHAIN_PISTON = registerBase("chain_piston", new ChainPistonBlock(false, baseProperties()));
-    public static final Block CHAIN_STICKY_PISTON = registerBase("chain_sticky_piston", new ChainPistonBlock(true, baseProperties()));
-    public static final Block LOOP_PISTON = registerBase("loop_piston", new LoopPistonBlock(baseProperties()));
-    public static final Block WIND_CHARGE_PISTON = registerBase("wind_charge_piston", new WindChargePistonBlock(baseProperties()));
-    public static final Block SILENT_PISTON = registerBase("silent_piston", new SilentPistonBlock(baseProperties()));
-    public static final Block RECOIL_PISTON = registerBase("recoil_piston", new RecoilPistonBlock(baseProperties()));
-    public static final Block END_ROD_PISTON = registerBase("end_rod_piston", new EndRodPistonBlock(endRodProperties(15)));
-    public static final Block SKULL_PISTON = registerBase("skull_piston", new SkullPistonBlock(baseProperties()));
-    public static final Block QC_PISTON = registerBase("qc_piston", new QcPistonBlock(false, baseProperties()));
-    public static final Block QC_STICKY_PISTON = registerBase("qc_sticky_piston", new QcPistonBlock(true, baseProperties()));
-    public static final Block OBSERVER_PISTON = registerBase("observer_piston", new ObserverPistonBlock(false, baseProperties()));
-    public static final Block OBSERVER_STICKY_PISTON = registerBase("observer_sticky_piston", new ObserverPistonBlock(true, baseProperties()));
-    public static final Block REDSTONE_END_ROD_PISTON = registerBase("redstone_end_rod_piston", new RedstoneEndRodPistonBlock(endRodProperties(8)));
-    public static final Block LONG_PUSH_PISTON = registerBase("long_push_piston", new LongPushPistonBlock(baseProperties()));
-    public static final Block WEAK_PISTON = registerBase("weak_piston", new WeakPistonBlock(baseProperties()));
-    public static final Block FAST_PISTON = registerBase("fast_piston", new FastPistonBlock(false, baseProperties()));
-    public static final Block FAST_STICKY_PISTON = registerBase("fast_sticky_piston", new FastPistonBlock(true, baseProperties()));
+    public static final Block HONEY_PISTON = registerBase("honey_piston", p -> new HoneyPistonBlock(p), baseProperties());
+    public static final Block PROJECTILE_PISTON = registerBase("projectile_piston", p -> new ProjectilePistonBlock(p), baseProperties());
+    public static final Block CHAIN_PISTON = registerBase("chain_piston", p -> new ChainPistonBlock(false, p), baseProperties());
+    public static final Block CHAIN_STICKY_PISTON = registerBase("chain_sticky_piston", p -> new ChainPistonBlock(true, p), baseProperties());
+    public static final Block LOOP_PISTON = registerBase("loop_piston", p -> new LoopPistonBlock(p), baseProperties());
+    public static final Block WIND_CHARGE_PISTON = registerBase("wind_charge_piston", p -> new WindChargePistonBlock(p), baseProperties());
+    public static final Block SILENT_PISTON = registerBase("silent_piston", p -> new SilentPistonBlock(p), baseProperties());
+    public static final Block RECOIL_PISTON = registerBase("recoil_piston", p -> new RecoilPistonBlock(p), baseProperties());
+    public static final Block END_ROD_PISTON = registerBase("end_rod_piston", p -> new EndRodPistonBlock(p), endRodProperties(15));
+    public static final Block SKULL_PISTON = registerBase("skull_piston", p -> new SkullPistonBlock(p), baseProperties());
+    public static final Block QC_PISTON = registerBase("qc_piston", p -> new QcPistonBlock(false, p), baseProperties());
+    public static final Block QC_STICKY_PISTON = registerBase("qc_sticky_piston", p -> new QcPistonBlock(true, p), baseProperties());
+    public static final Block OBSERVER_PISTON = registerBase("observer_piston", p -> new ObserverPistonBlock(false, p), baseProperties());
+    public static final Block OBSERVER_STICKY_PISTON = registerBase("observer_sticky_piston", p -> new ObserverPistonBlock(true, p), baseProperties());
+    public static final Block REDSTONE_END_ROD_PISTON = registerBase("redstone_end_rod_piston", p -> new RedstoneEndRodPistonBlock(p), endRodProperties(8));
+    public static final Block LONG_PUSH_PISTON = registerBase("long_push_piston", p -> new LongPushPistonBlock(p), baseProperties());
+    public static final Block WEAK_PISTON = registerBase("weak_piston", p -> new WeakPistonBlock(p), baseProperties());
+    public static final Block FAST_PISTON = registerBase("fast_piston", p -> new FastPistonBlock(false, p), baseProperties());
+    public static final Block FAST_STICKY_PISTON = registerBase("fast_sticky_piston", p -> new FastPistonBlock(true, p), baseProperties());
 
     // ---- heads (no items) ----
-    public static final Block HONEY_PISTON_HEAD = registerHead("honey_piston_head", new ModPistonHeadBlock(headProperties()));
-    public static final Block PROJECTILE_PISTON_HEAD = registerHead("projectile_piston_head", new ModPistonHeadBlock(headProperties()));
-    public static final Block CHAIN_PISTON_HEAD = registerHead("chain_piston_head", new ModPistonHeadBlock(headProperties()));
-    public static final Block CHAIN_STICKY_PISTON_HEAD = registerHead("chain_sticky_piston_head", new ModPistonHeadBlock(headProperties()));
-    public static final Block LOOP_PISTON_HEAD = registerHead("loop_piston_head", new ModPistonHeadBlock(headProperties()));
-    public static final Block WIND_CHARGE_PISTON_HEAD = registerHead("wind_charge_piston_head", new ModPistonHeadBlock(headProperties()));
-    public static final Block SILENT_PISTON_HEAD = registerHead("silent_piston_head", new ModPistonHeadBlock(headProperties()));
-    public static final Block RECOIL_PISTON_HEAD = registerHead("recoil_piston_head", new RecoilPistonHeadBlock(headProperties()));
-    public static final Block END_ROD_PISTON_HEAD = registerHead("end_rod_piston_head", new EndRodPistonHeadBlock(headProperties(15)));
-    public static final Block SKULL_PISTON_HEAD = registerHead("skull_piston_head", new SkullPistonHeadBlock(headProperties()));
-    public static final Block QC_PISTON_HEAD = registerHead("qc_piston_head", new ModPistonHeadBlock(headProperties()));
-    public static final Block QC_STICKY_PISTON_HEAD = registerHead("qc_sticky_piston_head", new ModPistonHeadBlock(headProperties()));
-    public static final Block OBSERVER_PISTON_HEAD = registerHead("observer_piston_head", new ModPistonHeadBlock(headProperties()));
-    public static final Block OBSERVER_STICKY_PISTON_HEAD = registerHead("observer_sticky_piston_head", new ModPistonHeadBlock(headProperties()));
-    public static final Block REDSTONE_END_ROD_PISTON_HEAD = registerHead("redstone_end_rod_piston_head", new RedstoneEndRodPistonHeadBlock(headProperties(8)));
-    public static final Block LONG_PUSH_PISTON_HEAD = registerHead("long_push_piston_head", new ModPistonHeadBlock(headProperties()));
-    public static final Block WEAK_PISTON_HEAD = registerHead("weak_piston_head", new WeakPistonHeadBlock(headProperties()));
-    public static final Block FAST_PISTON_HEAD = registerHead("fast_piston_head", new ModPistonHeadBlock(headProperties()));
-    public static final Block FAST_STICKY_PISTON_HEAD = registerHead("fast_sticky_piston_head", new ModPistonHeadBlock(headProperties()));
+    public static final Block HONEY_PISTON_HEAD = registerHead("honey_piston_head", p -> new ModPistonHeadBlock(p), headProperties());
+    public static final Block PROJECTILE_PISTON_HEAD = registerHead("projectile_piston_head", p -> new ModPistonHeadBlock(p), headProperties());
+    public static final Block CHAIN_PISTON_HEAD = registerHead("chain_piston_head", p -> new ModPistonHeadBlock(p), headProperties());
+    public static final Block CHAIN_STICKY_PISTON_HEAD = registerHead("chain_sticky_piston_head", p -> new ModPistonHeadBlock(p), headProperties());
+    public static final Block LOOP_PISTON_HEAD = registerHead("loop_piston_head", p -> new ModPistonHeadBlock(p), headProperties());
+    public static final Block WIND_CHARGE_PISTON_HEAD = registerHead("wind_charge_piston_head", p -> new ModPistonHeadBlock(p), headProperties());
+    public static final Block SILENT_PISTON_HEAD = registerHead("silent_piston_head", p -> new ModPistonHeadBlock(p), headProperties());
+    public static final Block RECOIL_PISTON_HEAD = registerHead("recoil_piston_head", p -> new RecoilPistonHeadBlock(p), headProperties());
+    public static final Block END_ROD_PISTON_HEAD = registerHead("end_rod_piston_head", p -> new EndRodPistonHeadBlock(p), headProperties(15));
+    public static final Block SKULL_PISTON_HEAD = registerHead("skull_piston_head", p -> new SkullPistonHeadBlock(p), headProperties());
+    public static final Block QC_PISTON_HEAD = registerHead("qc_piston_head", p -> new ModPistonHeadBlock(p), headProperties());
+    public static final Block QC_STICKY_PISTON_HEAD = registerHead("qc_sticky_piston_head", p -> new ModPistonHeadBlock(p), headProperties());
+    public static final Block OBSERVER_PISTON_HEAD = registerHead("observer_piston_head", p -> new ModPistonHeadBlock(p), headProperties());
+    public static final Block OBSERVER_STICKY_PISTON_HEAD = registerHead("observer_sticky_piston_head", p -> new ModPistonHeadBlock(p), headProperties());
+    public static final Block REDSTONE_END_ROD_PISTON_HEAD = registerHead("redstone_end_rod_piston_head", p -> new RedstoneEndRodPistonHeadBlock(p), headProperties(8));
+    public static final Block LONG_PUSH_PISTON_HEAD = registerHead("long_push_piston_head", p -> new ModPistonHeadBlock(p), headProperties());
+    public static final Block WEAK_PISTON_HEAD = registerHead("weak_piston_head", p -> new WeakPistonHeadBlock(p), headProperties());
+    public static final Block FAST_PISTON_HEAD = registerHead("fast_piston_head", p -> new ModPistonHeadBlock(p), headProperties());
+    public static final Block FAST_STICKY_PISTON_HEAD = registerHead("fast_sticky_piston_head", p -> new ModPistonHeadBlock(p), headProperties());
 
     private static final Block[] BASES = {
         HONEY_PISTON, PROJECTILE_PISTON, CHAIN_PISTON, CHAIN_STICKY_PISTON, LOOP_PISTON,
@@ -137,15 +137,28 @@ public final class ModBlocks {
         return net.minecraft.world.level.block.Blocks.PISTON_HEAD;
     }
 
-    private static Block registerBase(String name, Block block) {
-        Registry.register(BuiltInRegistries.BLOCK, PdHelpers.id(name), block);
+    private static Block registerBase(String name, java.util.function.Function<BlockBehaviour.Properties, Block> factory, BlockBehaviour.Properties properties) {
+        Block block = registerBlock(name, factory, properties);
         Registry.register(BuiltInRegistries.ITEM, PdHelpers.id(name), new BlockItem(block, new Item.Properties()));
         return block;
     }
 
-    private static Block registerHead(String name, Block block) {
+    private static Block registerHead(String name, java.util.function.Function<BlockBehaviour.Properties, Block> factory, BlockBehaviour.Properties properties) {
+        return registerBlock(name, factory, properties);
+    }
+
+    private static Block registerBlock(String name, java.util.function.Function<BlockBehaviour.Properties, Block> factory, BlockBehaviour.Properties properties) {
+        //? if >=1.21.2 {
+        // Newer versions require the registry id on the properties before construction.
+        net.minecraft.resources.ResourceKey<Block> key = PdHelpers.blockKey(name);
+        Block block = factory.apply(properties.setId(key));
+        Registry.register(BuiltInRegistries.BLOCK, key, block);
+        return block;
+        //?} else {
+        Block block = factory.apply(properties);
         Registry.register(BuiltInRegistries.BLOCK, PdHelpers.id(name), block);
         return block;
+        //?}
     }
 
     private static BlockBehaviour.Properties baseProperties() {

@@ -52,6 +52,11 @@ public final class PdHelpers {
         //?}
     }
 
+    /** Registry key for a block of this mod (newer versions need it set on Properties). */
+    public static net.minecraft.resources.ResourceKey<net.minecraft.world.level.block.Block> blockKey(String path) {
+        return net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.BLOCK, id(path));
+    }
+
     /** ResourceKey of the vanilla redstone creative tab (CreativeModeTabs fields differ across versions). */
     public static net.minecraft.resources.ResourceKey<net.minecraft.world.item.CreativeModeTab> redstoneTabKey() {
         //? if >=1.20.5 {

@@ -555,7 +555,7 @@ def gen_shared_assets(textures):
         variants = {}
         for extended in (False, True):
             for facing, rot in FACING_ROT.items():
-                key = f"extended={extended},facing={facing}"
+                key = f"extended={str(extended).lower()},facing={facing}"
                 if custom and head_kind == "end_rod":
                     variants[key] = {"model": f"{NS}:block/{vid}_base"}
                 elif extended:

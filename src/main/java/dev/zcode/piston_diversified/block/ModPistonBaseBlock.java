@@ -291,7 +291,11 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
                     // 蜂蜜活塞: the second cell just solidified — pull it back instead of leaving it behind.
                     this.moveBlocks(level, pos, direction, false);
                 } else if (!instantSecond) {
-                    if (id != 1
+                    if (id != 1 && this.pullOnInstantRetract()) {
+                        // 蜂蜜活塞: vanilla would drop the block here (type 2) — pull instead; if the
+                        // pull fails the head is still removed, matching the vanilla end state.
+                        this.moveBlocks(level, pos, direction, false);
+                    } else if (id != 1
                         || secondState.isAir()
                         || !isPushable(secondState, level, secondPos, direction.getOpposite(), false, direction)
                         || secondState.getPistonPushReaction() != PushReaction.NORMAL

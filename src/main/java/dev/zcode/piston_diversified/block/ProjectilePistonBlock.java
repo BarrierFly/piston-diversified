@@ -31,19 +31,20 @@ public class ProjectilePistonBlock extends ModPistonBaseBlock {
 
     @Override
     protected boolean handleExtend(Level level, BlockPos pos, Direction direction, BlockState state) {
-        if (level.isClientSide() || !(level instanceof ServerLevel serverLevel)) {
-            return false;
-        }
-
         BlockPos frontPos = pos.relative(direction);
         BlockState frontState = level.getBlockState(frontPos);
         if (this.shouldPushNormally(level, frontPos, frontState, pos.relative(direction, 2))) {
             return false;
         }
 
-        // Launch: the front block flies as a falling block with af2022 dispenser motion.
-        Vec3 motion = new Vec3(direction.getStepX(), direction.getStepY(), direction.getStepZ()).add(0.0, 0.1, 0.0);
-        ProjectileBlockEntity.launch(serverLevel, frontPos, frontState, motion);
+        if (level instanceof ServerLevel serverLevel) {
+            // Launch: the front block flies as a falling block with af2022 dispenser motion.
+            Vec3 motion = new Vec3(direction.getStepX(), direction.getStepY(), direction.getStepZ()).add(0.0, 0.1, 0.0);
+            ProjectileBlockEntity.launch(serverLevel, frontPos, frontState, motion);
+        } else {
+            // Client mirrors the decision so it does not animate a vanilla push.
+            level.setBlock(frontPos, frontState.getFluidState().createLegacyBlock(), 3);
+        }
         return false;
     }
 

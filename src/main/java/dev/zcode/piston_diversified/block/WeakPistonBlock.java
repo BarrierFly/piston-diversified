@@ -31,6 +31,11 @@ public class WeakPistonBlock extends ModPistonBaseBlock {
     }
 
     @Override
+    protected boolean canPushBlocks() {
+        return false;
+    }
+
+    @Override
     public void animateTick(BlockState state, Level level, BlockPos pos, RandomSource random) {
         if (random.nextFloat() < 0.4F) {
             double x = pos.getX() + random.nextDouble();
