@@ -19,13 +19,20 @@ public class RedstoneEndRodPistonHeadBlock extends EndRodPistonHeadBlock {
         return true;
     }
 
+    /**
+     * The {@code direction} parameter is measured from the asking block towards this block, so a
+     * block at {@code pos.relative(d)} is fed when {@code direction == d.getOpposite()} (verified
+     * against vanilla ObserverBlock, which powers its back cell with {@code FACING == direction}).
+     * Torch-style weak power in five directions = everything except the block above.
+     */
     @Override
     public int getSignal(BlockState state, BlockGetter level, BlockPos pos, Direction direction) {
-        return direction == Direction.UP ? 0 : 15;
+        return direction != Direction.DOWN ? 15 : 0;
     }
 
+    /** Strong power towards the cell the rod points at. */
     @Override
     public int getDirectSignal(BlockState state, BlockGetter level, BlockPos pos, Direction direction) {
-        return direction == state.getValue(FACING) ? 15 : 0;
+        return direction == state.getValue(FACING).getOpposite() ? 15 : 0;
     }
 }

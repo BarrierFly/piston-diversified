@@ -139,7 +139,15 @@ public final class ModBlocks {
 
     private static Block registerBase(String name, java.util.function.Function<BlockBehaviour.Properties, Block> factory, BlockBehaviour.Properties properties) {
         Block block = registerBlock(name, factory, properties);
+        //? if >=1.21.10 {
+        // Newer versions require the item id on Item.Properties before construction (mirrors Blocks.setId).
+        net.minecraft.resources.ResourceKey<Item> itemKey = net.minecraft.resources.ResourceKey.create(
+            net.minecraft.core.registries.Registries.ITEM, PdHelpers.id(name)
+        );
+        Registry.register(BuiltInRegistries.ITEM, itemKey, new BlockItem(block, new Item.Properties().useBlockDescriptionPrefix().setId(itemKey)));
+        //?} else {
         Registry.register(BuiltInRegistries.ITEM, PdHelpers.id(name), new BlockItem(block, new Item.Properties()));
+        //?}
         return block;
     }
 

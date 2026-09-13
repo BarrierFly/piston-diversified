@@ -4,37 +4,47 @@
       "model": "piston_diversified:block/end_rod_piston_base"
     },
     "extended=false,facing=south": {
-      "model": "piston_diversified:block/end_rod_piston_base"
+      "model": "piston_diversified:block/end_rod_piston_base",
+      "y": 180
     },
     "extended=false,facing=west": {
-      "model": "piston_diversified:block/end_rod_piston_base"
+      "model": "piston_diversified:block/end_rod_piston_base",
+      "y": 270
     },
     "extended=false,facing=east": {
-      "model": "piston_diversified:block/end_rod_piston_base"
+      "model": "piston_diversified:block/end_rod_piston_base",
+      "y": 90
     },
     "extended=false,facing=up": {
-      "model": "piston_diversified:block/end_rod_piston_base"
+      "model": "piston_diversified:block/end_rod_piston_base",
+      "x": 270
     },
     "extended=false,facing=down": {
-      "model": "piston_diversified:block/end_rod_piston_base"
+      "model": "piston_diversified:block/end_rod_piston_base",
+      "x": 90
     },
     "extended=true,facing=north": {
       "model": "piston_diversified:block/end_rod_piston_base"
     },
     "extended=true,facing=south": {
-      "model": "piston_diversified:block/end_rod_piston_base"
+      "model": "piston_diversified:block/end_rod_piston_base",
+      "y": 180
     },
     "extended=true,facing=west": {
-      "model": "piston_diversified:block/end_rod_piston_base"
+      "model": "piston_diversified:block/end_rod_piston_base",
+      "y": 270
     },
     "extended=true,facing=east": {
-      "model": "piston_diversified:block/end_rod_piston_base"
+      "model": "piston_diversified:block/end_rod_piston_base",
+      "y": 90
     },
     "extended=true,facing=up": {
-      "model": "piston_diversified:block/end_rod_piston_base"
+      "model": "piston_diversified:block/end_rod_piston_base",
+      "x": 270
     },
     "extended=true,facing=down": {
-      "model": "piston_diversified:block/end_rod_piston_base"
+      "model": "piston_diversified:block/end_rod_piston_base",
+      "x": 90
     }
   }
 }

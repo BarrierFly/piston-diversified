@@ -106,13 +106,27 @@ public class ObserverPistonBlock extends ModPistonBaseBlock {
     }
     //?}
 
+    /**
+     * Pulse state machine (POWERED doubles as the refractory flag):
+     * <ol>
+     *   <li>detection (updateShape, back cell) → scheduleTick(2);</li>
+     *   <li>tick !POWERED → POWERED=true, extend event, scheduleTick(2);</li>
+     *   <li>tick POWERED+EXTENDED → retract event, scheduleTick(6) — POWERED stays on so the
+     *       piston ignores the back-cell reactions its own extend/retract animation causes
+     *       (the base flickers between conductor states while it is a moving piston, which
+     *       otherwise re-triggers detection forever);</li>
+     *   <li>tick POWERED+!EXTENDED (animation settled or extend was blocked) → disarm.</li>
+     * </ol>
+     */
     @Override
     public void tick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
         Direction direction = state.getValue(FACING);
         if (state.getValue(POWERED)) {
-            level.setBlock(pos, state.setValue(POWERED, false), 2);
             if (state.getValue(EXTENDED)) {
                 level.blockEvent(pos, this, 1, direction.get3DDataValue());
+                level.scheduleTick(pos, this, 6);
+            } else {
+                level.setBlock(pos, state.setValue(POWERED, false), 2);
             }
         } else {
             level.setBlock(pos, state.setValue(POWERED, true), 2);

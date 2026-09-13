@@ -1,7 +1,7 @@
 {
   "parent": "minecraft:block/template_piston_head",
   "textures": {
-    "platform": "piston_diversified:block/honey_piston_top",
+    "platform": "piston_diversified:block/honey_piston_top_sticky",
     "side": "piston_diversified:block/honey_piston_side",
     "unsticky": "piston_diversified:block/honey_piston_top"
   }

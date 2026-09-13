@@ -330,7 +330,9 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
 
     private boolean moveBlocks(Level level, BlockPos pos, Direction facing, boolean extending) {
         BlockPos frontPos = pos.relative(facing);
-        if (!extending && level.getBlockState(frontPos).is(Blocks.PISTON_HEAD)) {
+        // instanceof, not a registry check: our modded heads must clear the way on retract too,
+        // otherwise the vanilla resolver treats them as obstacles and the pull silently fails.
+        if (!extending && level.getBlockState(frontPos).getBlock() instanceof PistonHeadBlock) {
             level.setBlock(frontPos, Blocks.AIR.defaultBlockState(), 276);
         }
 

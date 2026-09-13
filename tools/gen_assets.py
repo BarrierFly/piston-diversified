@@ -557,7 +557,8 @@ def gen_shared_assets(textures):
             for facing, rot in FACING_ROT.items():
                 key = f"extended={str(extended).lower()},facing={facing}"
                 if custom and head_kind == "end_rod":
-                    variants[key] = {"model": f"{NS}:block/{vid}_base"}
+                    # Rotation must not be dropped here, or the rod model faces one way only.
+                    variants[key] = {"model": f"{NS}:block/{vid}_base", **rot}
                 elif extended:
                     variants[key] = {"model": f"{NS}:block/{vid}_extended", **rot}
                 else:
@@ -586,8 +587,13 @@ def gen_shared_assets(textures):
         if head_kind == "plate":
             head_models[("normal", False, False)] = head_model_plate(vid, False)
             head_models[("normal", True, False)] = head_model_plate_short(vid, False)
-            head_models[("sticky", False, False)] = head_model_plate(vid, True)
-            head_models[("sticky", True, False)] = head_model_plate_short(vid, True)
+            if sticky:
+                head_models[("sticky", False, False)] = head_model_plate(vid, True)
+                head_models[("sticky", True, False)] = head_model_plate_short(vid, True)
+            else:
+                # Non-sticky variants have no _top_sticky texture; the sticky model would be
+                # a missing texture, so only the normal pair is generated.
+                pass
         elif head_kind == "skull":
             head_models[("normal", False, False)] = head_model_plate(vid, False)
             head_models[("normal", True, False)] = head_model_plate_short(vid, False)
@@ -608,18 +614,32 @@ def gen_shared_assets(textures):
             head_models[("normal", True, False)] = recoil_head_model(vid, True)
 
         for (ptype, short, powered), model in head_models.items():
-            suffix = ""
+            suffix = "_powered" if powered else ""
+            # Normal and sticky models used to land in the same file (sticky overwrote normal),
+            # leaving non-sticky variants' extended heads on the sticky texture. Differentiate.
+            type_part = "_sticky" if ptype == "sticky" else ""
+            fname = hid + type_part + suffix + ("_short" if short else "")
+            write_json(os.path.join(model_dir, fname + ".json"), model)
             if head_kind == "skull":
-                suffix = "_powered" if powered else ""
                 key = f"facing={{facing}},powered={str(powered).lower()},short={str(short).lower()},type={ptype}"
             else:
                 key = f"facing={{facing}},short={str(short).lower()},type={ptype}"
             for facing, rot in FACING_ROT.items():
                 head_variants[key.format(facing=facing)] = {
-                    "model": f"{NS}:block/{hid}{suffix}", **rot
+                    "model": f"{NS}:block/{fname}", **rot
                 }
-            fname = hid + suffix + ("_short" if short else "")
-            write_json(os.path.join(model_dir, fname + ".json"), model)
+
+        # The TYPE property still has a sticky value for every head block; alias it to the
+        # normal models so no reachable state is left without a model.
+        if not sticky:
+            for short in (False, True):
+                for powered in ((False, True) if head_kind == "skull" else (False,)):
+                    for facing in FACING_ROT:
+                        powered_part = f"powered={str(powered).lower()}," if head_kind == "skull" else ""
+                        normal_key = f"facing={facing},{powered_part}short={str(short).lower()},type=normal"
+                        sticky_key = f"facing={facing},{powered_part}short={str(short).lower()},type=sticky"
+                        if normal_key in head_variants:
+                            head_variants[sticky_key] = dict(head_variants[normal_key])
         write_json(os.path.join(bs_dir, hid + ".json"), {"variants": head_variants})
 
 # ---------------------------------------------------------------- per-version data

@@ -241,7 +241,10 @@ public class ProjectileBlockEntity extends FallingBlockEntity {
                 continue;
             }
 
-            boolean success = PistonlessPush.execute(level, blocker, direction, false, true, true);
+            // The resolver treats the given position as the "piston base" and resolves from the
+            // cell in front of it — pass the flying block's own cell so the push line starts AT
+            // the blocker. Passing the blocker itself would only ever push what lies beyond it.
+            boolean success = PistonlessPush.execute(level, this.blockPosition(), direction, false, true, true);
             if (truncated) {
                 this.setVelocityComponent(axis, 0.0);
             } else if (Math.abs(this.getDeltaMovement().get(axis)) > SCRAPE_SPEED) {
