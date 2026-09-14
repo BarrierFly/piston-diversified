@@ -42,7 +42,9 @@ import net.minecraft.world.phys.Vec3;
  *   <li>other qualifying axes = scrape (push event along that axis, velocity clamped to 0.5
  *       if it was above);</li>
  *   <li>the first successful push ends the sequence; remaining axes are untouched;</li>
- *   <li>landing runs afterwards in the same tick (vanilla behavior).</li>
+ *   <li>landing runs afterwards in the same tick (vanilla behavior) — unless a downward impact
+ *       just displaced the landing support, in which case the block keeps falling and lands on
+ *       the new support next tick instead of shattering into an item;</li>
  * </ul>
  *
  * <p>Movement, timeout (600t) and landing behavior are inherited from vanilla.</p>
@@ -149,7 +151,7 @@ public class ProjectileBlockEntity extends FallingBlockEntity {
             && (this.isAlive())
             //?}
         ) {
-            this.impactAndScrape(serverLevel, preMove);
+            boolean supportAffected = this.impactAndScrape(serverLevel, preMove);
 
             BlockPos pos = this.blockPosition();
             boolean concrete = pd$getBlockState().getBlock() instanceof net.minecraft.world.level.block.ConcretePowderBlock;
@@ -172,7 +174,7 @@ public class ProjectileBlockEntity extends FallingBlockEntity {
                     }
                     this.discard();
                 }
-            } else {
+            } else if (!supportAffected) {
                 BlockState landingState = pdLevel().getBlockState(pos);
                 this.setDeltaMovement(this.getDeltaMovement().multiply(0.7, -0.5, 0.7));
                 if (!landingState.is(Blocks.MOVING_PISTON)) {
@@ -219,8 +221,14 @@ public class ProjectileBlockEntity extends FallingBlockEntity {
 
     // ------------------------------------------------------------ impact & scrape
 
-    private void impactAndScrape(ServerLevel level, Vec3 preMove) {
+    /**
+     * @return true if a downward impact removed or shifted the cell this entity would land on —
+     *         the landing pass must then be skipped, otherwise the block always shatters into an
+     *         item because its support is gone; it keeps falling and lands on the new support.
+     */
+    private boolean impactAndScrape(ServerLevel level, Vec3 preMove) {
         Vec3 post = this.getDeltaMovement();
+        boolean supportAffected = false;
 
         List<Direction> qualifying = new ArrayList<>();
         for (Direction.Axis axis : Direction.Axis.values()) {
@@ -229,7 +237,7 @@ public class ProjectileBlockEntity extends FallingBlockEntity {
             }
         }
         if (qualifying.isEmpty()) {
-            return;
+            return false;
         }
         qualifying.sort(Comparator.comparingDouble((Direction d) -> -Math.abs(preMove.get(d.getAxis()))));
 
@@ -245,6 +253,9 @@ public class ProjectileBlockEntity extends FallingBlockEntity {
             // cell in front of it — pass the flying block's own cell so the push line starts AT
             // the blocker. Passing the blocker itself would only ever push what lies beyond it.
             boolean success = PistonlessPush.execute(level, this.blockPosition(), direction, false, true, true);
+            if (success && direction == Direction.DOWN) {
+                supportAffected = true;
+            }
             if (truncated) {
                 this.setVelocityComponent(axis, 0.0);
             } else if (Math.abs(this.getDeltaMovement().get(axis)) > SCRAPE_SPEED) {
@@ -255,6 +266,7 @@ public class ProjectileBlockEntity extends FallingBlockEntity {
                 break;
             }
         }
+        return supportAffected;
     }
 
     /** The cell just beyond the entity's bounding box face along the axis (nearest to the collision face). */

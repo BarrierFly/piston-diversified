@@ -1,8 +1,11 @@
 package dev.zcode.piston_diversified.block;
 
 import dev.zcode.piston_diversified.registry.ModBlocks;
+import java.util.HashMap;
+import java.util.Map;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.Level;
@@ -25,6 +28,17 @@ import net.minecraft.world.level.block.state.BlockBehaviour.Properties;
  */
 public class ObserverPistonBlock extends ModPistonBaseBlock {
     public static final BooleanProperty POWERED = BlockStateProperties.POWERED;
+
+    /**
+     * Anti-feedback window. Every state this block writes on itself (pulse start, the retract
+     * event's motion, disarm) re-places it, and the resulting engine update cascade can bounce a
+     * shape update straight back into the detection condition no matter what the detection face
+     * touches — the piston then oscillates forever. A self-sustaining loop must pass through one
+     * of our own writes, so triggers arriving within a few ticks of any of them are ignored.
+     * Genuine block updates are unaffected (they only lose the ≤6gt right after a pulse).
+     */
+    private static final Map<ResourceKey<Level>, Map<BlockPos, Long>> SELF_WRITES = new HashMap<>();
+    private static final long SELF_WRITE_WINDOW = 6L;
 
     public ObserverPistonBlock(boolean sticky, Properties properties) {
         super(sticky, properties);
@@ -94,13 +108,17 @@ public class ObserverPistonBlock extends ModPistonBaseBlock {
 
     //? if >=1.21.2 {
     private void startPulse(LevelReader level, ScheduledTickAccess ticks, BlockPos pos) {
-        if (!level.isClientSide() && !ticks.getBlockTicks().hasScheduledTick(pos, this)) {
+        if (!level.isClientSide()
+            && !recentlySelfWrote(level, pos)
+            && !ticks.getBlockTicks().hasScheduledTick(pos, this)) {
             ticks.scheduleTick(pos, this, 2);
         }
     }
     //?} else {
     private void startPulse(net.minecraft.world.level.LevelAccessor level, BlockPos pos) {
-        if (!level.isClientSide() && !level.getBlockTicks().hasScheduledTick(pos, this)) {
+        if (!level.isClientSide()
+            && !recentlySelfWrote(level, pos)
+            && !level.getBlockTicks().hasScheduledTick(pos, this)) {
             level.scheduleTick(pos, this, 2);
         }
     }
@@ -112,9 +130,7 @@ public class ObserverPistonBlock extends ModPistonBaseBlock {
      *   <li>detection (updateShape, back cell) → scheduleTick(2);</li>
      *   <li>tick !POWERED → POWERED=true, extend event, scheduleTick(2);</li>
      *   <li>tick POWERED+EXTENDED → retract event, scheduleTick(6) — POWERED stays on so the
-     *       piston ignores the back-cell reactions its own extend/retract animation causes
-     *       (the base flickers between conductor states while it is a moving piston, which
-     *       otherwise re-triggers detection forever);</li>
+     *       piston ignores updates while its own extend/retract animation settles;</li>
      *   <li>tick POWERED+!EXTENDED (animation settled or extend was blocked) → disarm.</li>
      * </ol>
      */
@@ -123,17 +139,41 @@ public class ObserverPistonBlock extends ModPistonBaseBlock {
         Direction direction = state.getValue(FACING);
         if (state.getValue(POWERED)) {
             if (state.getValue(EXTENDED)) {
+                this.markSelfWrite(level, pos);
                 level.blockEvent(pos, this, 1, direction.get3DDataValue());
                 level.scheduleTick(pos, this, 6);
             } else {
+                this.markSelfWrite(level, pos);
                 level.setBlock(pos, state.setValue(POWERED, false), 2);
             }
         } else {
+            this.markSelfWrite(level, pos);
             level.setBlock(pos, state.setValue(POWERED, true), 2);
             level.scheduleTick(pos, this, 2);
             if (!state.getValue(EXTENDED)) {
                 level.blockEvent(pos, this, 0, direction.get3DDataValue());
             }
         }
+    }
+
+    private void markSelfWrite(ServerLevel level, BlockPos pos) {
+        Map<BlockPos, Long> byPos = SELF_WRITES.computeIfAbsent(level.dimension(), key -> new HashMap<>());
+        if (byPos.size() > 4096) {
+            long now = level.getGameTime();
+            byPos.values().removeIf(time -> now - time > 200);
+        }
+        byPos.put(pos.immutable(), level.getGameTime());
+    }
+
+    private static boolean recentlySelfWrote(LevelReader level, BlockPos pos) {
+        if (!(level instanceof Level actualLevel)) {
+            return false;
+        }
+        Map<BlockPos, Long> byPos = SELF_WRITES.get(actualLevel.dimension());
+        if (byPos == null) {
+            return false;
+        }
+        Long time = byPos.get(pos);
+        return time != null && actualLevel.getGameTime() - time <= SELF_WRITE_WINDOW;
     }
 }

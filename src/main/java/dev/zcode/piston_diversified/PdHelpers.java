@@ -25,6 +25,21 @@ public final class PdHelpers {
     }
     //?}
 
+    /** Id in the vanilla namespace (for referencing vanilla registry entries). */
+    //? if <1.20.5 {
+    public static ResourceLocation mcId(String path) {
+        return new ResourceLocation("minecraft", path);
+    }
+    //?} else if <1.21.11 {
+    public static ResourceLocation mcId(String path) {
+        return ResourceLocation.withDefaultNamespace(path);
+    }
+    //?} else {
+    public static Identifier mcId(String path) {
+        return Identifier.withDefaultNamespace(path);
+    }
+    //?}
+
     /** True if the stack's item is registered under the given path (dye item names are stable even where classes changed). */
     public static boolean isItemNamed(net.minecraft.world.item.ItemStack stack, String path) {
         return net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem()).getPath().equals(path);
@@ -60,7 +75,9 @@ public final class PdHelpers {
     /** ResourceKey of the vanilla redstone creative tab (CreativeModeTabs fields differ across versions). */
     public static net.minecraft.resources.ResourceKey<net.minecraft.world.item.CreativeModeTab> redstoneTabKey() {
         //? if >=1.20.5 {
-        return net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.CREATIVE_MODE_TAB, id("redstone_blocks"));
+        // The vanilla tab's registry id lives in the minecraft namespace (CreativeModeTabs#REDSTONE_BLOCKS
+        // is private) — our own namespace made the fabric event bind to a tab that does not exist.
+        return net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.CREATIVE_MODE_TAB, mcId("redstone_blocks"));
         //?} else {
         return null;
         //?}
