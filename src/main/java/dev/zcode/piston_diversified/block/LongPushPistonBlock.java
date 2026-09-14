@@ -2,6 +2,7 @@ package dev.zcode.piston_diversified.block;
 
 import dev.zcode.piston_diversified.registry.ModBlocks;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
@@ -29,6 +30,16 @@ public class LongPushPistonBlock extends ModPistonBaseBlock {
     @Override
     protected boolean requireSignalToExtend() {
         return false;
+    }
+
+    /**
+     * Always "powered": the piston extends on any block update while retracted — so after being
+     * placed against an obstacle it still extends once that obstacle is cleared (规划: 放置直接推出,
+     * 正常推方块, 永不收回).
+     */
+    @Override
+    protected boolean hasPowerSignal(Level level, BlockPos pos, Direction direction) {
+        return true;
     }
 
     @Override

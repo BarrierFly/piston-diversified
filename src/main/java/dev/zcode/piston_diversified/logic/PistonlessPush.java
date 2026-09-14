@@ -42,19 +42,23 @@ public final class PistonlessPush {
             pushedBeTags.add(state.hasBlockEntity() ? captureBe(level, pos, state) : null);
         }
 
-        // Destroy first, TNT blocks exploding in place.
+        // Destroy first; TNT is cleared before exploding — an explosion with the block still in
+        // place would wasExplode into a second primed TNT (duplication). TNT caught in another
+        // block's blast still primes naturally, vanilla-style.
         for (int i = toDestroy.size() - 1; i >= 0; i--) {
             BlockPos pos = toDestroy.get(i);
             BlockState state = level.getBlockState(pos);
             BlockEntity be = state.hasBlockEntity() ? level.getBlockEntity(pos) : null;
-            if (state.is(net.minecraft.world.level.block.Blocks.TNT)) {
-                PdHelpers.explodeTnt(level, pos);
-            } else {
+            boolean tnt = state.is(net.minecraft.world.level.block.Blocks.TNT);
+            if (!tnt) {
                 Block.dropResources(state, level, pos, be);
             }
             level.setBlock(pos, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(), 18);
             level.gameEvent(net.minecraft.world.level.gameevent.GameEvent.BLOCK_DESTROY, pos,
                 net.minecraft.world.level.gameevent.GameEvent.Context.of(state));
+            if (tnt) {
+                PdHelpers.explodeTnt(level, pos);
+            }
         }
 
         // Clear sources, then place far-to-near so nothing overwrites a not-yet-moved block.

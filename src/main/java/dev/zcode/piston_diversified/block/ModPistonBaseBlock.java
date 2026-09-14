@@ -90,6 +90,15 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
         return true;
     }
 
+    /**
+     * Send the extend event even when the vanilla pre-resolve declares the push impossible
+     * (后坐: an unpushable front block must still trigger the recoil attempt — handleExtend
+     * decides what actually happens).
+     */
+    protected boolean extendEventWithoutResolve() {
+        return false;
+    }
+
     protected boolean cancelRetractIfPowered() {
         return true;
     }
@@ -180,7 +189,7 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
         Direction direction = state.getValue(FACING);
         boolean bl = this.hasPowerSignal(level, pos, direction);
         if (bl && !state.getValue(EXTENDED)) {
-            if (new PistonStructureResolver(level, pos, direction, true).resolve()) {
+            if (new PistonStructureResolver(level, pos, direction, true).resolve() || this.extendEventWithoutResolve()) {
                 level.blockEvent(pos, this, 0, direction.get3DDataValue());
             }
         } else if (!bl && state.getValue(EXTENDED) && this.canRetract()) {
@@ -268,9 +277,13 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
                 .setValue(MovingPistonBlock.FACING, direction)
                 .setValue(MovingPistonBlock.TYPE, this.sticky ? PistonType.STICKY : PistonType.DEFAULT);
             level.setBlock(pos, movingState, 276);
-            BlockEntity retractBe = MovingPistonBlock.newMovingBlockEntity(
-                pos, movingState, this.defaultBlockState().setValue(FACING, Direction.from3DDataValue(param & 7)), direction, false, true
-            );
+            // Preserve the current state's extra properties (the observer piston's POWERED) into
+            // the restored base — defaultBlockState() would reset them when the retract animation
+            // ends, re-arming state machines that rely on them surviving the cycle.
+            BlockState restoredBase = state
+                .setValue(EXTENDED, false)
+                .setValue(FACING, Direction.from3DDataValue(param & 7));
+            BlockEntity retractBe = MovingPistonBlock.newMovingBlockEntity(pos, movingState, restoredBase, direction, false, true);
             this.markFast(retractBe);
             level.setBlockEntity(retractBe);
             level.updateNeighborsAt(pos, movingState.getBlock());

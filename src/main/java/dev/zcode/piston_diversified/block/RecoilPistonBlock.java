@@ -34,6 +34,13 @@ public class RecoilPistonBlock extends ModPistonBaseBlock {
     }
 
     @Override
+    protected boolean extendEventWithoutResolve() {
+        // An unpushable front block must still reach handleExtend, otherwise the vanilla
+        // pre-resolve silently swallows the extend event and the recoil never happens.
+        return true;
+    }
+
+    @Override
     protected boolean handleExtend(Level level, BlockPos pos, Direction direction, BlockState state) {
         BlockPos frontPos = pos.relative(direction);
         BlockState frontState = level.getBlockState(frontPos);
