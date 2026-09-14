@@ -55,9 +55,12 @@ public class RecoilPistonBlock extends ModPistonBaseBlock {
             return true;
         }
 
-        // Recoil: the cell behind the base is pushed one further back, then the base slides there.
-        BlockPos behindPos = pos.relative(direction.getOpposite());
-        if (!PistonlessPush.execute((net.minecraft.server.level.ServerLevel) level, behindPos, direction.getOpposite(), true, false, false)) {
+        // Recoil: everything from the cell behind the base backwards is pushed one cell further
+        // back, then the base slides into that cell. The resolver starts its push line at the
+        // cell in front of the position it is given, so pass the base's own cell — passing the
+        // behind cell would shove the SECOND cell back even when the first is empty (and would
+        // overwrite the first cell's block instead of pushing it).
+        if (!PistonlessPush.execute((net.minecraft.server.level.ServerLevel) level, pos, direction.getOpposite(), true, false, false)) {
             return true; // cannot recoil: no extension at all
         }
 
