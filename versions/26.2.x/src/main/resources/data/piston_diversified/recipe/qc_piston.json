@@ -2,11 +2,11 @@
   "type": "minecraft:crafting_shaped",
   "category": "redstone",
   "key": {
-    "T": "minecraft:planks",
+    "T": "#minecraft:planks",
     "R": "minecraft:redstone",
     "#": "minecraft:cobblestone",
     "X": "minecraft:iron_ingot",
-    "P": "minecraft:planks"
+    "P": "#minecraft:planks"
   },
   "pattern": [
     "TRT",

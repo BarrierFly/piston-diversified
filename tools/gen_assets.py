@@ -644,6 +644,8 @@ def gen_shared_assets(textures):
 
 # ---------------------------------------------------------------- per-version data
 
+# Ingredients are item ids, or "#ns:tag" for a tag (the 1.19 emitter turns the prefix into
+# {"tag": ...}, the modern one keeps the "#..." string the codec reads as a tag).
 RECIPES = [
     ("honey_piston", "shapeless", ["minecraft:piston", "minecraft:honey_bottle"], None),
     ("projectile_piston", "shapeless", ["minecraft:piston", "minecraft:bow"], None),
@@ -654,24 +656,24 @@ RECIPES = [
                                     "minecraft:zombie_head", "minecraft:player_head",
                                     "minecraft:creeper_head", "minecraft:dragon_head"]], None),
     ("recoil_piston", "shaped", None, (["TTT", "PXP", "#R#"],
-                                       {"T": "minecraft:planks", "P": "minecraft:planks",
+                                       {"T": "#minecraft:planks", "P": "#minecraft:planks",
                                         "#": "minecraft:cobblestone", "X": "minecraft:iron_ingot",
                                         "R": "minecraft:redstone"})),
     ("end_rod_piston", "shapeless", ["minecraft:piston", "minecraft:end_rod"], None),
     ("redstone_end_rod_piston", "shapeless", ["minecraft:piston", "minecraft:end_rod", "minecraft:redstone"], None),
     ("long_push_piston", "shapeless", ["minecraft:piston", "minecraft:redstone_block"], None),
     ("qc_piston", "shaped", None, (["TRT", "#X#", "#P#"],
-                                   {"T": "minecraft:planks", "R": "minecraft:redstone",
+                                   {"T": "#minecraft:planks", "R": "minecraft:redstone",
                                     "#": "minecraft:cobblestone", "X": "minecraft:iron_ingot",
-                                    "P": "minecraft:planks"})),
+                                    "P": "#minecraft:planks"})),
     ("qc_sticky_piston", "shapeless", ["piston_diversified:qc_piston", "minecraft:slime_ball"], None),
     ("observer_piston", "shapeless", ["minecraft:piston", "minecraft:observer"], None),
     ("observer_sticky_piston", "shapeless", ["piston_diversified:observer_piston", "minecraft:slime_ball"], None),
     ("weak_piston", "shaped", None, (["TTT", "#N#", "#R#"],
-                                     {"T": "minecraft:planks", "#": "minecraft:cobblestone",
+                                     {"T": "#minecraft:planks", "#": "minecraft:cobblestone",
                                       "N": "minecraft:iron_nugget", "R": "minecraft:redstone"})),
     ("fast_piston", "shaped", None, (["TTT", "#I#", "#R#"],
-                                     {"T": "minecraft:planks", "#": "minecraft:cobblestone",
+                                     {"T": "#minecraft:planks", "#": "minecraft:cobblestone",
                                       "I": "minecraft:ice", "R": "minecraft:redstone"})),
     ("fast_sticky_piston", "shapeless", ["piston_diversified:fast_piston", "minecraft:slime_ball"], None),
 ]

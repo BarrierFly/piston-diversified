@@ -3,7 +3,7 @@
   "category": "redstone",
   "key": {
     "T": {
-      "item": "minecraft:planks"
+      "tag": "minecraft:planks"
     },
     "#": {
       "item": "minecraft:cobblestone"

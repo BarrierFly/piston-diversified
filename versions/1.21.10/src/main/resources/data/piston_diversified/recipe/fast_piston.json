@@ -2,7 +2,7 @@
   "type": "minecraft:crafting_shaped",
   "category": "redstone",
   "key": {
-    "T": "minecraft:planks",
+    "T": "#minecraft:planks",
     "#": "minecraft:cobblestone",
     "I": "minecraft:ice",
     "R": "minecraft:redstone"
