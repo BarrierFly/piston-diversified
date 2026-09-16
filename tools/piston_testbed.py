@@ -11,6 +11,10 @@ harness used to verify the 后坐活塞 (recoil piston) front-cell rules:
     pushable (NORMAL)        recoil
     push-resistant (BLOCK)   recoil
 
+It also reloads the data packs and fails if the server reports a data file it could not parse
+(`/reload` re-runs the recipe/loot load that a broken ingredient silently turns into
+"this block cannot be crafted" — see the recipe fix for the planks tag).
+
 Usage
 -----
     # against a server that is already running (RCON on 25575):
@@ -177,6 +181,74 @@ def wait_for_rcon(timeout=240):
     raise RuntimeError("server did not open RCON within %ds" % timeout)
 
 
+# --------------------------------------------------------------------------- data pack reload
+
+# What the server logs for a data file it could not parse; the wording moved between versions.
+DATA_ERROR_PATTERNS = (
+    "Couldn't parse data file",  # 1.20.5+
+    "Parsing error loading",     # <= 1.19.x (recipes, loot tables)
+    "Failed to parse",           # codec failure inside a file that did parse as JSON
+)
+RELOAD_SETTLE_TRIES = 30
+
+
+def _read_from(path, offset):
+    """The part of a log written after offset (server logs are appended to, never rewritten)."""
+    with open(path, "rb") as handle:
+        handle.seek(offset)
+        return handle.read().decode("utf-8", "replace")
+
+
+def _server_log(run_dir, started_log):
+    """First readable server log: the run directory's own, else this script's captured stdout."""
+    candidates = [os.path.join(run_dir, "logs", "latest.log")]
+    if started_log:
+        candidates.append(started_log)
+    for path in candidates:
+        if os.path.exists(path):
+            return path
+    return None
+
+
+def check_data_files(rcon, run_dir, started_log=None):
+    """Reload the data packs and assert the server parses every recipe / loot table.
+
+    A broken ingredient does not crash anything: the file is dropped with a log line and the
+    block simply cannot be crafted (that is how the planks-tag bug hid).  Only output written
+    after the reload is inspected, so an earlier session cannot hide or fake the result.
+
+    Returns True/False, or None when no server log is readable — skipped, not passed.
+    """
+    path = _server_log(run_dir, started_log)
+    if path is None:
+        print("\n=== data pack reload: SKIPPED (no readable server log, pass --start or check the run dir)")
+        return None
+
+    offset = os.path.getsize(path)
+    rcon.cmd("reload")
+    chunk = ""
+    for _ in range(RELOAD_SETTLE_TRIES):
+        time.sleep(0.5)
+        chunk = _read_from(path, offset)
+        if "recipe" in chunk.lower():
+            break
+
+    errors = [line.strip() for line in chunk.splitlines()
+              if any(pattern in line for pattern in DATA_ERROR_PATTERNS)]
+    counts = [line.strip().split("): ", 1)[-1] for line in chunk.splitlines()
+              if "recipes" in line.lower() and "Loaded" in line]
+
+    print("\n=== data pack reload (/reload)")
+    for line in counts:
+        print("    " + line)
+    for line in errors[:10]:
+        print("    BAD  " + line[:200])
+    if len(errors) > 10:
+        print("    ... and %d more" % (len(errors) - 10))
+    print("    %-4s every data file parsed" % ("ok" if not errors else "BAD"))
+    return not errors
+
+
 # --------------------------------------------------------------------------- test rig
 
 
@@ -258,12 +330,15 @@ def main():
         print("connected to RCON, world spawn ticking check:", rcon.cmd("time query gametime").strip())
         rcon.cmd("forceload add -32 -32 32 32")
 
+        data_ok = check_data_files(rcon, run_dir, args.log if args.start else None)
         passed = [run_case(rcon, name, front, expectation) for name, front, expectation in CASES]
 
         rcon.cmd("forceload remove -32 -32 32 32")
         rcon.close()
-        print("\n%d/%d cases passed" % (sum(passed), len(passed)))
-        return 0 if all(passed) else 1
+
+        data_note = "clean" if data_ok else ("SKIPPED" if data_ok is None else "ERRORS")
+        print("\n%d/%d front-cell cases passed; data files: %s" % (sum(passed), len(passed), data_note))
+        return 0 if all(passed) and data_ok is not False else 1
     finally:
         if process is not None:
             try:
