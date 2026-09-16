@@ -17,6 +17,10 @@ out/
 *.log
 crash-reports/
 
+# Python (tools/)
+__pycache__/
+*.pyc
+
 # OS
 Thumbs.db
 .DS_Store
