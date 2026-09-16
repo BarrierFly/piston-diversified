@@ -94,8 +94,14 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
      * Send the extend event even when the vanilla pre-resolve declares the push impossible
      * (后坐: an unpushable front block must still trigger the recoil attempt — handleExtend
      * decides what actually happens).
+     *
+     * <p>Answer it for the fronts the variant really wants, not unconditionally: extending leaves
+     * a moving piston (the head) in front of the base while the base state is still
+     * {@code EXTENDED=false}, and the neighbour update that goes with it re-enters
+     * {@link #checkIfExtend}. The vanilla pre-resolve swallows that re-entry because a moving
+     * piston cannot be pushed; answering yes here would turn it into a second extend event.
      */
-    protected boolean extendEventWithoutResolve() {
+    protected boolean extendEventWithoutResolve(Level level, BlockPos pos, Direction direction) {
         return false;
     }
 
@@ -189,7 +195,8 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
         Direction direction = state.getValue(FACING);
         boolean bl = this.hasPowerSignal(level, pos, direction);
         if (bl && !state.getValue(EXTENDED)) {
-            if (new PistonStructureResolver(level, pos, direction, true).resolve() || this.extendEventWithoutResolve()) {
+            if (new PistonStructureResolver(level, pos, direction, true).resolve()
+                || this.extendEventWithoutResolve(level, pos, direction)) {
                 level.blockEvent(pos, this, 0, direction.get3DDataValue());
             }
         } else if (!bl && state.getValue(EXTENDED) && this.canRetract()) {

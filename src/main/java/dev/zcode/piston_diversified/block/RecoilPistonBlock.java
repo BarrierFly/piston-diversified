@@ -12,6 +12,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.piston.MovingPistonBlock;
 import net.minecraft.world.level.block.piston.PistonHeadBlock;
+import net.minecraft.world.level.block.piston.PistonMovingBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.BlockBehaviour.Properties;
 import net.minecraft.world.level.block.state.properties.PistonType;
@@ -19,9 +20,10 @@ import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraft.world.level.material.PushReaction;
 
 /**
- * 后坐活塞 — cannot push: with a free front it extends normally; when the front cell holds a
- * block (pushable or not) the base recoils one cell backwards, the old base cell becomes the
- * head, and whatever sat behind the base is pushed (or destroyed) further back.
+ * 后坐活塞 — cannot push: with a free front it extends normally; when the front cell holds an
+ * obstruction (a block whose piston push behaviour is pushable or push-resistant) the base recoils
+ * one cell backwards, the old base cell becomes the head, and whatever sat behind the base is
+ * pushed (or destroyed) further back.
  */
 public class RecoilPistonBlock extends ModPistonBaseBlock {
     public RecoilPistonBlock(Properties properties) {
@@ -34,21 +36,18 @@ public class RecoilPistonBlock extends ModPistonBaseBlock {
     }
 
     @Override
-    protected boolean extendEventWithoutResolve() {
-        // An unpushable front block must still reach handleExtend, otherwise the vanilla
-        // pre-resolve silently swallows the extend event and the recoil never happens.
-        return true;
+    protected boolean extendEventWithoutResolve(Level level, BlockPos pos, Direction direction) {
+        // An obstruction fails the vanilla pre-resolve, so the event has to be sent anyway or the
+        // recoil never happens — but only for a real obstruction. Firing it unconditionally also
+        // fires it for the moving piston this piston has just put in front of itself (see the hook
+        // javadoc), and handleExtend would read that as "head in front" and recoil.
+        return this.frontIsBlocked(level, pos, direction);
     }
 
     @Override
     protected boolean handleExtend(Level level, BlockPos pos, Direction direction, BlockState state) {
-        BlockPos frontPos = pos.relative(direction);
-        BlockState frontState = level.getBlockState(frontPos);
-        boolean frontFree = frontState.isAir()
-            || !frontState.getFluidState().isEmpty()
-            || frontState.getPistonPushReaction() == PushReaction.DESTROY;
-        if (frontFree) {
-            return false; // normal extend through the base flow
+        if (!this.frontIsBlocked(level, pos, direction)) {
+            return false; // free or popped front — the vanilla push extends forward
         }
 
         if (level.isClientSide()) {
@@ -73,6 +72,36 @@ public class RecoilPistonBlock extends ModPistonBaseBlock {
         level.playSound(null, pos, SoundEvents.PISTON_EXTEND, SoundSource.BLOCKS, 0.5F, dev.zcode.piston_diversified.PdHelpers.pdRandom(level).nextFloat() * 0.25F + 0.6F);
         level.gameEvent(GameEvent.BLOCK_ACTIVATE, pos, GameEvent.Context.of(state));
         return true;
+    }
+
+    /**
+     * Whether the cell in front stops the piston: it holds a block whose piston push behaviour is
+     * pushable (NORMAL / PUSH_ONLY) or push-resistant (BLOCK). Air, fluids and destroy-on-push
+     * (popped) blocks do not stop it, and neither does the piston's own head while it is still
+     * sliding out — that cell is transiently a moving piston of this very extension.
+     */
+    private boolean frontIsBlocked(Level level, BlockPos pos, Direction direction) {
+        BlockPos frontPos = pos.relative(direction);
+        BlockState frontState = level.getBlockState(frontPos);
+        if (frontState.isAir() || !frontState.getFluidState().isEmpty()) {
+            return false;
+        }
+        if (this.isOwnExtensionInFlight(level, frontPos, frontState, direction)) {
+            return false;
+        }
+
+        PushReaction reaction = frontState.getPistonPushReaction();
+        return reaction == PushReaction.NORMAL
+            || reaction == PushReaction.PUSH_ONLY
+            || reaction == PushReaction.BLOCK;
+    }
+
+    /** The head of this piston is still travelling out of the front cell. */
+    private boolean isOwnExtensionInFlight(Level level, BlockPos frontPos, BlockState frontState, Direction direction) {
+        return frontState.is(Blocks.MOVING_PISTON)
+            && frontState.getValue(MovingPistonBlock.FACING) == direction
+            && level.getBlockEntity(frontPos) instanceof PistonMovingBlockEntity movingBe
+            && movingBe.isExtending();
     }
 
     private void placeRecoilBase(Level level, BlockPos pos, Direction direction) {
