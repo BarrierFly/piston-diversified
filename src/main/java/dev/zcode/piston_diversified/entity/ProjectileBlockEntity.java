@@ -10,6 +10,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.item.FallingBlockEntity;
@@ -20,6 +21,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.Fallable;
 import net.minecraft.world.level.block.FallingBlock;
+import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
@@ -52,6 +54,12 @@ import net.minecraft.world.phys.Vec3;
 public class ProjectileBlockEntity extends FallingBlockEntity {
     public static final float QUALIFY_SPEED = 2.0F / 3.0F;
     public static final float SCRAPE_SPEED = 0.5F;
+
+    /** Ticks between two scrape sounds, so a long grind does not machine-gun the step sound. */
+    private static final int SCRAPE_SOUND_INTERVAL = 4;
+
+    /** Countdown gating the next scrape sound (transient; a relaunch/load restarts it at 0). */
+    private int pdScrapeSoundCooldown;
 
     public ProjectileBlockEntity(EntityType<? extends FallingBlockEntity> type, Level level) {
         super(type, level);
@@ -129,6 +137,9 @@ public class ProjectileBlockEntity extends FallingBlockEntity {
 
         Block block = pd$getBlockState().getBlock();
         this.time++;
+        if (this.pdScrapeSoundCooldown > 0) {
+            this.pdScrapeSoundCooldown--;
+        }
         //? if >=1.20.5 {
         this.applyGravity();
         //?} else {
@@ -241,6 +252,7 @@ public class ProjectileBlockEntity extends FallingBlockEntity {
         }
         qualifying.sort(Comparator.comparingDouble((Direction d) -> -Math.abs(preMove.get(d.getAxis()))));
 
+        boolean soundPlayed = false;
         for (Direction direction : qualifying) {
             Direction.Axis axis = direction.getAxis();
             boolean truncated = preMove.get(axis) != 0.0 && post.get(axis) == 0.0;
@@ -262,11 +274,42 @@ public class ProjectileBlockEntity extends FallingBlockEntity {
                 this.setVelocityComponent(axis, Math.signum(preMove.get(axis)) * SCRAPE_SPEED);
             }
 
+            // At most one sound per tick: a collision that truncated the axis is a hard impact,
+            // any other qualifying axis is a scrape and is throttled so a long grind stays quiet.
+            if (!soundPlayed) {
+                if (truncated) {
+                    this.pdPlayImpactSound(level);
+                    soundPlayed = true;
+                } else if (this.pdScrapeSoundCooldown <= 0) {
+                    this.pdPlayScrapeSound(level);
+                    this.pdScrapeSoundCooldown = SCRAPE_SOUND_INTERVAL;
+                    soundPlayed = true;
+                }
+            }
+
             if (success) {
                 break;
             }
         }
         return supportAffected;
+    }
+
+    /**
+     * The launched block slams into a surface. The block's own material break sound is used so a
+     * stone block crunches, a wood block cracks, glass shatters, etc. Played regardless of whether
+     * the push succeeded — a bonk on obsidian is still a bonk.
+     */
+    private void pdPlayImpactSound(ServerLevel level) {
+        SoundType sound = pd$getBlockState().getSoundType();
+        level.playSound(null, this.getX(), this.getY(), this.getZ(),
+            sound.getBreakSound(), SoundSource.BLOCKS, 0.8F, sound.getPitch() * 0.75F);
+    }
+
+    /** The launched block grinds along a surface on a non-impact axis (throttled by the caller). */
+    private void pdPlayScrapeSound(ServerLevel level) {
+        SoundType sound = pd$getBlockState().getSoundType();
+        level.playSound(null, this.getX(), this.getY(), this.getZ(),
+            sound.getStepSound(), SoundSource.BLOCKS, 0.4F, sound.getPitch() * 1.3F);
     }
 
     /** The cell just beyond the entity's bounding box face along the axis (nearest to the collision face). */

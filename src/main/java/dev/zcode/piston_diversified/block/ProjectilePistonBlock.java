@@ -5,6 +5,8 @@ import dev.zcode.piston_diversified.registry.ModBlocks;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
@@ -41,6 +43,9 @@ public class ProjectilePistonBlock extends ModPistonBaseBlock {
             // Launch: the front block flies as a falling block with af2022 dispenser motion.
             Vec3 motion = new Vec3(direction.getStepX(), direction.getStepY(), direction.getStepZ()).add(0.0, 0.1, 0.0);
             ProjectileBlockEntity.launch(serverLevel, frontPos, frontState, motion);
+            // Dispenser-style launch report at the muzzle (the front cell the block left).
+            serverLevel.playSound(null, frontPos.getX() + 0.5, frontPos.getY() + 0.5, frontPos.getZ() + 0.5,
+                SoundEvents.DISPENSER_LAUNCH, SoundSource.BLOCKS, 0.8F, 1.0F);
         } else {
             // Client mirrors the decision so it does not animate a vanilla push.
             level.setBlock(frontPos, frontState.getFluidState().createLegacyBlock(), 3);

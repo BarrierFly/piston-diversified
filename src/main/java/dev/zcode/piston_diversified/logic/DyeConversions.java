@@ -65,11 +65,15 @@ public final class DyeConversions {
         if (extended) {
             boolean stickyBase = target == Blocks.STICKY_PISTON
                 || target instanceof dev.zcode.piston_diversified.block.ModPistonBaseBlock modded && modded.pdIsSticky();
-        BlockState headState = ModBlocks.headOf(target).defaultBlockState()
+            BlockState headState = ModBlocks.headOf(target).defaultBlockState()
                 .setValue(PistonHeadBlock.FACING, facing)
                 .setValue(PistonHeadBlock.TYPE, stickyBase ? PistonType.STICKY : PistonType.DEFAULT)
                 .setValue(PistonHeadBlock.SHORT, shortHead);
-            level.setBlock(pos.relative(facing), headState, 3);
+            // UPDATE_CLIENTS only: a full setBlock would run the removed head's
+            // affectNeighborsAfterRemoval, and PistonHeadBlock destroys a fitting extended base
+            // there — i.e. the base we just placed. The new head is supported by that base, so it
+            // needs no neighbour/shape update of its own.
+            level.setBlock(pos.relative(facing), headState, Block.UPDATE_CLIENTS);
         }
 
         consume(player, stack, hand);
