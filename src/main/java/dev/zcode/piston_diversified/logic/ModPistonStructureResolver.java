@@ -86,7 +86,16 @@ public class ModPistonStructureResolver {
         if (this.destroyTnt && state.is(net.minecraft.world.level.block.Blocks.TNT)) {
             return true;
         }
-        return this.destroyFragile && state.getPistonPushReaction() == PushReaction.NORMAL
+        return this.destroyFragile && isFragileDestroy(state);
+    }
+
+    /**
+     * The "fragile" rule: pushable (NORMAL) but glass-sounding — the 抛射冲击 destroys these where
+     * a normal piston push would carry them. Shared so callers can tell a fragile destruction
+     * (glass shatter) apart from an ordinary DESTROY-reaction pop.
+     */
+    public static boolean isFragileDestroy(BlockState state) {
+        return state.getPistonPushReaction() == PushReaction.NORMAL
             && state.getSoundType() == SoundType.GLASS;
     }
 

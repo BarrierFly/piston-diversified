@@ -1,5 +1,7 @@
 package dev.zcode.piston_diversified.entity;
 
+import dev.zcode.piston_diversified.PistonDiversified;
+import dev.zcode.piston_diversified.logic.ModPistonStructureResolver;
 import dev.zcode.piston_diversified.logic.PistonlessPush;
 import dev.zcode.piston_diversified.mixin.FallingBlockEntityAccessor;
 import dev.zcode.piston_diversified.registry.ModEntities;
@@ -57,6 +59,14 @@ public class ProjectileBlockEntity extends FallingBlockEntity {
 
     /** Ticks between two scrape sounds, so a long grind does not machine-gun the step sound. */
     private static final int SCRAPE_SOUND_INTERVAL = 4;
+
+    /**
+     * Debug switch for the impact / scrape pass; off by default. Toggle it at runtime with
+     * {@code /pistondiversified impactdebug <true|false>} (no argument reports the current value).
+     * When on, every processed axis logs the entity's exact base coordinate, the blocker cell, the
+     * action and direction, and the cell the pistonless push is issued from.
+     */
+    public static boolean DEBUG_IMPACT_AND_SCRAPE = false;
 
     /** Countdown gating the next scrape sound (transient; a relaunch/load restarts it at 0). */
     private int pdScrapeSoundCooldown;
@@ -252,19 +262,45 @@ public class ProjectileBlockEntity extends FallingBlockEntity {
         }
         qualifying.sort(Comparator.comparingDouble((Direction d) -> -Math.abs(preMove.get(d.getAxis()))));
 
+        // Impact/scrape only exists at a collision. The collision blocker is the block on the
+        // truncated axis — a real contact. The truncation is checked on every axis, not just the
+        // qualifying ones: a block skidding over the floor collides on the slow Y axis, and that
+        // floor block is the one the horizontal scrape must operate on. Probing a side face of a
+        // non-truncated axis instead finds blocks the block merely flew past and pushes them into
+        // empty space. Whichever axes qualify, the impact and every scrape then operate on that
+        // one blocker (规划 v2 §五.3: "冲击和刮动均对此阻挡方块操作").
+        Direction impactDirection = null;
+        double impactSpeed = 0.0;
+        for (Direction.Axis axis : Direction.Axis.values()) {
+            double velocity = preMove.get(axis);
+            if (velocity != 0.0 && post.get(axis) == 0.0 && Math.abs(velocity) > impactSpeed) {
+                impactSpeed = Math.abs(velocity);
+                impactDirection = Direction.fromAxisAndDirection(axis,
+                    velocity >= 0 ? Direction.AxisDirection.POSITIVE : Direction.AxisDirection.NEGATIVE);
+            }
+        }
+        if (impactDirection == null) {
+            return false; // no contact this tick
+        }
+        BlockPos blocker = findBlocker(level, impactDirection.getAxis(), impactDirection.getAxisDirection());
+        if (blocker == null) {
+            return false;
+        }
+
         boolean soundPlayed = false;
-        for (Direction direction : qualifying) {
+        List<String> traces = DEBUG_IMPACT_AND_SCRAPE ? new ArrayList<>() : null;
+
+        for (int index = 0; index < qualifying.size(); index++) {
+            Direction direction = qualifying.get(index);
             Direction.Axis axis = direction.getAxis();
             boolean truncated = preMove.get(axis) != 0.0 && post.get(axis) == 0.0;
-            BlockPos blocker = findBlocker(level, axis, direction.getAxisDirection());
-            if (blocker == null) {
-                continue;
-            }
 
             // The resolver treats the given position as the "piston base" and resolves from the
-            // cell in front of it — pass the flying block's own cell so the push line starts AT
-            // the blocker. Passing the blocker itself would only ever push what lies beyond it.
-            boolean success = PistonlessPush.execute(level, this.blockPosition(), direction, false, true, true);
+            // cell in front of it — so issue the push from the cell behind the blocker, which
+            // makes the push line start exactly AT the blocker.
+            BlockPos pushPos = blocker.relative(direction.getOpposite());
+            PistonlessPush.Result result = PistonlessPush.execute(level, pushPos, direction, false, true, true);
+            boolean success = result.success();
             if (success && direction == Direction.DOWN) {
                 supportAffected = true;
             }
@@ -274,11 +310,28 @@ public class ProjectileBlockEntity extends FallingBlockEntity {
                 this.setVelocityComponent(axis, Math.signum(preMove.get(axis)) * SCRAPE_SPEED);
             }
 
+            BlockState fragileGlass = truncated ? pdFirstFragileDestroy(result.destroyed()) : null;
+
+            if (traces != null) {
+                traces.add(pdAxisTrace(direction, preMove, truncated ? "impact" : "scrape",
+                    blocker, pushPos, success, fragileGlass != null));
+                if (success) {
+                    for (int rest = index + 1; rest < qualifying.size(); rest++) {
+                        traces.add(pdAxisTrace(qualifying.get(rest), preMove, "not-attempted", null, null, false, false));
+                    }
+                }
+            }
+
             // At most one sound per tick: a collision that truncated the axis is a hard impact,
             // any other qualifying axis is a scrape and is throttled so a long grind stays quiet.
+            // An impact that fragile-destroys glass plays that block's shatter instead.
             if (!soundPlayed) {
                 if (truncated) {
-                    this.pdPlayImpactSound(level);
+                    if (fragileGlass != null) {
+                        this.pdPlayGlassBreakSound(level, fragileGlass);
+                    } else {
+                        this.pdPlayImpactSound(level);
+                    }
                     soundPlayed = true;
                 } else if (this.pdScrapeSoundCooldown <= 0) {
                     this.pdPlayScrapeSound(level);
@@ -290,6 +343,10 @@ public class ProjectileBlockEntity extends FallingBlockEntity {
             if (success) {
                 break;
             }
+        }
+
+        if (traces != null) {
+            pdDebugEmit(preMove, traces);
         }
         return supportAffected;
     }
@@ -310,6 +367,64 @@ public class ProjectileBlockEntity extends FallingBlockEntity {
         SoundType sound = pd$getBlockState().getSoundType();
         level.playSound(null, this.getX(), this.getY(), this.getZ(),
             sound.getStepSound(), SoundSource.BLOCKS, 0.4F, sound.getPitch() * 1.3F);
+    }
+
+    /** A fragile (glass-sounding, normally pushable) block that the impact destroyed, if any. */
+    private static BlockState pdFirstFragileDestroy(List<BlockState> destroyed) {
+        for (BlockState state : destroyed) {
+            if (ModPistonStructureResolver.isFragileDestroy(state)) {
+                return state;
+            }
+        }
+        return null;
+    }
+
+    /** The destroyed fragile block's own shatter, played for the impact that broke it. */
+    private void pdPlayGlassBreakSound(ServerLevel level, BlockState glassState) {
+        SoundType sound = glassState.getSoundType();
+        level.playSound(null, this.getX(), this.getY(), this.getZ(),
+            sound.getBreakSound(), SoundSource.BLOCKS, 1.0F, sound.getPitch() * 0.9F);
+    }
+
+    /**
+     * One debug line for a pass whose motion was obstructed: the entity at its base coordinate
+     * ({@link #position()}, i.e. the feet plane — not the bounding-box centre the blocker search
+     * uses), its three velocity components, then one line per processed axis in descending speed
+     * order carrying the action ({@code impact}/{@code scrape}/{@code none}) and, for an action,
+     * the blocker cell, the cell the pistonless push is issued from (one behind the blocker) and
+     * whether it moved anything.
+     */
+    private void pdDebugEmit(Vec3 preMove, List<String> axisTraces) {
+        PistonDiversified.LOGGER.info(
+            "[piston_diversified] motion obstructed: entity=({}, {}, {}) vel=({}, {}, {})",
+            fmt(this.getX()), fmt(this.getY()), fmt(this.getZ()),
+            fmt(preMove.x), fmt(preMove.y), fmt(preMove.z)
+        );
+        for (String trace : axisTraces) {
+            PistonDiversified.LOGGER.info("[piston_diversified]   {}", trace);
+        }
+    }
+
+    private static String pdAxisTrace(Direction direction, Vec3 preMove, String action,
+                                      BlockPos blocker, BlockPos pushPos, boolean pushed, boolean glass) {
+        StringBuilder line = new StringBuilder();
+        line.append(direction.getAxis().getName()).append(' ')
+            .append(fmt(Math.abs(preMove.get(direction.getAxis()))))
+            .append(" -> ").append(action);
+        if (blocker != null) {
+            line.append(" dir=").append(direction.getName())
+                .append(" blocker=(").append(blocker.getX()).append(", ").append(blocker.getY()).append(", ").append(blocker.getZ()).append(')')
+                .append(" push=(").append(pushPos.getX()).append(", ").append(pushPos.getY()).append(", ").append(pushPos.getZ()).append(')')
+                .append(" pushed=").append(pushed);
+            if (glass) {
+                line.append(" glass=true");
+            }
+        }
+        return line.toString();
+    }
+
+    private static String fmt(double value) {
+        return String.format(java.util.Locale.ROOT, "%.4f", value);
     }
 
     /** The cell just beyond the entity's bounding box face along the axis (nearest to the collision face). */

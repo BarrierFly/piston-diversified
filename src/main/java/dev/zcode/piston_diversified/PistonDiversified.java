@@ -23,6 +23,7 @@ public class PistonDiversified implements ModInitializer {
         ModBlocks.init();
         ModEntities.init();
         DyeConversions.register();
+        ImpactDebugCommand.register();
         LOGGER.info("Piston Diversified loaded: {} piston variants", ModBlocks.variantCount());
     }
 }
