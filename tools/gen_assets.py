@@ -406,7 +406,7 @@ def end_rod_base_model(vid):
                 },
             },
             {
-                "from": [6, 6, 4], "to": [10, 10, 16],
+                "from": [6, 6, 0], "to": [10, 10, 16],
                 "faces": {
                     "down": {"uv": [5, 4, 11, 16], "texture": "#rod"},
                     "up": {"uv": [5, 4, 11, 16], "texture": "#rod"},

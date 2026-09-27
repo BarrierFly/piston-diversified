@@ -352,8 +352,17 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
         BlockPos frontPos = pos.relative(facing);
         // instanceof, not a registry check: our modded heads must clear the way on retract too,
         // otherwise the vanilla resolver treats them as obstacles and the pull silently fails.
-        if (!extending && level.getBlockState(frontPos).getBlock() instanceof PistonHeadBlock) {
-            level.setBlock(frontPos, Blocks.AIR.defaultBlockState(), 276);
+        if (!extending) {
+            BlockState frontState = level.getBlockState(frontPos);
+            if (frontState.getBlock() instanceof PistonHeadBlock) {
+                // Vanilla clears the head with flag 276 (no neighbour updates). A signal-emitting
+                // head must still release its second-order update burst after it is gone, or
+                // redstone logic around the retracting piston stays stale.
+                level.setBlock(frontPos, Blocks.AIR.defaultBlockState(), 276);
+                if (frontState.getBlock() instanceof ModPistonHeadBlock modHead) {
+                    modHead.pdAfterHeadRemovedWithoutUpdate(level, frontPos, frontState);
+                }
+            }
         }
 
         PistonStructureResolver resolver = new PistonStructureResolver(level, pos, facing, extending);

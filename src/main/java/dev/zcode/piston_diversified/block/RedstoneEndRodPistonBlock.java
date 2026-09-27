@@ -37,7 +37,7 @@ public class RedstoneEndRodPistonBlock extends ModPistonBaseBlock {
     @Override
     public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
         Direction facing = state.getValue(FACING);
-        return Shapes.or(PdShapes.slab(facing, 12, 16), PdShapes.rod(facing, 4, 16, 4));
+        return Shapes.or(PdShapes.slab(facing, 12, 16), PdShapes.rod(facing, 0, 16, 4));
     }
 
     @Override

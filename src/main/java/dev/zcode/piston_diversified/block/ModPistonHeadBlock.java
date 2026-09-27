@@ -30,6 +30,15 @@ public class ModPistonHeadBlock extends PistonHeadBlock {
             && baseState.getValue(FACING) == headState.getValue(FACING);
     }
 
+    /**
+     * Called by the piston when it deletes this head through a no-update path. The vanilla
+     * retract clears the head with {@code setBlock(air, 276)} (no neighbour updates), so a
+     * signal-emitting head would otherwise lose its power silently. Plain geometric heads do
+     * nothing; {@code RedstoneEndRodPistonHeadBlock} releases the redstone-torch update burst.
+     */
+    public void pdAfterHeadRemovedWithoutUpdate(Level level, BlockPos pos, BlockState state) {
+    }
+
     @Override
     public boolean canSurvive(BlockState state, LevelReader level, BlockPos pos) {
         BlockState behind = level.getBlockState(pos.relative(state.getValue(FACING).getOpposite()));
