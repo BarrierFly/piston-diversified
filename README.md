@@ -24,6 +24,30 @@ A Fabric mod that adds piston variants. **Mod v1** ships the first 19 pistons of
 | Weak Piston | 虚弱活塞 | Cannot push; destroys destroy-on-push blocks; 2×2 rod. 推不动方块，可破坏易碎方块。 |
 | Fast Piston / Sticky | 快速活塞/黏塞 | Moving pistons finish the same tick progress reaches 1 (ice crafting). 移塞提前一tick落位。 |
 
+## Crafting / 合成
+
+All recipes are shapeless unless a 3-row grid is shown; in grids `T`/`P` = any planks, `#` = cobblestone, `R` = redstone. Recipes live in `data/piston_diversified/recipes` (`recipe` in 1.21+).
+
+除给出 3 行排布的为有序合成外，其余均为无序合成；排布中 `T`/`P` = 任意木板，`#` = 圆石，`R` = 红石粉。配方位于 `data/piston_diversified/recipes`（1.21+ 为 `recipe`）。
+
+| Piston | 活塞 | Crafting / 合成 |
+| --- | --- | --- |
+| Honey Piston | 蜂蜜活塞 | Piston + Honey Bottle / 活塞 + 蜂蜜瓶 |
+| Projectile Piston | 抛射活塞 | Piston + Bow / 活塞 + 弓 |
+| Chain Piston / Sticky | 连锁型活塞/黏塞 | Cyan dye on Piston / Sticky / Loop (see Conversions) / 对活塞、黏塞或循环塞使用青色染料（见转换） |
+| Loop Piston | 循环型活塞 | Purple dye on Piston / Chain (see Conversions) / 对活塞或连锁塞使用紫色染料（见转换） |
+| Wind Charge Piston | 风弹活塞 | Piston + Wind Charge / 活塞 + 风弹（1.20.5+ only, no recipe in 1.19.4 / 仅 1.20.5+，1.19.4 无配方） |
+| Silent Piston | 静音活塞 | Piston + any Wool / 活塞 + 任意羊毛 |
+| Recoil Piston | 后坐活塞 | Grid `TTT` / `PXP` / `#R#`, `X` = iron ingot / 排布中 `X` = 铁锭 |
+| Piston End Rod | 活塞端杆 | Piston + End Rod / 活塞 + 末地烛 |
+| Skull Piston | 头颅活塞 | Piston + the 6 mob heads (skeleton, wither skeleton, zombie, player, creeper, dragon) / 活塞 + 六种生物头颅 |
+| Directional QC Piston / Sticky | 随朝向QC活塞/黏塞 | Grid `TRT` / `#X#` / `#P#`, `X` = iron ingot; sticky: QC Piston + Slime Ball / 排布中 `X` = 铁锭；黏性版 = QC活塞 + 黏液球 |
+| Observer Piston / Sticky | 侦测器活塞/黏塞 | Piston + Observer / 活塞 + 侦测器; sticky: Observer Piston + Slime Ball / 黏性版 = 侦测器活塞 + 黏液球 |
+| Piston Redstone End Rod | 活塞红石端杆 | Piston + End Rod + Redstone / 活塞 + 末地烛 + 红石粉 |
+| Long Push Piston | 长推活塞 | Piston + Block of Redstone / 活塞 + 红石块 |
+| Weak Piston | 虚弱活塞 | Grid `TTT` / `#N#` / `#R#`, `N` = iron nugget / 排布中 `N` = 铁粒 |
+| Fast Piston / Sticky | 快速活塞/黏塞 | Grid `TTT` / `#I#` / `#R#`, `I` = ice; sticky: Fast Piston + Slime Ball / 排布中 `I` = 冰；黏性版 = 快速活塞 + 黏液球 |
+
 ## Building / 构建
 
 Requires JDK 17/21/25 (auto-provisioned via foojay). Gradle 9.7.1 wrapper included.
