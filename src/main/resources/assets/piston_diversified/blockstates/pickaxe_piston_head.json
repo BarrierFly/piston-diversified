@@ -1,0 +1,280 @@
+{
+  "variants": {
+    "facing=north,short=false,tool=wooden,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_wooden"
+    },
+    "facing=south,short=false,tool=wooden,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_wooden",
+      "y": 180
+    },
+    "facing=west,short=false,tool=wooden,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_wooden",
+      "y": 270
+    },
+    "facing=east,short=false,tool=wooden,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_wooden",
+      "y": 90
+    },
+    "facing=up,short=false,tool=wooden,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_wooden",
+      "x": 270
+    },
+    "facing=down,short=false,tool=wooden,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_wooden",
+      "x": 90
+    },
+    "facing=north,short=true,tool=wooden,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_wooden_short"
+    },
+    "facing=south,short=true,tool=wooden,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_wooden_short",
+      "y": 180
+    },
+    "facing=west,short=true,tool=wooden,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_wooden_short",
+      "y": 270
+    },
+    "facing=east,short=true,tool=wooden,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_wooden_short",
+      "y": 90
+    },
+    "facing=up,short=true,tool=wooden,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_wooden_short",
+      "x": 270
+    },
+    "facing=down,short=true,tool=wooden,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_wooden_short",
+      "x": 90
+    },
+    "facing=north,short=false,tool=stone,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_stone"
+    },
+    "facing=south,short=false,tool=stone,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_stone",
+      "y": 180
+    },
+    "facing=west,short=false,tool=stone,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_stone",
+      "y": 270
+    },
+    "facing=east,short=false,tool=stone,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_stone",
+      "y": 90
+    },
+    "facing=up,short=false,tool=stone,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_stone",
+      "x": 270
+    },
+    "facing=down,short=false,tool=stone,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_stone",
+      "x": 90
+    },
+    "facing=north,short=true,tool=stone,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_stone_short"
+    },
+    "facing=south,short=true,tool=stone,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_stone_short",
+      "y": 180
+    },
+    "facing=west,short=true,tool=stone,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_stone_short",
+      "y": 270
+    },
+    "facing=east,short=true,tool=stone,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_stone_short",
+      "y": 90
+    },
+    "facing=up,short=true,tool=stone,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_stone_short",
+      "x": 270
+    },
+    "facing=down,short=true,tool=stone,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_stone_short",
+      "x": 90
+    },
+    "facing=north,short=false,tool=iron,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_iron"
+    },
+    "facing=south,short=false,tool=iron,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_iron",
+      "y": 180
+    },
+    "facing=west,short=false,tool=iron,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_iron",
+      "y": 270
+    },
+    "facing=east,short=false,tool=iron,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_iron",
+      "y": 90
+    },
+    "facing=up,short=false,tool=iron,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_iron",
+      "x": 270
+    },
+    "facing=down,short=false,tool=iron,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_iron",
+      "x": 90
+    },
+    "facing=north,short=true,tool=iron,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_iron_short"
+    },
+    "facing=south,short=true,tool=iron,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_iron_short",
+      "y": 180
+    },
+    "facing=west,short=true,tool=iron,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_iron_short",
+      "y": 270
+    },
+    "facing=east,short=true,tool=iron,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_iron_short",
+      "y": 90
+    },
+    "facing=up,short=true,tool=iron,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_iron_short",
+      "x": 270
+    },
+    "facing=down,short=true,tool=iron,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_iron_short",
+      "x": 90
+    },
+    "facing=north,short=false,tool=golden,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_golden"
+    },
+    "facing=south,short=false,tool=golden,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_golden",
+      "y": 180
+    },
+    "facing=west,short=false,tool=golden,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_golden",
+      "y": 270
+    },
+    "facing=east,short=false,tool=golden,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_golden",
+      "y": 90
+    },
+    "facing=up,short=false,tool=golden,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_golden",
+      "x": 270
+    },
+    "facing=down,short=false,tool=golden,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_golden",
+      "x": 90
+    },
+    "facing=north,short=true,tool=golden,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_golden_short"
+    },
+    "facing=south,short=true,tool=golden,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_golden_short",
+      "y": 180
+    },
+    "facing=west,short=true,tool=golden,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_golden_short",
+      "y": 270
+    },
+    "facing=east,short=true,tool=golden,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_golden_short",
+      "y": 90
+    },
+    "facing=up,short=true,tool=golden,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_golden_short",
+      "x": 270
+    },
+    "facing=down,short=true,tool=golden,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_golden_short",
+      "x": 90
+    },
+    "facing=north,short=false,tool=diamond,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_diamond"
+    },
+    "facing=south,short=false,tool=diamond,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_diamond",
+      "y": 180
+    },
+    "facing=west,short=false,tool=diamond,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_diamond",
+      "y": 270
+    },
+    "facing=east,short=false,tool=diamond,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_diamond",
+      "y": 90
+    },
+    "facing=up,short=false,tool=diamond,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_diamond",
+      "x": 270
+    },
+    "facing=down,short=false,tool=diamond,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_diamond",
+      "x": 90
+    },
+    "facing=north,short=true,tool=diamond,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_diamond_short"
+    },
+    "facing=south,short=true,tool=diamond,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_diamond_short",
+      "y": 180
+    },
+    "facing=west,short=true,tool=diamond,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_diamond_short",
+      "y": 270
+    },
+    "facing=east,short=true,tool=diamond,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_diamond_short",
+      "y": 90
+    },
+    "facing=up,short=true,tool=diamond,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_diamond_short",
+      "x": 270
+    },
+    "facing=down,short=true,tool=diamond,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_diamond_short",
+      "x": 90
+    },
+    "facing=north,short=false,tool=netherite,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_netherite"
+    },
+    "facing=south,short=false,tool=netherite,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_netherite",
+      "y": 180
+    },
+    "facing=west,short=false,tool=netherite,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_netherite",
+      "y": 270
+    },
+    "facing=east,short=false,tool=netherite,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_netherite",
+      "y": 90
+    },
+    "facing=up,short=false,tool=netherite,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_netherite",
+      "x": 270
+    },
+    "facing=down,short=false,tool=netherite,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_netherite",
+      "x": 90
+    },
+    "facing=north,short=true,tool=netherite,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_netherite_short"
+    },
+    "facing=south,short=true,tool=netherite,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_netherite_short",
+      "y": 180
+    },
+    "facing=west,short=true,tool=netherite,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_netherite_short",
+      "y": 270
+    },
+    "facing=east,short=true,tool=netherite,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_netherite_short",
+      "y": 90
+    },
+    "facing=up,short=true,tool=netherite,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_netherite_short",
+      "x": 270
+    },
+    "facing=down,short=true,tool=netherite,type=normal": {
+      "model": "piston_diversified:block/pickaxe_piston_head_netherite_short",
+      "x": 90
+    }
+  }
+}

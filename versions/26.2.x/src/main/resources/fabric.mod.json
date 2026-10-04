@@ -3,7 +3,7 @@
   "id": "${id}",
   "version": "${version}",
   "name": "${name}",
-  "description": "Adds piston variants. v1 batch: 19 pistons (honey, projectile, chain, loop, wind charge, silent, recoil, end rod, skull, directional QC, observer, redstone end rod, long push, weak, fast).",
+  "description": "Adds 33 piston variants: v1 batch (honey, projectile, chain, loop, wind charge, silent, recoil, end rod, skull, directional QC, observer, redstone end rod, long push, weak, fast) and v2 batch (potato, pickaxe, recursive, turn push, wall merge, 0-tick, gravity, strong I-III).",
   "authors": [
     "ZCode"
   ],

@@ -23,7 +23,7 @@ public class LongPushPistonBlock extends ModPistonBaseBlock {
     }
 
     @Override
-    protected boolean canRetract() {
+    protected boolean canRetract(net.minecraft.world.level.Level level, BlockPos pos, BlockState state) {
         return false;
     }
 

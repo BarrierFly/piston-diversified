@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "redstone",
+  "ingredients": [
+    "minecraft:piston",
+    "minecraft:piston"
+  ],
+  "result": {
+    "count": 1,
+    "id": "piston_diversified:recursive_piston"
+  }
+}

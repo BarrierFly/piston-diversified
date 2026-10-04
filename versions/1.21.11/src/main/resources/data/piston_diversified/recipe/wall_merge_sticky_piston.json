@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "redstone",
+  "ingredients": [
+    "piston_diversified:wall_merge_piston",
+    "minecraft:slime_ball"
+  ],
+  "result": {
+    "count": 1,
+    "id": "piston_diversified:wall_merge_sticky_piston"
+  }
+}

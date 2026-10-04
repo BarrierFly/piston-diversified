@@ -1,8 +1,8 @@
 # Piston Diversified / 活塞多样化
 
-A Fabric mod that adds piston variants. **Mod v1** ships the first 19 pistons of the plan; the remaining 11 (potato, pickaxe, recursive ×2, corner-push ×2, wall-parallel ×2, 0t-scheduled-tick ×2, gravity) are planned for mod v2.
+A Fabric mod that adds piston variants. **Mod v2** completes the plan: all 33 pistons ship, in two batches (v1 = 19, v2 = 14).
 
-一个添加活塞变种的 Fabric 模组。**mod v1** 包含规划中的前 19 种活塞；其余 11 种（马铃薯、镐、递推×2、拐推×2、墙并×2、0t计划刻×2、重力）计划放在 mod v2。
+一个添加活塞变种的 Fabric 模组。**mod v2** 完成规划：33 种活塞全部实装，分两批（v1 = 19 种，v2 = 14 种）。
 
 ## Piston list / 活塞列表 (v1)
 
@@ -23,6 +23,32 @@ A Fabric mod that adds piston variants. **Mod v1** ships the first 19 pistons of
 | Long Push Piston | 长推活塞 | Extends on placement, never retracts. 放置直接推出，永不收回。 |
 | Weak Piston | 虚弱活塞 | Cannot push; destroys destroy-on-push blocks; 2×2 rod. 推不动方块，可破坏易碎方块。 |
 | Fast Piston / Sticky | 快速活塞/黏塞 | Moving pistons finish the same tick progress reaches 1 (ice crafting). 移塞提前一tick落位。 |
+
+## Piston list / 活塞列表 (v2)
+
+| Piston | 活塞 | Notes / 说明 |
+| --- | --- | --- |
+| Potato Piston | 马铃薯活塞 | Floatater-style structure selection (3 connection rules, `potato_push_limit` gamerule, default 32); the pushed structure keeps gliding through the air after the piston is gone (递归飞行). 结构选取采用三条连接规则，飞行结构递归推进。 |
+| Pickaxe Piston | 镐活塞 | Mines the front block with its carried pickaxe instead of pushing it (silky touch / fortune apply, no durability); the tool rides on the block and the item. 用携带的镐瞬间挖掘前方方块，镐随方块与物品无损往返。 |
+| Recursive Piston / Sticky | 递推活塞/黏塞 | Telescoping arm: while powered the head pushes out one cell at a time (head + rods against the 12 push budget). 通电时逐格伸出，头与杆计入推动上限。 |
+| Turn Push Piston / Sticky | 拐推活塞/黏塞 | Pushes the front structure sideways (placement-time bend direction) and ends in a bent head; the sticky version pulls back along the bend. 推出方向为放置时选定的拐弯方向，黏性版可沿拐弯方向拉回。 |
+| Wall Merge Piston / Sticky | 墙并活塞/黏塞 | Wall-post rods connect side-by-side pistons; the group holds out while any base is powered and retracts together (sticky groups share the summed pull budget). 杆部连成墙，任一底座有信号则整组不收回。 |
+| 0-Tick Piston / Sticky | 0t计划刻活塞/黏塞 | Block events replaced by 0gt scheduled ticks; the extend/retract decision is re-derived from live signals when the tick runs. 以0gt计划刻代替方块事件。 |
+| Gravity Piston | 重力活塞 | Up = normal push; sideways = the head becomes a falling block; down = telescopes through air until it meets a block; a headless base cannot retract. 侧推头变重力方块，下推逐格伸出，无头底座不可收回。 |
+| Strong Piston I / II / III | 强力活塞一/二/三档 | Counts unpushable blocks (obsidian, bedrock, …) as 6 / 3 / 2 pushable blocks against the 12 budget, so they really move (1.21.4+; the blocks still exist on 1.19.4). 不可推动方块按 6/3/2 折算计入推动上限并真实移动。 |
+
+## Piston list / 活塞列表 (v2)
+
+| Piston | 活塞 | Notes / 说明 |
+| --- | --- | --- |
+| Potato Piston | 马铃薯活塞 | Floatater-style structure selection (3 connection rules,  gamerule, default 32); the pushed structure keeps gliding through the air after the piston is gone (递归飞行). 结构选取采用三条连接规则，飞行结构递归推进。 |
+| Pickaxe Piston | 镐活塞 | Mines the front block with its carried pickaxe instead of pushing it (silky touch / fortune apply, no durability); the tool rides on the block and the item. 用携带的镐瞬间挖掘前方方块，镐随方块与物品无损往返。 |
+| Recursive Piston / Sticky | 递推活塞/黏塞 | Telescoping arm: while powered the head pushes out one cell at a time (head + rods against the 12 push budget). 通电时逐格伸出，头与杆计入推动上限。 |
+| Turn Push Piston / Sticky | 拐推活塞/黏塞 | Pushes the front structure sideways (placement-time bend direction) and ends in a bent head; the sticky version pulls back along the bend. 推出方向为放置时选定的拐弯方向，黏性版可沿拐弯方向拉回。 |
+| Wall Merge Piston / Sticky | 墙并活塞/黏塞 | Wall-post rods connect side-by-side pistons; the group holds out while any base is powered and retracts together (sticky groups share the summed pull budget). 杆部连成墙，任一底座有信号则整组不收回。 |
+| 0-Tick Piston / Sticky | 0t计划刻活塞/黏塞 | Block events replaced by 0gt scheduled ticks; the extend/retract decision is re-derived from live signals when the tick runs. 以0gt计划刻代替方块事件。 |
+| Gravity Piston | 重力活塞 | Up = normal push; sideways = the head becomes a falling block; down = telescopes through air until it meets a block; a headless base cannot retract. 侧推头变重力方块，下推逐格伸出，无头底座不可收回。 |
+| Strong Piston I / II / III | 强力活塞一/二/三档 | Counts unpushable blocks (obsidian, bedrock, …) as 6 / 3 / 2 pushable blocks against the 12 budget, so they really move (1.21.4+; the blocks still exist on 1.19.4). 不可推动方块按 6/3/2 折算计入推动上限并真实移动。 |
 
 ## Crafting / 合成
 
@@ -47,6 +73,14 @@ All recipes are shapeless unless a 3-row grid is shown; in grids `T`/`P` = any p
 | Long Push Piston | 长推活塞 | Piston + Block of Redstone / 活塞 + 红石块 |
 | Weak Piston | 虚弱活塞 | Grid `TTT` / `#N#` / `#R#`, `N` = iron nugget / 排布中 `N` = 铁粒 |
 | Fast Piston / Sticky | 快速活塞/黏塞 | Grid `TTT` / `#I#` / `#R#`, `I` = ice; sticky: Fast Piston + Slime Ball / 排布中 `I` = 冰；黏性版 = 快速活塞 + 黏液球 |
+| Potato Piston | 马铃薯活塞 | Piston + Potato / Poisonous Potato / 活塞 + 马铃薯或毒马铃薯 |
+| Pickaxe Piston | 镐活塞 | Piston + any Pickaxe (the pickaxe is kept) / 活塞 + 任意镐（镐被保留） |
+| Recursive Piston / Sticky | 递推活塞/黏塞 | Piston + Piston / 活塞 + 活塞; sticky: Grid `SS` / `SS`, `S` = Sticky Piston / 黏性版排布 `S` = 黏塞 |
+| Turn Push Piston / Sticky | 拐推活塞/黏塞 | Grid `#TT` / `#X#` / `#R#` (or the mirrored form with the planks on the right); sticky: + Slime Ball / 排布见左，木板也可放右侧；黏性版 = 拐推活塞 + 黏液球 |
+| Wall Merge Piston / Sticky | 墙并活塞/黏塞 | Piston + any Wall / 活塞 + 任意墙; sticky: + Slime Ball / 黏性版 = 墙并活塞 + 黏液球 |
+| 0-Tick Piston / Sticky | 0t计划刻活塞/黏塞 | Piston + String / 活塞 + 线; sticky: + Slime Ball / 黏性版 = 0t活塞 + 黏液球 |
+| Gravity Piston | 重力活塞 | Grid `TTT` / `#G#` / `#R#`, `G` = Gravel / 排布中 `G` = 砂砾 |
+| Strong Piston I / II / III | 强力活塞一/二/三档 | Vanilla piston grid with 1 / 2 / 3 of the top planks replaced by Creaking Hearts (`H`) / 原版活塞配方上排改 1/2/3 个嘎枝之心 `H`（1.21.4+） |
 
 ## Building / 构建
 
@@ -61,6 +95,30 @@ Requires JDK 17/21/25 (auto-provisioned via foojay). Gradle 9.7.1 wrapper includ
 Multi-version via [Stonecutter](https://stonecutter.kikugie.dev/): 1.19.4 / 1.21.10 / 1.21.11 / 26.2, mojang mappings, primary version 1.21.11.
 
 多版本由 Stonecutter 管理，主版本 1.21.11，使用 mojang mappings。
+
+Version-specific availability: the wind charge piston needs 1.20.5+, the strong pistons need the creaking heart (1.21.4+) — on older versions the blocks exist (creative tab / commands) but have no recipe.
+
+版本差异：风弹活塞需 1.20.5+，强力活塞需嘎枝之心（1.21.4+）；旧版本方块仍注册（创造栏/指令可得）但无配方。
+
+Gamerule / 规则： (default 32) caps the potato piston's structure size.
+
+## Testing / 测试
+
+ boots a headless dev server over RCON and asserts piston behaviour (data-file parse check plus 13 front-cell / variant cases across 1.19.4, 1.21.10, 1.21.11 and 26.2).
+
+ 启动无头开发服并通过 RCON 断言活塞行为（数据文件解析检查 + 13 项用例，已在四个版本节点上跑通）。
+
+Version-specific availability: the wind charge piston needs 1.20.5+, the strong pistons need the creaking heart (1.21.4+) — on older versions the blocks exist (creative tab / commands) but have no recipe.
+
+版本差异：风弹活塞需 1.20.5+，强力活塞需嘎枝之心（1.21.4+）；旧版本方块仍注册（创造栏/指令可得）但无配方。
+
+Gamerule / 规则：`potato_push_limit` (default 32) caps the potato piston's structure size.
+
+## Testing / 测试
+
+`tools/piston_testbed.py` boots a headless dev server over RCON and asserts piston behaviour (data-file parse check plus 13 variant cases) on all four version nodes.
+
+`tools/piston_testbed.py` 启动无头开发服并通过 RCON 断言活塞行为（数据文件解析检查 + 13 项用例），四个版本节点均已跑通。
 
 ## Conversions / 转换
 

@@ -85,7 +85,87 @@ ROD_BEIGE = (219, 223, 211)
 FONT = {
     "Q": ["###", "#.#", "#.#", "###", "..#"],
     "C": ["###", "#..", "#..", "#..", "###"],
+    "S": ["###", "#..", "###", "..#", "###"],
+    "T": ["###", ".#.", ".#.", ".#.", ".#."],
+    "1": ["..#", ".##", "..#", "..#", ".##"],
+    "2": ["###", "..#", "###", "#..", "###"],
+    "3": ["###", "..#", "###", "..#", "###"],
 }
+
+# Pickaxe materials → tint of the drawn icon (blockstate TOOL drives the plate texture)
+PICKAXE_TINTS = {
+    "wooden": (157, 128, 79),
+    "stone": (129, 129, 129),
+    "iron": (216, 216, 216),
+    "golden": (252, 205, 84),
+    "diamond": (86, 219, 219),
+    "netherite": (68, 68, 74),
+}
+
+# 8x8 pickaxe silhouette (af2023-style), drawn centred on the plate
+PICKAXE_ICON = [
+    "........",
+    "..###...",
+    ".#####..",
+    "..###.##",
+    "...##..#",
+    "..###...",
+    ".###....",
+    "........",
+]
+
+# 5x7 arrow head, oriented per bend direction (arrow points at the bend)
+ARROW_ICON = [
+    "..#..",
+    ".###.",
+    "#####",
+    "..#..",
+    "..#..",
+]
+
+
+def _blit(img, icon, ox, oy, color):
+    """Draw a pixel-art icon onto img at (ox, oy) with an outline."""
+    d = ImageDraw.Draw(img)
+    for ry, row in enumerate(icon):
+        for rx, c in enumerate(row):
+            if c != "#":
+                continue
+            x, y = ox + rx, oy + ry
+            d.rectangle([x, y, x + 1, y + 1], fill=(18, 18, 18, 255))
+            d.rectangle([x + 1, y + 1, x + 2, y + 2], fill=color)
+
+
+def _draw_pickaxe_icon(img, tool, color):
+    _blit(img, PICKAXE_ICON, 4, 4, (*color, 255))
+
+
+def _draw_bend_arrow(img, bend):
+    """Arrow on the plate pointing at the bend direction (north/south/west/east)."""
+    color = (60, 60, 70, 255)
+    if bend in ("north", "south"):
+        arrow = ARROW_ICON if bend == "north" else list(reversed(ARROW_ICON))
+        _blit(img, arrow, 5, 4, color)
+    else:
+        rotated = [list(row) for row in zip(*ARROW_ICON)]
+        arrow = [list(row) for row in rotated]
+        if bend == "west":
+            arrow = [row[::-1] for row in arrow]
+        _blit(img, arrow, 5, 4, color)
+
+
+def _draw_creaking_heart(img, origin, tint=(196, 62, 74)):
+    """A small creaking-heart mark (规划 v3 §31: one per tier on the plate)."""
+    icon = [
+        ".##.##.",
+        "#######",
+        "#######",
+        ".#####.",
+        "..###..",
+        "...#...",
+    ]
+    _blit(img, icon, origin[0], origin[1], (*tint, 255))
+
 
 def draw_text(img, text, ox, oy, scale, color=(255, 255, 255, 255), shadow=(20, 20, 20, 255)):
     d = ImageDraw.Draw(img)
@@ -146,6 +226,11 @@ def build_textures(v: Vanilla):
         "wool": v.texture("block/white_wool"),
         "observer_front": v.texture("block/observer_front"),
         "wind_charge": v.texture("item/wind_charge"),
+        "creaking_heart": v.texture("block/creaking_heart"),
+        "potatoes": v.texture("block/potatoes_stage3"),
+        "mud": v.texture("block/mud"),
+        "granite": v.texture("block/granite"),
+        "water": v.texture("block/water_still"),
     }
 
     out = {}
@@ -241,12 +326,66 @@ def build_textures(v: Vanilla):
     emit("fast_sticky_piston", side=ice_side, top=src["top"], bottom=src["bottom"], inner=ice_inner,
          sticky=src["sticky"])
 
+    # ---- v2 variants ----
+
+    # 马铃薯活塞: floatater slime face (af2024) on the plate
+    floatater = Image.open(os.path.join(HERE, "template_textures", "floatater_front.png")).convert("RGBA")
+    emit("potato_piston", **{**vanilla_set, "top": floatater})
+
+    # 镐活塞: one plate per pickaxe material (TOOL blockstate selects it)
+    pickaxe_tops = {}
+    for tool, tint_color in PICKAXE_TINTS.items():
+        tool_top = src["top"].copy()
+        _draw_pickaxe_icon(tool_top, tool, tint_color)
+        pickaxe_tops[tool] = tool_top
+    # the default state (iron) doubles as the plain "<vid>_top"
+    emit("pickaxe_piston", **{**vanilla_set, "top": pickaxe_tops["iron"]},
+         extra={f"pickaxe_piston_top_{tool}": top for tool, top in pickaxe_tops.items()})
+
+    # 递推活塞: plate + bare-rod base model (custom geometry, vanilla textures)
+    emit("recursive_piston", **vanilla_set)
+    emit("recursive_sticky_piston", **vanilla_set, sticky=src["sticky"])
+
+    # 拐推活塞: arrow on the plate, pointing at the bend (drawn per bend direction)
+    for bend in ("north", "south", "west", "east"):
+        arrow_top = src["top"].copy()
+        _draw_bend_arrow(arrow_top, bend)
+        emit(f"turn_push_piston", **{**vanilla_set, "top": arrow_top},
+             extra={f"turn_push_piston_top_{bend}": arrow_top})
+    for bend in ("north", "south", "west", "east"):
+        arrow_sticky = src["sticky"].copy()
+        _draw_bend_arrow(arrow_sticky, bend)
+        emit(f"turn_push_sticky_piston", **vanilla_set, sticky=arrow_sticky,
+             extra={f"turn_push_sticky_piston_top_{bend}": arrow_sticky})
+
+    # 墙并活塞: wall-post rod (custom geometry, vanilla textures)
+    emit("wall_merge_piston", **vanilla_set)
+    emit("wall_merge_sticky_piston", **vanilla_set, sticky=src["sticky"])
+
+    # 0t计划刻活塞: "ST" on the plate
+    st_top = draw_text(src["top"].copy(), "ST", 2, 5, 1)
+    st_sticky = draw_text(src["sticky"].copy(), "ST", 2, 5, 1)
+    emit("st_piston", **{**vanilla_set, "top": st_top})
+    emit("st_sticky_piston", **vanilla_set, sticky=st_sticky)
+
+    # 重力活塞: gravel patch on the base side texture
+    emit("gravity_piston", side=blend_with(src["side"], src["granite"], 0.45),
+         top=src["top"], bottom=src["bottom"], inner=src["inner"])
+
+    # 强力活塞: 1~3 creaking hearts on the plate
+    for tier in (1, 2, 3):
+        hearts = src["top"].copy()
+        for i in range(tier):
+            _draw_creaking_heart(hearts, (3 + i * 5, 4))
+        emit(f"strong_piston_{tier}", **{**vanilla_set, "top": hearts})
+
     return out
 
 # ---------------------------------------------------------------- variants metadata
 
 # (id, sticky, custom, head_kind)
-# head_kind: "plate" (vanilla geometry), "end_rod", "weak", "recoil", "skull"
+# head_kind: "plate" (vanilla geometry), "end_rod", "weak", "recoil", "skull",
+#            "bare_rod", "wall_rod", "bent" (arrow plate, BEND blockstate), "gravity"
 VARIANTS = [
     ("honey_piston", True, False, "plate"),
     ("projectile_piston", False, False, "plate"),
@@ -267,6 +406,21 @@ VARIANTS = [
     ("weak_piston", False, False, "weak"),
     ("fast_piston", False, False, "plate"),
     ("fast_sticky_piston", True, False, "plate"),
+    # ---- v2 ----
+    ("potato_piston", False, False, "plate"),
+    ("pickaxe_piston", False, False, "pickaxe"),
+    ("recursive_piston", False, True, "bare_rod"),
+    ("recursive_sticky_piston", True, True, "bare_rod"),
+    ("turn_push_piston", False, True, "bent"),
+    ("turn_push_sticky_piston", True, True, "bent"),
+    ("wall_merge_piston", False, True, "wall_rod"),
+    ("wall_merge_sticky_piston", True, True, "wall_rod"),
+    ("st_piston", False, False, "plate"),
+    ("st_sticky_piston", True, False, "plate"),
+    ("gravity_piston", False, False, "gravity"),
+    ("strong_piston_1", False, False, "plate"),
+    ("strong_piston_2", False, False, "plate"),
+    ("strong_piston_3", False, False, "plate"),
 ]
 
 LANG_EN = {
@@ -289,6 +443,20 @@ LANG_EN = {
     "weak_piston": "Weak Piston",
     "fast_piston": "Fast Piston",
     "fast_sticky_piston": "Fast Sticky Piston",
+    "potato_piston": "Potato Piston",
+    "pickaxe_piston": "Pickaxe Piston",
+    "recursive_piston": "Recursive Piston",
+    "recursive_sticky_piston": "Recursive Sticky Piston",
+    "turn_push_piston": "Turn Push Piston",
+    "turn_push_sticky_piston": "Turn Push Sticky Piston",
+    "wall_merge_piston": "Wall Merge Piston",
+    "wall_merge_sticky_piston": "Wall Merge Sticky Piston",
+    "st_piston": "0-Tick Piston",
+    "st_sticky_piston": "0-Tick Sticky Piston",
+    "gravity_piston": "Gravity Piston",
+    "strong_piston_1": "Strong Piston I",
+    "strong_piston_2": "Strong Piston II",
+    "strong_piston_3": "Strong Piston III",
 }
 
 LANG_ZH = {
@@ -311,6 +479,20 @@ LANG_ZH = {
     "weak_piston": "虚弱活塞",
     "fast_piston": "快速活塞",
     "fast_sticky_piston": "快速黏塞",
+    "potato_piston": "马铃薯活塞",
+    "pickaxe_piston": "镐活塞",
+    "recursive_piston": "递推活塞",
+    "recursive_sticky_piston": "递推黏塞",
+    "turn_push_piston": "拐推活塞",
+    "turn_push_sticky_piston": "拐推黏塞",
+    "wall_merge_piston": "墙并活塞",
+    "wall_merge_sticky_piston": "墙并黏塞",
+    "st_piston": "0t计划刻活塞",
+    "st_sticky_piston": "0t计划刻黏塞",
+    "gravity_piston": "重力活塞",
+    "strong_piston_1": "强力活塞一档",
+    "strong_piston_2": "强力活塞二档",
+    "strong_piston_3": "强力活塞三档",
 }
 
 FACING_ROT = {
@@ -519,6 +701,216 @@ def recoil_head_model(vid, short):
         ],
     }
 
+
+# ---- v2 custom geometries -------------------------------------------------------
+
+# Which bend direction a placement-facing state resolves to by default (the blockstate carries
+# every one; this mapping only keeps the generator's base blockstate complete).
+BEND_FOR = {
+    "north": "east", "south": "west", "west": "south", "east": "north",
+    "up": "north", "down": "north",
+}
+
+
+def recursive_base_model(vid, extended):
+    """递推 base: thin plate at the back plus a bare rod running to the front face.
+
+    At rest the plate still occupies the front 4px of this cell (the head is in the cell next
+    door); extended it is a 4px plate + rod only.
+    """
+    plate_from, plate_to = (12, 16) if extended else (12, 16)
+    elements = [
+        {
+            "from": [0, 0, 0], "to": [16, 16, 4],
+            "faces": {
+                "down": {"uv": [0, 0, 16, 4], "texture": "#side", "rotation": 180, "cullface": "down"},
+                "up": {"uv": [0, 0, 16, 4], "texture": "#side", "cullface": "up"},
+                "north": {"uv": [0, 0, 16, 16], "texture": "#bottom"},
+                "south": {"uv": [0, 0, 16, 16], "texture": "#bottom"},
+                "west": {"uv": [0, 0, 16, 4], "texture": "#side", "rotation": 270, "cullface": "west"},
+                "east": {"uv": [0, 0, 16, 4], "texture": "#side", "rotation": 90, "cullface": "east"},
+            },
+        },
+        {
+            "from": [6, 6, 0], "to": [10, 10, 12],
+            "faces": {
+                "down": {"uv": [5, 4, 11, 12], "texture": "#side", "rotation": 90},
+                "up": {"uv": [5, 4, 11, 12], "texture": "#side", "rotation": 270},
+                "north": {"uv": [5, 4, 11, 8], "texture": "#side"},
+                "south": {"uv": [5, 4, 11, 12], "texture": "#side"},
+                "west": {"uv": [12, 4, 4, 10], "texture": "#side"},
+                "east": {"uv": [12, 4, 4, 10], "texture": "#side"},
+            },
+        },
+    ]
+    if not extended:
+        elements.append({
+            "from": [0, 0, 12], "to": [16, 16, 16],
+            "faces": {
+                "down": {"uv": [0, 0, 16, 4], "texture": "#side", "rotation": 180},
+                "up": {"uv": [0, 0, 16, 4], "texture": "#side"},
+                "north": {"uv": [0, 0, 16, 16], "texture": "#platform", "cullface": "north"},
+                "south": {"uv": [0, 0, 16, 16], "texture": "#platform"},
+                "west": {"uv": [0, 0, 16, 4], "texture": "#side", "rotation": 270},
+                "east": {"uv": [0, 0, 16, 4], "texture": "#side", "rotation": 90},
+            },
+        })
+    return {
+        "parent": "block/block",
+        "textures": {
+            "particle": f"{NS}:block/{vid}_side",
+            "platform": f"{NS}:block/{vid}_top",
+            "side": f"{NS}:block/{vid}_side",
+            "bottom": f"{NS}:block/{vid}_bottom",
+        },
+        "elements": elements,
+    }
+
+
+def bare_rod_head_model(vid, short, sticky=False):
+    """递推 head: plate + rod, rod continues into the previous cell when not short."""
+    return _plate_rod_head(vid, short, sticky, rod_width=4, rod_from=0)
+
+
+def wall_rod_head_model(vid, short, sticky=False):
+    """墙并 head: plate + 8px wall-centre-post rod."""
+    return _plate_rod_head(vid, short, sticky, rod_width=8, rod_from=0)
+
+
+def _plate_rod_head(vid, short, sticky, rod_width, rod_from):
+    half = rod_width / 2
+    arm_to = 12 if short else 20
+    platform = f"{NS}:block/{vid}_top_sticky" if sticky else f"{NS}:block/{vid}_top"
+    return {
+        "parent": "block/block",
+        "textures": {
+            "particle": f"{NS}:block/{vid}_side",
+            "platform": platform,
+            "side": f"{NS}:block/{vid}_side",
+        },
+        "elements": [
+            {
+                "from": [0, 0, 0], "to": [16, 16, 4],
+                "faces": {
+                    "down": {"uv": [0, 0, 16, 4], "texture": "#side", "rotation": 180, "cullface": "down"},
+                    "up": {"uv": [0, 0, 16, 4], "texture": "#side", "cullface": "up"},
+                    "north": {"uv": [0, 0, 16, 16], "texture": "#platform", "cullface": "north"},
+                    "south": {"uv": [0, 0, 16, 16], "texture": "#platform"},
+                    "west": {"uv": [0, 0, 16, 4], "texture": "#side", "rotation": 270, "cullface": "west"},
+                    "east": {"uv": [0, 0, 16, 4], "texture": "#side", "rotation": 90, "cullface": "east"},
+                },
+            },
+            {
+                "from": [8 - half, 8 - half, rod_from], "to": [8 + half, 8 + half, arm_to],
+                "faces": {
+                    "down": {"uv": [4, rod_from, 12, arm_to], "texture": "#side", "rotation": 90},
+                    "up": {"uv": [4, rod_from, 12, arm_to], "texture": "#side", "rotation": 270},
+                    "north": {"uv": [4, rod_from, 12, 8], "texture": "#side"},
+                    "south": {"uv": [4, rod_from, 12, arm_to], "texture": "#side"},
+                    "west": {"uv": [arm_to, 4, rod_from, 12], "texture": "#side"},
+                    "east": {"uv": [arm_to, 4, rod_from, 12], "texture": "#side"},
+                },
+            },
+        ],
+    }
+
+
+def bare_rod_model():
+    """递推杆 block: a bare 4px rod spanning the cell."""
+    return {
+        "parent": "block/block",
+        "textures": {"particle": f"{NS}:block/recursive_piston_side", "side": f"{NS}:block/recursive_piston_side"},
+        "elements": [
+            {
+                "from": [6, 6, 0], "to": [10, 10, 16],
+                "faces": {
+                    "down": {"uv": [5, 0, 11, 16], "texture": "#side", "rotation": 90},
+                    "up": {"uv": [5, 0, 11, 16], "texture": "#side", "rotation": 270},
+                    "north": {"uv": [5, 0, 11, 6], "texture": "#side"},
+                    "south": {"uv": [5, 0, 11, 16], "texture": "#side"},
+                    "west": {"uv": [0, 5, 16, 11], "texture": "#side"},
+                    "east": {"uv": [0, 5, 16, 11], "texture": "#side"},
+                },
+            },
+        ],
+    }
+
+
+def wall_post_model():
+    """墙并杆 block: an 8px wall-centre post spanning the cell."""
+    return {
+        "parent": "block/block",
+        "textures": {"particle": f"{NS}:block/wall_merge_piston_side", "side": f"{NS}:block/wall_merge_piston_side"},
+        "elements": [
+            {
+                "from": [4, 4, 0], "to": [12, 12, 16],
+                "faces": {
+                    "down": {"uv": [3, 0, 13, 16], "texture": "#side", "rotation": 90},
+                    "up": {"uv": [3, 0, 13, 16], "texture": "#side", "rotation": 270},
+                    "north": {"uv": [3, 0, 13, 8], "texture": "#side"},
+                    "south": {"uv": [3, 0, 13, 16], "texture": "#side"},
+                    "west": {"uv": [0, 3, 16, 13], "texture": "#side"},
+                    "east": {"uv": [0, 3, 16, 13], "texture": "#side"},
+                },
+            },
+        ],
+    }
+
+
+def _bend_rot(bend):
+    """Model rotation for a bend-facing base/head (the plate lives on the bend face)."""
+    return {"north": {}, "south": {"y": 180}, "west": {"y": 270}, "east": {"y": 90}}[bend]
+
+
+def bent_base_model(vid, bend, sticky, extended):
+    """拐推 base: vanilla base geometry, plate texture from the bend state."""
+    return {
+        "parent": "minecraft:block/piston_extended" if extended else "minecraft:block/template_piston",
+        "textures": {
+            "bottom": f"{NS}:block/{vid}_bottom",
+            "inside": f"{NS}:block/{vid}_inner",
+            "platform": f"{NS}:block/{vid}_top_sticky" if sticky else f"{NS}:block/{vid}_top",
+            "side": f"{NS}:block/{vid}_side",
+        },
+    }
+
+
+def bent_head_model(vid, bend, base_sticky, short, sticky_plate=False):
+    """拐推 head: bare rod along FACING plus the plate on the BEND face."""
+    plate_texture = f"{NS}:block/{vid}_top_sticky" if sticky_plate else f"{NS}:block/{vid}_top"
+    return {
+        "parent": "block/block",
+        "textures": {
+            "particle": f"{NS}:block/{vid}_side",
+            "platform": plate_texture,
+            "side": f"{NS}:block/{vid}_side",
+        },
+        "elements": [
+            {
+                "from": [0, 0, 0], "to": [16, 16, 4],
+                "faces": {
+                    "down": {"uv": [0, 0, 16, 4], "texture": "#side", "rotation": 180, "cullface": "down"},
+                    "up": {"uv": [0, 0, 16, 4], "texture": "#side", "cullface": "up"},
+                    "north": {"uv": [0, 0, 16, 16], "texture": "#platform", "cullface": "north"},
+                    "south": {"uv": [0, 0, 16, 16], "texture": "#platform"},
+                    "west": {"uv": [0, 0, 16, 4], "texture": "#side", "rotation": 270, "cullface": "west"},
+                    "east": {"uv": [0, 0, 16, 4], "texture": "#side", "rotation": 90, "cullface": "east"},
+                },
+            },
+            {
+                "from": [6, 6, 0 if short else -4], "to": [10, 10, 12],
+                "faces": {
+                    "down": {"uv": [5, 0, 11, 12], "texture": "#side", "rotation": 90},
+                    "up": {"uv": [5, 0, 11, 12], "texture": "#side", "rotation": 270},
+                    "north": {"uv": [5, 0, 11, 6], "texture": "#side"},
+                    "south": {"uv": [5, 0, 11, 12], "texture": "#side"},
+                    "west": {"uv": [12, 0, 0, 10], "texture": "#side"},
+                    "east": {"uv": [12, 0, 0, 10], "texture": "#side"},
+                },
+            },
+        ],
+    }
+
 # ---------------------------------------------------------------- generation
 
 def gen_shared_assets(textures):
@@ -553,9 +945,15 @@ def gen_shared_assets(textures):
     for vid, sticky, custom, head_kind in VARIANTS:
         # --- base blockstate
         variants = {}
+        has_bend = head_kind == "bent"
         for extended in (False, True):
             for facing, rot in FACING_ROT.items():
-                key = f"extended={str(extended).lower()},facing={facing}"
+                extra = ""
+                if has_bend:
+                    extra += f",bend={BEND_FOR[facing]}"
+                if head_kind == "pickaxe":
+                    extra += ",tool=iron"
+                key = f"extended={str(extended).lower()},facing={facing}{extra}"
                 if custom and head_kind == "end_rod":
                     # Rotation must not be dropped here, or the rod model faces one way only.
                     variants[key] = {"model": f"{NS}:block/{vid}_base", **rot}
@@ -563,12 +961,32 @@ def gen_shared_assets(textures):
                     variants[key] = {"model": f"{NS}:block/{vid}_extended", **rot}
                 else:
                     variants[key] = {"model": f"{NS}:block/{vid}", **rot}
+        if head_kind == "pickaxe":
+            # one plate per carried pickaxe (all other states share the base model)
+            for tool in PICKAXE_TINTS:
+                tool_variants = {}
+                for extended in (False, True):
+                    for facing, rot in FACING_ROT.items():
+                        model = (f"{NS}:block/{vid}_extended" if extended else f"{NS}:block/{vid}")
+                        tool_variants[f"extended={str(extended).lower()},facing={facing},tool={tool}"] = {"model": model, **rot}
+                write_json(os.path.join(bs_dir, vid + "_" + tool + ".json"), {"variants": tool_variants})
         write_json(os.path.join(bs_dir, vid + ".json"), {"variants": variants})
 
         # --- base models
         if custom and head_kind == "end_rod":
             model = end_rod_base_model(vid)
             write_json(os.path.join(model_dir, vid + "_base.json"), model)
+        elif head_kind == "bare_rod":
+            # 递推: thin plate + rod running to the front face (retracted: full-height rod + plate)
+            write_json(os.path.join(model_dir, vid + "_base.json"), recursive_base_model(vid, True))
+            write_json(os.path.join(model_dir, vid + ".json"), recursive_base_model(vid, False))
+            write_json(os.path.join(model_dir, vid + "_extended.json"), recursive_base_model(vid, True))
+        elif head_kind == "bent":
+            # 拐推: the plate texture follows the bend blockstate
+            for bend in ("north", "south", "west", "east"):
+                write_json(os.path.join(model_dir, f"{vid}_base_{bend}.json"), bent_base_model(vid, bend, sticky, True))
+                write_json(os.path.join(model_dir, f"{vid}_{bend}.json"), bent_base_model(vid, bend, sticky, False))
+                write_json(os.path.join(model_dir, f"{vid}_extended_{bend}.json"), bent_base_model(vid, bend, sticky, True))
         else:
             write_json(os.path.join(model_dir, vid + ".json"), base_model_retracted(vid, sticky))
             write_json(os.path.join(model_dir, vid + "_extended.json"), base_model_extended(vid))
@@ -585,43 +1003,81 @@ def gen_shared_assets(textures):
         head_variants = {}
         head_models = {}
         if head_kind == "plate":
-            head_models[("normal", False, False)] = head_model_plate(vid, False)
-            head_models[("normal", True, False)] = head_model_plate_short(vid, False)
+            head_models[("normal", False, False, None)] = head_model_plate(vid, False)
+            head_models[("normal", True, False, None)] = head_model_plate_short(vid, False)
             if sticky:
-                head_models[("sticky", False, False)] = head_model_plate(vid, True)
-                head_models[("sticky", True, False)] = head_model_plate_short(vid, True)
+                head_models[("sticky", False, False, None)] = head_model_plate(vid, True)
+                head_models[("sticky", True, False, None)] = head_model_plate_short(vid, True)
             else:
                 # Non-sticky variants have no _top_sticky texture; the sticky model would be
-                # a missing texture, so only the normal pair is generated.
+                # a missing texture, so only the normal pair are generated.
                 pass
+        elif head_kind == "pickaxe":
+            for tool in PICKAXE_TINTS:
+                textures = {**head_model_plate(vid, False)["textures"],
+                            "platform": f"{NS}:block/{vid}_top_{tool}",
+                            "unsticky": f"{NS}:block/{vid}_top_{tool}"}
+                head_models[("normal", False, False, tool)] = {"parent": "minecraft:block/template_piston_head", "textures": textures}
+                short_textures = {**head_model_plate_short(vid, False)["textures"],
+                                  "platform": f"{NS}:block/{vid}_top_{tool}",
+                                  "unsticky": f"{NS}:block/{vid}_top_{tool}"}
+                head_models[("normal", True, False, tool)] = {"parent": "minecraft:block/template_piston_head_short", "textures": short_textures}
+        elif head_kind == "bent":
+            for bend in ("north", "south", "west", "east"):
+                head_models[("normal", False, False, bend)] = bent_head_model(vid, bend, sticky, False)
+                head_models[("normal", True, False, bend)] = bent_head_model(vid, bend, sticky, True)
+                if sticky:
+                    head_models[("sticky", False, False, bend)] = bent_head_model(vid, bend, sticky, False, sticky_plate=True)
+                    head_models[("sticky", True, False, bend)] = bent_head_model(vid, bend, sticky, True, sticky_plate=True)
         elif head_kind == "skull":
-            head_models[("normal", False, False)] = head_model_plate(vid, False)
-            head_models[("normal", True, False)] = head_model_plate_short(vid, False)
-            head_models[("normal", False, True)] = {**head_model_plate(vid, False),
+            head_models[("normal", False, False, None)] = head_model_plate(vid, False)
+            head_models[("normal", True, False, None)] = head_model_plate_short(vid, False)
+            head_models[("normal", False, True, None)] = {**head_model_plate(vid, False),
                                                     "textures": {**head_model_plate(vid, False)["textures"],
                                                                  "platform": f"{NS}:block/{vid}_top_powered"}}
-            head_models[("normal", True, True)] = {**head_model_plate_short(vid, False),
+            head_models[("normal", True, True, None)] = {**head_model_plate_short(vid, False),
                                                    "textures": {**head_model_plate_short(vid, False)["textures"],
                                                                 "platform": f"{NS}:block/{vid}_top_powered"}}
         elif head_kind == "end_rod":
-            head_models[("normal", False, False)] = end_rod_head_model(vid, False)
-            head_models[("normal", True, False)] = end_rod_head_model(vid, True)
+            head_models[("normal", False, False, None)] = end_rod_head_model(vid, False)
+            head_models[("normal", True, False, None)] = end_rod_head_model(vid, True)
         elif head_kind == "weak":
-            head_models[("normal", False, False)] = weak_head_model(vid, False)
-            head_models[("normal", True, False)] = weak_head_model(vid, True)
+            head_models[("normal", False, False, None)] = weak_head_model(vid, False)
+            head_models[("normal", True, False, None)] = weak_head_model(vid, True)
         elif head_kind == "recoil":
-            head_models[("normal", False, False)] = recoil_head_model(vid, False)
-            head_models[("normal", True, False)] = recoil_head_model(vid, True)
+            head_models[("normal", False, False, None)] = recoil_head_model(vid, False)
+            head_models[("normal", True, False, None)] = recoil_head_model(vid, True)
+        elif head_kind == "bare_rod":
+            head_models[("normal", False, False, None)] = bare_rod_head_model(vid, False)
+            head_models[("normal", True, False, None)] = bare_rod_head_model(vid, True)
+            if sticky:
+                head_models[("sticky", False, False, None)] = bare_rod_head_model(vid, False, sticky=True)
+                head_models[("sticky", True, False, None)] = bare_rod_head_model(vid, True, sticky=True)
+        elif head_kind == "wall_rod":
+            head_models[("normal", False, False, None)] = wall_rod_head_model(vid, False)
+            head_models[("normal", True, False, None)] = wall_rod_head_model(vid, True)
+            if sticky:
+                head_models[("sticky", False, False, None)] = wall_rod_head_model(vid, False, sticky=True)
+                head_models[("sticky", True, False, None)] = wall_rod_head_model(vid, True, sticky=True)
+        elif head_kind == "gravity":
+            # the gravity head falls as a vanilla moving block, so it keeps the vanilla plate
+            head_models[("normal", False, False, None)] = head_model_plate(vid, False)
+            head_models[("normal", True, False, None)] = head_model_plate_short(vid, False)
 
-        for (ptype, short, powered), model in head_models.items():
+        for (ptype, short, powered, extra), model in head_models.items():
             suffix = "_powered" if powered else ""
             # Normal and sticky models used to land in the same file (sticky overwrote normal),
             # leaving non-sticky variants' extended heads on the sticky texture. Differentiate.
             type_part = "_sticky" if ptype == "sticky" else ""
-            fname = hid + type_part + suffix + ("_short" if short else "")
+            extra_part = f"_{extra}" if extra else ""
+            fname = hid + type_part + suffix + extra_part + ("_short" if short else "")
             write_json(os.path.join(model_dir, fname + ".json"), model)
             if head_kind == "skull":
                 key = f"facing={{facing}},powered={str(powered).lower()},short={str(short).lower()},type={ptype}"
+            elif extra and head_kind == "bent":
+                key = f"bend={extra},facing={{facing}},short={str(short).lower()},type={ptype}"
+            elif extra and head_kind == "pickaxe":
+                key = f"facing={{facing}},short={str(short).lower()},tool={extra},type={ptype}"
             else:
                 key = f"facing={{facing}},short={str(short).lower()},type={ptype}"
             for facing, rot in FACING_ROT.items():
@@ -635,14 +1091,41 @@ def gen_shared_assets(textures):
             for short in (False, True):
                 for powered in ((False, True) if head_kind == "skull" else (False,)):
                     for facing in FACING_ROT:
-                        powered_part = f"powered={str(powered).lower()}," if head_kind == "skull" else ""
-                        normal_key = f"facing={facing},{powered_part}short={str(short).lower()},type=normal"
-                        sticky_key = f"facing={facing},{powered_part}short={str(short).lower()},type=sticky"
-                        if normal_key in head_variants:
-                            head_variants[sticky_key] = dict(head_variants[normal_key])
+                        for extra in (["north", "south", "west", "east"] if head_kind == "bent" else
+                                      list(PICKAXE_TINTS) if head_kind == "pickaxe" else [None]):
+                            powered_part = f"powered={str(powered).lower()}," if head_kind == "skull" else ""
+                            extra_part = f"{extra}," if extra else ""
+                            normal_key = f"{extra_part}facing={facing},{powered_part}short={str(short).lower()},type=normal"
+                            sticky_key = f"{extra_part}facing={facing},{powered_part}short={str(short).lower()},type=sticky"
+                            if normal_key in head_variants:
+                                head_variants[sticky_key] = dict(head_variants[normal_key])
         write_json(os.path.join(bs_dir, hid + ".json"), {"variants": head_variants})
 
+    # --- structural parts (递推杆 / 墙并杆) -------------------------------------
+    for part, rod_model in (("recursive_piston_rod", bare_rod_model), ("wall_merge_rod", wall_post_model)):
+        part_variants = {}
+        for facing, rot in FACING_ROT.items():
+            model = f"{NS}:block/{part}" if rod_model is bare_rod_model else f"{NS}:block/{part}"
+            part_variants[f"facing={facing}"] = {"model": model, **rot}
+        write_json(os.path.join(bs_dir, part + ".json"), {"variants": part_variants})
+        write_json(os.path.join(model_dir, part + ".json"), rod_model())
+
+
 # ---------------------------------------------------------------- per-version data
+
+# Wall variants split so each version only lists the walls it actually has.
+WALL_INGREDIENTS = [
+    # 1.19-era walls
+    ["minecraft:cobblestone_wall", "minecraft:mossy_cobblestone_wall",
+     "minecraft:stone_brick_wall", "minecraft:mossy_stone_brick_wall",
+     "minecraft:brick_wall", "minecraft:nether_brick_wall",
+     "minecraft:sandstone_wall"],
+    # walls added in 1.20+
+    ["minecraft:red_nether_brick_wall", "minecraft:blackstone_wall",
+     "minecraft:polished_blackstone_wall", "minecraft:polished_blackstone_brick_wall",
+     "minecraft:cobbled_deepslate_wall", "minecraft:deepslate_brick_wall",
+     "minecraft:deepslate_tile_wall", "minecraft:tuff_wall", "minecraft:tuff_brick_wall"],
+]
 
 # Ingredients are item ids, or "#ns:tag" for a tag (the 1.19 emitter turns the prefix into
 # {"tag": ...}, the modern one keeps the "#..." string the codec reads as a tag).
@@ -676,7 +1159,84 @@ RECIPES = [
                                      {"T": "#minecraft:planks", "#": "minecraft:cobblestone",
                                       "I": "minecraft:ice", "R": "minecraft:redstone"})),
     ("fast_sticky_piston", "shapeless", ["piston_diversified:fast_piston", "minecraft:slime_ball"], None),
+
+    # ---- v2 recipes ----
+    ("potato_piston", "shapeless",
+     ["minecraft:piston", ["minecraft:potato", "minecraft:poisonous_potato"]], None),
+    # 镐活塞: piston + any pickaxe, keeping the tool (custom recipe — emitted separately)
+    ("recursive_piston", "shapeless", ["minecraft:piston", "minecraft:piston"], None),
+    ("recursive_sticky_piston", "shaped", None, (["SS", "SS"],
+                                                 {"S": "minecraft:sticky_piston"})),
+    ("turn_push_piston", "shaped", None, (["#TT", "#X#", "#R#"],
+                                           {"T": "#minecraft:planks", "#": "minecraft:cobblestone",
+                                            "X": "minecraft:iron_ingot", "R": "minecraft:redstone"})),
+    ("turn_push_piston_west", "shaped", None, (["TT#", "X##", "R#R"],
+                                               {"T": "#minecraft:planks", "#": "minecraft:cobblestone",
+                                                "X": "minecraft:iron_ingot", "R": "minecraft:redstone"})),
+    ("turn_push_sticky_piston", "shapeless",
+     ["piston_diversified:turn_push_piston", "minecraft:slime_ball"], None),
+    # the wall list is version-gated below: 1.19.4 has no deepslate/tuff walls
+    ("wall_merge_piston", "shapeless",
+     ["minecraft:piston", WALL_INGREDIENTS[0]], None),
+    ("wall_merge_piston_deep", "shapeless",
+     ["minecraft:piston", WALL_INGREDIENTS[1]], None),
+    ("wall_merge_sticky_piston", "shapeless",
+     ["piston_diversified:wall_merge_piston", "minecraft:slime_ball"], None),
+    ("st_piston", "shapeless", ["minecraft:piston", "minecraft:string"], None),
+    ("st_sticky_piston", "shapeless",
+     ["piston_diversified:st_piston", "minecraft:slime_ball"], None),
+    ("gravity_piston", "shaped", None, (["TTT", "#G#", "#R#"],
+                                         {"T": "#minecraft:planks", "#": "minecraft:cobblestone",
+                                          "G": "minecraft:gravel", "R": "minecraft:redstone"})),
+    # 强力活塞: 1/2/3 creaking hearts replacing any of the three planks (7 recipes)
+    ("strong_piston_1", "shaped", None, (["HTT", "#X#", "#R#"],
+                                          {"T": "#minecraft:planks", "H": "minecraft:creaking_heart",
+                                           "#": "minecraft:cobblestone", "X": "minecraft:iron_ingot",
+                                           "R": "minecraft:redstone"})),
+    ("strong_piston_1_b", "shaped", None, (["THT", "#X#", "#R#"],
+                                            {"T": "#minecraft:planks", "H": "minecraft:creaking_heart",
+                                             "#": "minecraft:cobblestone", "X": "minecraft:iron_ingot",
+                                             "R": "minecraft:redstone"})),
+    ("strong_piston_1_c", "shaped", None, (["TTH", "#X#", "#R#"],
+                                            {"T": "#minecraft:planks", "H": "minecraft:creaking_heart",
+                                             "#": "minecraft:cobblestone", "X": "minecraft:iron_ingot",
+                                             "R": "minecraft:redstone"})),
+    ("strong_piston_2", "shaped", None, (["HHT", "#X#", "#R#"],
+                                          {"T": "#minecraft:planks", "H": "minecraft:creaking_heart",
+                                           "#": "minecraft:cobblestone", "X": "minecraft:iron_ingot",
+                                           "R": "minecraft:redstone"})),
+    ("strong_piston_2_b", "shaped", None, (["HTH", "#X#", "#R#"],
+                                            {"T": "#minecraft:planks", "H": "minecraft:creaking_heart",
+                                             "#": "minecraft:cobblestone", "X": "minecraft:iron_ingot",
+                                             "R": "minecraft:redstone"})),
+    ("strong_piston_2_c", "shaped", None, (["THH", "#X#", "#R#"],
+                                            {"T": "#minecraft:planks", "H": "minecraft:creaking_heart",
+                                             "#": "minecraft:cobblestone", "X": "minecraft:iron_ingot",
+                                             "R": "minecraft:redstone"})),
+    ("strong_piston_3", "shaped", None, (["HHH", "#X#", "#R#"],
+                                          {"#": "minecraft:cobblestone", "H": "minecraft:creaking_heart",
+                                           "X": "minecraft:iron_ingot", "R": "minecraft:redstone"})),
 ]
+
+# Recipes whose result differs from the file name (one block, several recipe files).
+RECIPE_RESULT_OVERRIDE = {
+    "wall_merge_piston_deep": "wall_merge_piston",
+    "turn_push_piston_west": "turn_push_piston",
+    "strong_piston_1_b": "strong_piston_1",
+    "strong_piston_1_c": "strong_piston_1",
+    "strong_piston_2_b": "strong_piston_2",
+    "strong_piston_2_c": "strong_piston_2",
+}
+
+# Recipes that exist only on some versions (no ingredient item there).
+RECIPE_VERSION_GATES = {
+    "wind_charge_piston": {"min": "1.20"},
+    "wall_merge_piston_deep": {"min": "1.20"},
+    "strong_piston_1": {"min": "1.21.4"}, "strong_piston_1_b": {"min": "1.21.4"},
+    "strong_piston_1_c": {"min": "1.21.4"}, "strong_piston_2": {"min": "1.21.4"},
+    "strong_piston_2_b": {"min": "1.21.4"}, "strong_piston_2_c": {"min": "1.21.4"},
+    "strong_piston_3": {"min": "1.21.4"},
+}
 
 def recipe_json_modern(name, kind, ingredients, shaped):
     if kind == "shapeless":
@@ -737,6 +1297,13 @@ def loot_json(random_sequence):
     }
     return table
 
+
+def version_supports(ver, min_version):
+    """Whether a stonecutter node is at least the given Minecraft version."""
+    node = {"1.19.4": (1, 19), "1.21.10": (1, 21, 10), "1.21.11": (1, 21, 11), "26.2.x": (26, 2)}.get(ver, (0,))
+    want = tuple(int(part) for part in min_version.split("."))
+    return node >= want
+
 def gen_version_trees():
     versions = ["1.19.4", "1.21.10", "1.21.11", "26.2.x"]
     compat = {"1.19.4": "1.19.4", "1.21.10": "1.21.10", "1.21.11": "1.21.11", "26.2.x": "~26.2"}
@@ -751,7 +1318,7 @@ def gen_version_trees():
             "id": "${id}",
             "version": "${version}",
             "name": "${name}",
-            "description": "Adds piston variants. v1 batch: 19 pistons (honey, projectile, chain, loop, wind charge, silent, recoil, end rod, skull, directional QC, observer, redstone end rod, long push, weak, fast).",
+            "description": "Adds 33 piston variants: v1 batch (honey, projectile, chain, loop, wind charge, silent, recoil, end rod, skull, directional QC, observer, redstone end rod, long push, weak, fast) and v2 batch (potato, pickaxe, recursive, turn push, wall merge, 0-tick, gravity, strong I-III).",
             "authors": ["ZCode"],
             "license": "WTFPL",
             "icon": f"assets/{NS}/icon.png",
@@ -769,10 +1336,38 @@ def gen_version_trees():
         }
         write_json(os.path.join(res, "fabric.mod.json"), fabric_mod)
 
+        write_json(os.path.join(res, "piston_diversified.mixins.json"), {
+            "required": True,
+            "minVersion": "0.8",
+            "package": "dev.zcode.piston_diversified.mixin",
+            "compatibilityLevel": "JAVA_17",
+            "mixins": [
+                "BootstrapMixin",
+                "FallingBlockEntityAccessor",
+                "PistonMovingBlockEntityAccessor",
+                "PistonMovingBlockEntityMixin",
+            ],
+            "client": [],
+            "injectors": {"defaultRequire": 1},
+        })
+
+        # the pickaxe piston keeps the crafted pickaxe — its recipe is a custom one (registered
+        # in ModRecipes), so only the recipe *declaration* is data-driven
+        write_json(os.path.join(res, "data", NS, recipe_dirname, "pickaxe_piston.json"), {
+            "type": f"{NS}:pickaxe_piston",
+            "category": "redstone",
+        })
+
         for name, kind, ingredients, shaped in RECIPES:
-            if name == "wind_charge_piston" and ver == "1.19.4":
-                continue  # no wind charge item on 1.19.4 (规划: 没有风弹的版本不可合成)
+            gate = RECIPE_VERSION_GATES.get(name)
+            if gate and not version_supports(ver, gate["min"]):
+                continue  # ingredient item does not exist on this version (规划: 不可合成)
             data = recipe_json_119(name, kind, ingredients, shaped) if old_data else recipe_json_modern(name, kind, ingredients, shaped)
+            result_block = RECIPE_RESULT_OVERRIDE.get(name)
+            if result_block:
+                # a recipe file's name is only a file name — variants of one block (the mirrored
+                # turn-push layout, the 1/2-heart strong tiers) must declare their result in the body
+                data["result"]["id" if not old_data else "item"] = f"{NS}:{result_block}"
             write_json(os.path.join(res, "data", NS, recipe_dirname, name + ".json"), data)
 
         for vid, *_ in VARIANTS:

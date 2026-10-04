@@ -66,7 +66,7 @@ FRONT = (1, 100, 0)
 BEHIND = (-1, 100, 0)
 POWER = (0, 101, 0)  # redstone block above the piston
 CLEAR_FROM = (-4, 99, -3)
-CLEAR_TO = (6, 104, 3)
+CLEAR_TO = (12, 104, 4)
 
 RCON_HOST = "127.0.0.1"
 RCON_PORT = 25575
@@ -78,6 +78,232 @@ CASES = [
     ("dirt (pushable / NORMAL)", "minecraft:dirt", "recoil"),
     ("obsidian (push-resistant / BLOCK)", "minecraft:obsidian", "recoil"),
 ]
+
+# v2 behaviour checks: (name, callback building its own rig, returning (label, ok) pairs)
+V2_CASES = []
+
+
+def register_v2(name):
+    def wrap(fn):
+        V2_CASES.append((name, fn))
+        return fn
+    return wrap
+
+
+@register_v2("strong piston: tier budget")
+def strong_piston_tiers(rcon):
+    results = []
+    for tier, obsidian_count, expect_push in ((1, 2, True), (1, 3, False), (2, 4, True), (3, 6, True)):
+        clear_rig(rcon)
+        piston = "piston_diversified:strong_piston_%d" % tier
+        rcon.cmd("setblock %s %s[facing=east,extended=false]" % (_pos(BASE), piston))
+        for i in range(obsidian_count):
+            rcon.cmd("setblock %s minecraft:obsidian" % _pos((1 + i, 100, 0)))
+        rcon.cmd("setblock %s redstone_block" % _pos(POWER))
+        pushed = False
+        for _ in range(80):
+            if rcon.has_block(FRONT, "piston_diversified:strong_piston_head"):
+                pushed = True
+                break
+            time.sleep(0.1)
+        rcon.cmd("setblock %s air" % _pos(POWER))
+        for _ in range(20):
+            if rcon.has_block(BASE, piston + "[extended=false]"):
+                break
+            time.sleep(0.1)
+        label = "tier %d pushes %d obsidian (expected %s)" % (
+            tier, obsidian_count, "push" if expect_push else "blocked")
+        results.append((label, pushed == expect_push))
+    clear_rig(rcon)
+    return results
+
+
+@register_v2("strong piston: block entities are never converted")
+def strong_piston_block_entity(rcon):
+    clear_rig(rcon)
+    piston = "piston_diversified:strong_piston_3"
+    rcon.cmd("setblock %s %s[facing=east,extended=false]" % (_pos(BASE), piston))
+    rcon.cmd("setblock %s minecraft:chest" % _pos(FRONT))
+    rcon.cmd("setblock %s redstone_block" % _pos(POWER))
+    pushed = False
+    for _ in range(40):
+        if rcon.has_block(FRONT, "piston_diversified:strong_piston_head"):
+            pushed = True
+            break
+        time.sleep(0.1)
+    results = [("chest in front is not pushed (no block-entity conversion)", not pushed)]
+    rcon.cmd("setblock %s air" % _pos(POWER))
+    time.sleep(0.5)
+    clear_rig(rcon)
+    return results
+
+
+@register_v2("strong piston: an unpushable block really moves")
+def strong_piston_moves_obsidian(rcon):
+    clear_rig(rcon)
+    piston = "piston_diversified:strong_piston_2"
+    rcon.cmd("setblock %s %s[facing=east,extended=false]" % (_pos(BASE), piston))
+    rcon.cmd("setblock %s minecraft:obsidian" % _pos(FRONT))
+    rcon.cmd("setblock %s redstone_block" % _pos(POWER))
+    moved = False
+    for _ in range(40):
+        if rcon.has_block((2, 100, 0), "minecraft:obsidian"):
+            moved = True
+            break
+        time.sleep(0.1)
+    results = [("converted obsidian landed one cell ahead", moved)]
+    rcon.cmd("setblock %s air" % _pos(POWER))
+    time.sleep(0.5)
+    clear_rig(rcon)
+    return results
+
+
+@register_v2("recursive piston: telescopes out and back")
+def recursive_piston_extend(rcon):
+    clear_rig(rcon)
+    piston = "piston_diversified:recursive_piston"
+    rcon.cmd("setblock %s %s[facing=east,extended=false]" % (_pos(BASE), piston))
+    rcon.cmd("setblock %s redstone_block" % _pos(POWER))
+    # the arm telescopes as far as the signal stays on, so assert on the whole chain instead of
+    # one fixed cell: rods behind the head, head at the tip
+    extended = False
+    for _ in range(200):
+        rods = sum(1 for dx in range(1, 12)
+                   if rcon.has_block((dx, 100, 0), "piston_diversified:recursive_piston_rod"))
+        head = any(rcon.has_block((dx, 100, 0), "piston_diversified:recursive_piston_head") for dx in range(1, 12))
+        if rods >= 2 and head:
+            extended = True
+            break
+        time.sleep(0.1)
+    results = [("arm telescopes out (rods + head in a chain)", extended)]
+    rcon.cmd("setblock %s air" % _pos(POWER))
+    retracted = False
+    for _ in range(120):
+        if rcon.has_block(BASE, piston + "[extended=false]"):
+            retracted = True
+            break
+        time.sleep(0.1)
+    results.append(("arm retracts back to the base", retracted))
+    clear_rig(rcon)
+    return results
+
+
+@register_v2("0-tick piston: extends and retracts on signal")
+def scheduled_tick_piston(rcon):
+    clear_rig(rcon)
+    piston = "piston_diversified:st_piston"
+    rcon.cmd("setblock %s %s[facing=east,extended=false]" % (_pos(BASE), piston))
+    rcon.cmd("setblock %s redstone_block" % _pos(POWER))
+    pushed = False
+    for _ in range(40):
+        if rcon.has_block(FRONT, "piston_diversified:st_piston_head"):
+            pushed = True
+            break
+        time.sleep(0.1)
+    rcon.cmd("setblock %s air" % _pos(POWER))
+    retracted = False
+    for _ in range(40):
+        if rcon.has_block(BASE, piston + "[extended=false]"):
+            retracted = True
+            break
+        time.sleep(0.1)
+    results = [("0gt piston extends", pushed), ("0gt piston retracts", retracted)]
+    clear_rig(rcon)
+    return results
+
+
+@register_v2("potato piston: pushes and keeps the structure flying")
+def potato_piston_flight(rcon):
+    clear_rig(rcon)
+    piston = "piston_diversified:potato_piston"
+    rcon.cmd("setblock %s %s[facing=east,extended=false]" % (_pos(BASE), piston))
+    rcon.cmd("setblock %s minecraft:dirt" % _pos(FRONT))
+    rcon.cmd("setblock %s redstone_block" % _pos(POWER))
+    pushed = False
+    for _ in range(40):
+        if rcon.has_block(FRONT, "piston_diversified:potato_piston_head"):
+            pushed = True
+            break
+        time.sleep(0.1)
+    results = [("head extended", pushed)]
+    moved = False
+    for _ in range(80):
+        if rcon.has_block((2, 100, 0), "minecraft:dirt"):
+            moved = True
+            break
+        time.sleep(0.1)
+    results.append(("pushed block travelled with the flying structure", moved))
+    rcon.cmd("setblock %s air" % _pos(POWER))
+    time.sleep(0.5)
+    clear_rig(rcon)
+    return results
+
+
+@register_v2("pickaxe piston: refuses a block its pick cannot mine")
+def pickaxe_piston(rcon):
+    clear_rig(rcon)
+    piston = "piston_diversified:pickaxe_piston"
+    rcon.cmd("setblock %s %s[facing=east,extended=false]" % (_pos(BASE), piston))
+    rcon.cmd("setblock %s minecraft:stone" % _pos(FRONT))
+    rcon.cmd("setblock %s redstone_block" % _pos(POWER))
+    blocked = False
+    for _ in range(30):
+        if rcon.has_block(BASE, piston + "[extended=true]"):
+            blocked = True
+            break
+        time.sleep(0.1)
+    results = [("stone in front stops the piston", not blocked)]
+    rcon.cmd("setblock %s air" % _pos(POWER))
+    time.sleep(0.5)
+    clear_rig(rcon)
+    return results
+
+
+@register_v2("wall merge piston: the group holds together")
+def wall_merge_group(rcon):
+    clear_rig(rcon)
+    first = (0, 100, 0)
+    second = (0, 100, 1)
+    for base in (first, second):
+        rcon.cmd("setblock %s piston_diversified:wall_merge_piston[facing=east,extended=false]" % _pos(base))
+        rcon.cmd("setblock %s redstone_block" % _pos((base[0], base[1] + 1, base[2])))
+    both_out = False
+    for _ in range(60):
+        both_out = all(rcon.has_block((b[0] + 1, b[1], b[2]), "piston_diversified:wall_merge_piston_head")
+                       for b in (first, second))
+        if both_out:
+            break
+        time.sleep(0.1)
+    results = [("both wall-merge pistons extended", both_out)]
+    rcon.cmd("setblock %s air" % _pos((first[0], first[1] + 1, first[2])))
+    time.sleep(1.0)
+    still = all(rcon.has_block((b[0] + 1, b[1], b[2]), "piston_diversified:wall_merge_piston_head")
+                for b in (first, second))
+    results.append(("the unpowered member stays out while its neighbour is live", still))
+    rcon.cmd("setblock %s air" % _pos((second[0], second[1] + 1, second[2])))
+    time.sleep(1.0)
+    clear_rig(rcon)
+    return results
+
+
+@register_v2("turn push piston: pushes the front block sideways")
+def turn_push_piston(rcon):
+    clear_rig(rcon)
+    rcon.cmd("setblock %s piston_diversified:turn_push_piston[facing=east,extended=false,bend=north]" % _pos(BASE))
+    rcon.cmd("setblock %s minecraft:dirt" % _pos(FRONT))
+    rcon.cmd("setblock %s redstone_block" % _pos(POWER))
+    pushed_side = False
+    for _ in range(40):
+        if rcon.has_block((1, 100, -1), "minecraft:dirt"):
+            pushed_side = True
+            break
+        time.sleep(0.1)
+    results = [("front block moved to the bend side", pushed_side)]
+    rcon.cmd("setblock %s air" % _pos(POWER))
+    time.sleep(0.5)
+    clear_rig(rcon)
+    return results
+
 
 
 # --------------------------------------------------------------------------- RCON
@@ -299,6 +525,15 @@ def run_case(rcon, name, front_block, expectation):
     return status == "PASS"
 
 
+def run_v2_case(rcon, name, fn):
+    results = fn(rcon)
+    ok = all(passed for _, passed in results)
+    print("\n=== %-46s -> %s" % (name, "PASS" if ok else "FAIL"))
+    for label, passed in results:
+        print("    %-4s %s" % ("ok" if passed else "BAD", label))
+    return ok
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--version", default="1.21.11", help="stonecutter node to test (default 1.21.11)")
@@ -332,12 +567,13 @@ def main():
 
         data_ok = check_data_files(rcon, run_dir, args.log if args.start else None)
         passed = [run_case(rcon, name, front, expectation) for name, front, expectation in CASES]
+        passed += [run_v2_case(rcon, name, fn) for name, fn in V2_CASES]
 
         rcon.cmd("forceload remove -32 -32 32 32")
         rcon.close()
 
         data_note = "clean" if data_ok else ("SKIPPED" if data_ok is None else "ERRORS")
-        print("\n%d/%d front-cell cases passed; data files: %s" % (sum(passed), len(passed), data_note))
+        print("\n%d/%d cases passed; data files: %s" % (sum(passed), len(passed), data_note))
         return 0 if all(passed) and data_ok is not False else 1
     finally:
         if process is not None:

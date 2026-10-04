@@ -1,0 +1,22 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "redstone",
+  "ingredients": [
+    "minecraft:piston",
+    [
+      "minecraft:red_nether_brick_wall",
+      "minecraft:blackstone_wall",
+      "minecraft:polished_blackstone_wall",
+      "minecraft:polished_blackstone_brick_wall",
+      "minecraft:cobbled_deepslate_wall",
+      "minecraft:deepslate_brick_wall",
+      "minecraft:deepslate_tile_wall",
+      "minecraft:tuff_wall",
+      "minecraft:tuff_brick_wall"
+    ]
+  ],
+  "result": {
+    "count": 1,
+    "id": "piston_diversified:wall_merge_piston"
+  }
+}

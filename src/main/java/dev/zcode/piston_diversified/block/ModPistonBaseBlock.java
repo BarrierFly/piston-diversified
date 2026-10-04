@@ -2,6 +2,7 @@ package dev.zcode.piston_diversified.block;
 
 import com.google.common.collect.Lists;
 import dev.zcode.piston_diversified.PdHelpers;
+import dev.zcode.piston_diversified.logic.PdResolver;
 import com.google.common.collect.Maps;
 import java.util.List;
 import java.util.Map;
@@ -44,14 +45,20 @@ import net.minecraft.world.level.redstone.Orientation;
  *   <li>{@link #extraPowerSignal} — additional "count as powered" condition (连锁型).</li>
  *   <li>{@link #requireSignalToExtend()} — false = extend events run without a signal (侦测器/长推).</li>
  *   <li>{@link #cancelRetractIfPowered()} — false = retract events run even while powered (循环型).</li>
- *   <li>{@link #canRetract()} — false = never retract (长推).</li>
+ *   <li>{@link #canRetract} — false = never retract (长推; 重力 without a head).</li>
  *   <li>{@link #reactsToNeighbors()} — false = ignore neighbor updates (侦测器).</li>
  *   <li>{@link #canPushBlocks()} — false = refuse to extend when anything pushable is in front (虚弱/风弹).</li>
  *   <li>{@link #marksMovingPistonsFast()} — mark created moving pistons as "fast" (快速).</li>
  *   <li>{@link #pullOnInstantRetract()} — pull the block back after a 0-tick instant retract (蜂蜜).</li>
- *   <li>{@link #handleExtend} — fully replace the extend action (抛射/后坐).</li>
+ *   <li>{@link #handleExtend} — fully replace the extend action (抛射/后坐/拐推/镐).</li>
+ *   <li>{@link #createResolver} — swap the structure resolver used by the extend pre-check and
+ *       every move (强力 conversion resolver; 拐推 uses it for its bent retract pull).</li>
+ *   <li>{@link #retractPullSource} — which cell the sticky retract pulls from (拐推: the head cell
+ *       offset by the bend instead of piston+2).</li>
+ *   <li>{@link #sendExtendEvent}/{@link #sendRetractEvent} — how extend/retract decisions are
+ *       scheduled (0t计划刻 replaces block events with 0gt scheduled ticks).</li>
  *   <li>{@link #afterExtendExecuted}/{@link #afterRetractExecuted} — post-event scheduling (循环/风弹).</li>
- *   <li>{@link #customizeHeadState} — adjust the placed head state (头颅).</li>
+ *   <li>{@link #customizeHeadState} — adjust the placed head state (头颅/镐/拐推).</li>
  * </ul>
  */
 public abstract class ModPistonBaseBlock extends PistonBaseBlock {
@@ -109,7 +116,7 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
         return true;
     }
 
-    protected boolean canRetract() {
+    protected boolean canRetract(Level level, BlockPos pos, BlockState state) {
         return true;
     }
 
@@ -135,10 +142,39 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
 
     /**
      * Runs before the vanilla extend move. Return true if the variant handled the extension itself
-     * (抛射 launches the front block, 后坐 recoils the base) — the vanilla push is skipped.
+     * (抛射 launches the front block, 后坐 recoils the base, 拐推 pushes the front sideways, 镐
+     * mines the front block) — the vanilla push is skipped when true; returning false continues
+     * with the vanilla push.
      */
     protected boolean handleExtend(Level level, BlockPos pos, Direction direction, BlockState state) {
         return false;
+    }
+
+    /**
+     * The structure resolver for the extend pre-check and every move/pull. Return null for the
+     * vanilla resolver. 强力 swaps in the push-conversion resolver; 拐推 returns its bent pull
+     * resolver for retracts ({@code extending=false}).
+     */
+    protected PdResolver createResolver(Level level, BlockPos pos, Direction direction, boolean extending) {
+        return null;
+    }
+
+    /** Cell whose contents the sticky retract pulls backwards (vanilla: piston + 2). */
+    protected BlockPos retractPullSource(BlockPos pos, Direction direction, BlockState state) {
+        return pos.relative(direction, 2);
+    }
+
+    /**
+     * How an extend decision reaches execution. Vanilla sends a block event; the 0t计划刻 piston
+     * schedules a 0gt tick instead (the decision itself is re-derived from live signals later).
+     */
+    protected void sendExtendEvent(Level level, BlockPos pos, Direction direction) {
+        level.blockEvent(pos, this, 0, direction.get3DDataValue());
+    }
+
+    /** How a retract decision reaches execution (see {@link #sendExtendEvent}). */
+    protected void sendRetractEvent(Level level, BlockPos pos, Direction direction, int type) {
+        level.blockEvent(pos, this, type, direction.get3DDataValue());
     }
 
     protected void afterExtendExecuted(ServerLevel level, BlockPos pos, Direction direction) {
@@ -147,8 +183,8 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
     protected void afterRetractExecuted(ServerLevel level, BlockPos pos, Direction direction) {
     }
 
-    /** Adjust the head state created during extension (头颅 sets POWERED here). */
-    protected BlockState customizeHeadState(BlockState headState, Direction direction) {
+    /** Adjust the head state created during extension (拐推 copies the bend, 镐 copies the tool). */
+    protected BlockState customizeHeadState(BlockState headState, Direction direction, BlockState baseState) {
         return headState;
     }
 
@@ -195,28 +231,43 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
         Direction direction = state.getValue(FACING);
         boolean bl = this.hasPowerSignal(level, pos, direction);
         if (bl && !state.getValue(EXTENDED)) {
-            if (new PistonStructureResolver(level, pos, direction, true).resolve()
-                || this.extendEventWithoutResolve(level, pos, direction)) {
-                level.blockEvent(pos, this, 0, direction.get3DDataValue());
+            if (this.resolveExtend(level, pos, direction) || this.extendEventWithoutResolve(level, pos, direction)) {
+                this.sendExtendEvent(level, pos, direction);
             }
-        } else if (!bl && state.getValue(EXTENDED) && this.canRetract()) {
-            BlockPos secondPos = pos.relative(direction, 2);
-            BlockState secondState = level.getBlockState(secondPos);
-            int type = 1;
-            if (secondState.is(Blocks.MOVING_PISTON)
-                && secondState.getValue(MovingPistonBlock.FACING) == direction
-                && level.getBlockEntity(secondPos) instanceof PistonMovingBlockEntity movingBe
-                && movingBe.isExtending()
-                && (
-                    movingBe.getProgress(0.0F) < 0.5F
-                        || level.getGameTime() == movingBe.getLastTicked()
-                        || ((ServerLevel) level).isHandlingTick()
-                )) {
-                type = 2;
-            }
-
-            level.blockEvent(pos, this, type, direction.get3DDataValue());
+        } else if (!bl && state.getValue(EXTENDED) && this.canRetract(level, pos, state)) {
+            int type = this.retractType(level, pos, direction, state);
+            this.sendRetractEvent(level, pos, direction, type);
         }
+    }
+
+    /** Vanilla pre-resolve for the extend event, routed through {@link #createResolver}. */
+    protected boolean resolveExtend(Level level, BlockPos pos, Direction direction) {
+        PdResolver resolver = this.createResolver(level, pos, direction, true);
+        if (resolver != null) {
+            return resolver.resolve();
+        }
+        return new PistonStructureResolver(level, pos, direction, true).resolve();
+    }
+
+    /**
+     * 1 = a settled retract, 2 = the extend animation is still in flight at the pull source
+     * (瞬推 handling). Kept in step with {@link #retractPullSource}.
+     */
+    protected int retractType(Level level, BlockPos pos, Direction direction, BlockState state) {
+        BlockPos secondPos = this.retractPullSource(pos, direction, state);
+        BlockState secondState = level.getBlockState(secondPos);
+        if (secondState.is(Blocks.MOVING_PISTON)
+            && secondState.getValue(MovingPistonBlock.FACING) == direction
+            && level.getBlockEntity(secondPos) instanceof PistonMovingBlockEntity movingBe
+            && movingBe.isExtending()
+            && (
+                movingBe.getProgress(0.0F) < 0.5F
+                    || level.getGameTime() == movingBe.getLastTicked()
+                    || ((ServerLevel) level).isHandlingTick()
+            )) {
+            return 2;
+        }
+        return 1;
     }
 
     protected boolean hasPowerSignal(Level level, BlockPos pos, Direction direction) {
@@ -257,89 +308,116 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
         }
 
         if (id == 0) {
-            if (this.handleExtend(level, pos, direction, state)) {
-                return true;
-            }
-
-            if (!this.moveBlocks(level, pos, direction, true)) {
-                return false;
-            }
-
-            level.setBlock(pos, extendedState, 67);
-            if (!this.isSilent()) {
-                level.playSound(null, pos, SoundEvents.PISTON_EXTEND, SoundSource.BLOCKS, 0.5F, PdHelpers.pdRandom(level).nextFloat() * 0.25F + 0.6F);
-                level.gameEvent(GameEvent.BLOCK_ACTIVATE, pos, GameEvent.Context.of(extendedState));
-            }
-            if (level instanceof ServerLevel serverLevel) {
-                this.afterExtendExecuted(serverLevel, pos, direction);
-            }
+            this.executeExtend(level, pos, direction, state);
         } else if (id == 1 || id == 2) {
-            BlockEntity frontBe = level.getBlockEntity(pos.relative(direction));
-            if (frontBe instanceof PistonMovingBlockEntity movingBe) {
-                movingBe.finalTick();
-            }
-
-            BlockState movingState = Blocks.MOVING_PISTON
-                .defaultBlockState()
-                .setValue(MovingPistonBlock.FACING, direction)
-                .setValue(MovingPistonBlock.TYPE, this.sticky ? PistonType.STICKY : PistonType.DEFAULT);
-            level.setBlock(pos, movingState, 276);
-            // Preserve the current state's extra properties (the observer piston's POWERED) into
-            // the restored base — defaultBlockState() would reset them when the retract animation
-            // ends, re-arming state machines that rely on them surviving the cycle.
-            BlockState restoredBase = state
-                .setValue(EXTENDED, false)
-                .setValue(FACING, Direction.from3DDataValue(param & 7));
-            BlockEntity retractBe = MovingPistonBlock.newMovingBlockEntity(pos, movingState, restoredBase, direction, false, true);
-            this.markFast(retractBe);
-            level.setBlockEntity(retractBe);
-            level.updateNeighborsAt(pos, movingState.getBlock());
-            movingState.updateNeighbourShapes(level, pos, 2);
-            if (this.sticky) {
-                BlockPos secondPos = pos.offset(direction.getStepX() * 2, direction.getStepY() * 2, direction.getStepZ() * 2);
-                BlockState secondState = level.getBlockState(secondPos);
-                boolean instantSecond = false;
-                if (secondState.is(Blocks.MOVING_PISTON)
-                    && level.getBlockEntity(secondPos) instanceof PistonMovingBlockEntity secondBe
-                    && secondBe.getDirection() == direction
-                    && secondBe.isExtending()) {
-                    secondBe.finalTick();
-                    instantSecond = true;
-                }
-
-                if (instantSecond && this.pullOnInstantRetract()) {
-                    // 蜂蜜活塞: the second cell just solidified — pull it back instead of leaving it behind.
-                    this.moveBlocks(level, pos, direction, false);
-                } else if (!instantSecond) {
-                    if (id != 1 && this.pullOnInstantRetract()) {
-                        // 蜂蜜活塞: vanilla would drop the block here (type 2) — pull instead; if the
-                        // pull fails the head is still removed, matching the vanilla end state.
-                        this.moveBlocks(level, pos, direction, false);
-                    } else if (id != 1
-                        || secondState.isAir()
-                        || !isPushable(secondState, level, secondPos, direction.getOpposite(), false, direction)
-                        || secondState.getPistonPushReaction() != PushReaction.NORMAL
-                            && !secondState.is(Blocks.PISTON)
-                            && !secondState.is(Blocks.STICKY_PISTON)) {
-                        level.removeBlock(pos.relative(direction), false);
-                    } else {
-                        this.moveBlocks(level, pos, direction, false);
-                    }
-                }
-            } else {
-                level.removeBlock(pos.relative(direction), false);
-            }
-
-            if (!this.isSilent()) {
-                level.playSound(null, pos, SoundEvents.PISTON_CONTRACT, SoundSource.BLOCKS, 0.5F, PdHelpers.pdRandom(level).nextFloat() * 0.15F + 0.6F);
-                level.gameEvent(GameEvent.BLOCK_DEACTIVATE, pos, GameEvent.Context.of(movingState));
-            }
-            if (level instanceof ServerLevel serverLevel) {
-                this.afterRetractExecuted(serverLevel, pos, direction);
-            }
+            this.executeRetract(level, pos, direction, state, id);
         }
 
         return true;
+    }
+
+    /**
+     * The extend event body (vanilla push + variant hooks), shared by {@link #triggerEvent} and
+     * the 0t计划刻 piston's tick execution.
+     */
+    protected void executeExtend(Level level, BlockPos pos, Direction direction, BlockState state) {
+        BlockState extendedState = state.setValue(EXTENDED, true);
+        if (this.handleExtend(level, pos, direction, state)) {
+            return;
+        }
+
+        if (!this.moveBlocks(level, pos, direction, true, state)) {
+            return;
+        }
+
+        level.setBlock(pos, extendedState, 67);
+        if (!this.isSilent()) {
+            level.playSound(null, pos, SoundEvents.PISTON_EXTEND, SoundSource.BLOCKS, 0.5F, PdHelpers.pdRandom(level).nextFloat() * 0.25F + 0.6F);
+            level.gameEvent(GameEvent.BLOCK_ACTIVATE, pos, GameEvent.Context.of(extendedState));
+        }
+        if (level instanceof ServerLevel serverLevel) {
+            this.afterExtendExecuted(serverLevel, pos, direction);
+        }
+    }
+
+    /**
+     * The retract event body (vanilla retract incl. the sticky pull), shared by
+     * {@link #triggerEvent} and the 0t计划刻 piston's tick execution.
+     */
+    protected void executeRetract(Level level, BlockPos pos, Direction direction, BlockState state, int id) {
+        this.executeRetract(level, pos, direction, state, id, null);
+    }
+
+    /**
+     * Retract with an optional pull veto/mandate: {@code pullOverride} = null keeps the vanilla
+     * pull decision, TRUE forces the sticky pull, FALSE forbids it (墙并 coordinated retracts
+     * hand every member the group's verdict).
+     */
+    protected void executeRetract(Level level, BlockPos pos, Direction direction, BlockState state, int id, Boolean pullOverride) {
+        BlockState movingState = Blocks.MOVING_PISTON
+            .defaultBlockState()
+            .setValue(MovingPistonBlock.FACING, direction)
+            .setValue(MovingPistonBlock.TYPE, this.sticky ? PistonType.STICKY : PistonType.DEFAULT);
+        level.setBlock(pos, movingState, 276);
+        // Preserve the current state's extra properties (the observer piston's POWERED) into
+        // the restored base — defaultBlockState() would reset them when the retract animation
+        // ends, re-arming state machines that rely on them surviving the cycle.
+        BlockState restoredBase = state
+            .setValue(EXTENDED, false)
+            .setValue(FACING, direction);
+        BlockEntity retractBe = MovingPistonBlock.newMovingBlockEntity(pos, movingState, restoredBase, direction, false, true);
+        this.markFast(retractBe);
+        level.setBlockEntity(retractBe);
+        level.updateNeighborsAt(pos, movingState.getBlock());
+        movingState.updateNeighbourShapes(level, pos, 2);
+        if (this.sticky) {
+            BlockPos secondPos = this.retractPullSource(pos, direction, state);
+            BlockState secondState = level.getBlockState(secondPos);
+            boolean instantSecond = false;
+            if (secondState.is(Blocks.MOVING_PISTON)
+                && level.getBlockEntity(secondPos) instanceof PistonMovingBlockEntity secondBe
+                && secondBe.getDirection() == direction
+                && secondBe.isExtending()) {
+                secondBe.finalTick();
+                instantSecond = true;
+            }
+
+            if (instantSecond && this.pullOnInstantRetract()) {
+                // 蜂蜜活塞: the second cell just solidified — pull it back instead of leaving it behind.
+                this.moveBlocks(level, pos, direction, false, state);
+            } else if (!instantSecond) {
+                boolean mayPull;
+                if (pullOverride != null) {
+                    mayPull = pullOverride; // coordinated retract: the group already decided
+                } else {
+                    mayPull = id == 1
+                        && !secondState.isAir()
+                        && isPushable(secondState, level, secondPos, direction.getOpposite(), false, direction)
+                        && (secondState.getPistonPushReaction() == PushReaction.NORMAL
+                            || secondState.is(Blocks.PISTON)
+                            || secondState.is(Blocks.STICKY_PISTON));
+                }
+                if (id != 1 && this.pullOnInstantRetract()) {
+                    // 蜂蜜活塞: vanilla would drop the block here (type 2) — pull instead; if the
+                    // pull fails the head is still removed, matching the vanilla end state.
+                    this.moveBlocks(level, pos, direction, false, state);
+                } else if (!mayPull) {
+                    level.removeBlock(pos.relative(direction), false);
+                } else {
+                    this.moveBlocks(level, pos, direction, false, state);
+                }
+            }
+        } else {
+            level.removeBlock(pos.relative(direction), false);
+        }
+
+        if (!this.isSilent()) {
+            level.playSound(null, pos, SoundEvents.PISTON_CONTRACT, SoundSource.BLOCKS, 0.5F, PdHelpers.pdRandom(level).nextFloat() * 0.15F + 0.6F);
+            level.gameEvent(GameEvent.BLOCK_DEACTIVATE, pos, GameEvent.Context.of(movingState));
+        }
+        if (level instanceof ServerLevel serverLevel) {
+            this.afterRetractExecuted(serverLevel, pos, direction);
+        }
     }
 
     private void markFast(BlockEntity be) {
@@ -348,7 +426,17 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
         }
     }
 
-    private boolean moveBlocks(Level level, BlockPos pos, Direction facing, boolean extending) {
+    private boolean moveBlocks(Level level, BlockPos pos, Direction facing, boolean extending, BlockState baseState) {
+        PdResolver custom = this.createResolver(level, pos, facing, extending);
+        if (custom != null) {
+            return this.moveBlocksResolved(level, pos, facing, extending, custom, baseState);
+        }
+        PistonStructureResolver resolver = new PistonStructureResolver(level, pos, facing, extending);
+        return this.moveBlocksResolved(level, pos, facing, extending, wrap(resolver), baseState);
+    }
+
+    /** The move body, parameterised over the resolver (vanilla copy of {@code moveBlocks}). */
+    protected boolean moveBlocksResolved(Level level, BlockPos pos, Direction facing, boolean extending, PdResolver resolver, BlockState baseState) {
         BlockPos frontPos = pos.relative(facing);
         // instanceof, not a registry check: our modded heads must clear the way on retract too,
         // otherwise the vanilla resolver treats them as obstacles and the pull silently fails.
@@ -365,7 +453,6 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
             }
         }
 
-        PistonStructureResolver resolver = new PistonStructureResolver(level, pos, facing, extending);
         if (!resolver.resolve()) {
             return false;
         }
@@ -420,7 +507,8 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
             PistonType headType = this.sticky ? PistonType.STICKY : PistonType.DEFAULT;
             BlockState headState = this.customizeHeadState(
                 this.headBlock().defaultBlockState().setValue(PistonHeadBlock.FACING, facing).setValue(PistonHeadBlock.TYPE, headType),
-                facing
+                facing,
+                baseState
             );
             BlockState baseMovingState = Blocks.MOVING_PISTON
                 .defaultBlockState()
@@ -471,6 +559,30 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
         }
 
         return true;
+    }
+
+    private static PdResolver wrap(PistonStructureResolver resolver) {
+        return new PdResolver() {
+            @Override
+            public boolean resolve() {
+                return resolver.resolve();
+            }
+
+            @Override
+            public List<BlockPos> getToPush() {
+                return resolver.getToPush();
+            }
+
+            @Override
+            public List<BlockPos> getToDestroy() {
+                return resolver.getToDestroy();
+            }
+
+            @Override
+            public Direction getPushDirection() {
+                return resolver.getPushDirection();
+            }
+        };
     }
 
     private void updateNeighbors(Level level, BlockPos pos, Block block, Direction pushDirection) {

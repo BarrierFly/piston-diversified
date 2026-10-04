@@ -17,5 +17,19 @@
   "block.piston_diversified.long_push_piston": "长推活塞",
   "block.piston_diversified.weak_piston": "虚弱活塞",
   "block.piston_diversified.fast_piston": "快速活塞",
-  "block.piston_diversified.fast_sticky_piston": "快速黏塞"
+  "block.piston_diversified.fast_sticky_piston": "快速黏塞",
+  "block.piston_diversified.potato_piston": "马铃薯活塞",
+  "block.piston_diversified.pickaxe_piston": "镐活塞",
+  "block.piston_diversified.recursive_piston": "递推活塞",
+  "block.piston_diversified.recursive_sticky_piston": "递推黏塞",
+  "block.piston_diversified.turn_push_piston": "拐推活塞",
+  "block.piston_diversified.turn_push_sticky_piston": "拐推黏塞",
+  "block.piston_diversified.wall_merge_piston": "墙并活塞",
+  "block.piston_diversified.wall_merge_sticky_piston": "墙并黏塞",
+  "block.piston_diversified.st_piston": "0t计划刻活塞",
+  "block.piston_diversified.st_sticky_piston": "0t计划刻黏塞",
+  "block.piston_diversified.gravity_piston": "重力活塞",
+  "block.piston_diversified.strong_piston_1": "强力活塞一档",
+  "block.piston_diversified.strong_piston_2": "强力活塞二档",
+  "block.piston_diversified.strong_piston_3": "强力活塞三档"
 }

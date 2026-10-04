@@ -1,0 +1,34 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "redstone",
+  "ingredients": [
+    {
+      "item": "minecraft:piston"
+    },
+    {
+      "item": "minecraft:cobblestone_wall"
+    },
+    {
+      "item": "minecraft:mossy_cobblestone_wall"
+    },
+    {
+      "item": "minecraft:stone_brick_wall"
+    },
+    {
+      "item": "minecraft:mossy_stone_brick_wall"
+    },
+    {
+      "item": "minecraft:brick_wall"
+    },
+    {
+      "item": "minecraft:nether_brick_wall"
+    },
+    {
+      "item": "minecraft:sandstone_wall"
+    }
+  ],
+  "result": {
+    "item": "piston_diversified:wall_merge_piston",
+    "count": 1
+  }
+}

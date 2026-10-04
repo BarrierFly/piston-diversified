@@ -5,21 +5,37 @@ import dev.zcode.piston_diversified.block.ChainPistonBlock;
 import dev.zcode.piston_diversified.block.EndRodPistonBlock;
 import dev.zcode.piston_diversified.block.EndRodPistonHeadBlock;
 import dev.zcode.piston_diversified.block.FastPistonBlock;
+import dev.zcode.piston_diversified.block.GravityPistonBlock;
+import dev.zcode.piston_diversified.block.GravityPistonHeadBlock;
 import dev.zcode.piston_diversified.block.HoneyPistonBlock;
 import dev.zcode.piston_diversified.block.LongPushPistonBlock;
 import dev.zcode.piston_diversified.block.LoopPistonBlock;
 import dev.zcode.piston_diversified.block.ModPistonBaseBlock;
 import dev.zcode.piston_diversified.block.ModPistonHeadBlock;
 import dev.zcode.piston_diversified.block.ObserverPistonBlock;
+import dev.zcode.piston_diversified.block.PickaxePistonBlock;
+import dev.zcode.piston_diversified.block.PickaxePistonHeadBlock;
+import net.minecraft.world.level.block.piston.MovingPistonBlock;
+import dev.zcode.piston_diversified.block.PotatoPistonBlock;
 import dev.zcode.piston_diversified.block.ProjectilePistonBlock;
 import dev.zcode.piston_diversified.block.QcPistonBlock;
 import dev.zcode.piston_diversified.block.RecoilPistonBlock;
 import dev.zcode.piston_diversified.block.RecoilPistonHeadBlock;
+import dev.zcode.piston_diversified.block.RecursivePistonBlock;
+import dev.zcode.piston_diversified.block.RecursivePistonHeadBlock;
+import dev.zcode.piston_diversified.block.RecursivePistonRodBlock;
 import dev.zcode.piston_diversified.block.RedstoneEndRodPistonBlock;
 import dev.zcode.piston_diversified.block.RedstoneEndRodPistonHeadBlock;
+import dev.zcode.piston_diversified.block.ScheduledTickPistonBlock;
 import dev.zcode.piston_diversified.block.SilentPistonBlock;
 import dev.zcode.piston_diversified.block.SkullPistonBlock;
 import dev.zcode.piston_diversified.block.SkullPistonHeadBlock;
+import dev.zcode.piston_diversified.block.StrongPistonBlock;
+import dev.zcode.piston_diversified.block.TurnPushPistonBlock;
+import dev.zcode.piston_diversified.block.TurnPushPistonHeadBlock;
+import dev.zcode.piston_diversified.block.WallMergePistonBlock;
+import dev.zcode.piston_diversified.block.WallMergePistonHeadBlock;
+import dev.zcode.piston_diversified.block.WallMergeRodBlock;
 import dev.zcode.piston_diversified.block.WeakPistonBlock;
 import dev.zcode.piston_diversified.block.WeakPistonHeadBlock;
 import dev.zcode.piston_diversified.block.WindChargePistonBlock;
@@ -37,7 +53,7 @@ import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.PushReaction;
 
 /**
- * Registers the 19 v1 piston variants (bases + heads). Bases are placed on the vanilla
+ * Registers every piston variant (bases + heads). Bases are placed on the vanilla
  * redstone creative tab, after the vanilla pistons.
  */
 public final class ModBlocks {
@@ -62,6 +78,25 @@ public final class ModBlocks {
     public static final Block FAST_PISTON = registerBase("fast_piston", p -> new FastPistonBlock(false, p), baseProperties());
     public static final Block FAST_STICKY_PISTON = registerBase("fast_sticky_piston", p -> new FastPistonBlock(true, p), baseProperties());
 
+    // ---- v2 bases ----
+    public static final Block POTATO_PISTON = registerBase("potato_piston", p -> new PotatoPistonBlock(p), baseProperties());
+    public static final Block PICKAXE_PISTON = registerBase("pickaxe_piston", p -> new PickaxePistonBlock(p), baseProperties());
+    public static final Block RECURSIVE_PISTON = registerBase("recursive_piston", p -> new RecursivePistonBlock(false, p), baseProperties());
+    public static final Block RECURSIVE_STICKY_PISTON = registerBase("recursive_sticky_piston", p -> new RecursivePistonBlock(true, p), baseProperties());
+    public static final Block TURN_PUSH_PISTON = registerBase("turn_push_piston", p -> new TurnPushPistonBlock(false, p), baseProperties());
+    public static final Block TURN_PUSH_STICKY_PISTON = registerBase("turn_push_sticky_piston", p -> new TurnPushPistonBlock(true, p), baseProperties());
+    public static final Block WALL_MERGE_PISTON = registerBase("wall_merge_piston", p -> new WallMergePistonBlock(false, p), baseProperties());
+    public static final Block WALL_MERGE_STICKY_PISTON = registerBase("wall_merge_sticky_piston", p -> new WallMergePistonBlock(true, p), baseProperties());
+    public static final Block ST_PISTON = registerBase("st_piston", p -> new ScheduledTickPistonBlock(false, p), baseProperties());
+    public static final Block ST_STICKY_PISTON = registerBase("st_sticky_piston", p -> new ScheduledTickPistonBlock(true, p), baseProperties());
+    public static final Block GRAVITY_PISTON = registerBase("gravity_piston", p -> new GravityPistonBlock(p), baseProperties());
+    public static final Block STRONG_PISTON_1 = registerBase("strong_piston_1", p -> new StrongPistonBlock(1, p), baseProperties());
+    public static final Block STRONG_PISTON_2 = registerBase("strong_piston_2", p -> new StrongPistonBlock(2, p), baseProperties());
+    public static final Block STRONG_PISTON_3 = registerBase("strong_piston_3", p -> new StrongPistonBlock(3, p), baseProperties());
+    // structural parts (递推杆 / 墙并杆) — registered without an item
+    public static final Block RECURSIVE_PISTON_ROD = registerPart("recursive_piston_rod", p -> new RecursivePistonRodBlock(p));
+    public static final Block WALL_MERGE_ROD = registerPart("wall_merge_rod", p -> new WallMergeRodBlock(p));
+
     // ---- heads (no items) ----
     public static final Block HONEY_PISTON_HEAD = registerHead("honey_piston_head", p -> new ModPistonHeadBlock(p), headProperties());
     public static final Block PROJECTILE_PISTON_HEAD = registerHead("projectile_piston_head", p -> new ModPistonHeadBlock(p), headProperties());
@@ -83,11 +118,29 @@ public final class ModBlocks {
     public static final Block FAST_PISTON_HEAD = registerHead("fast_piston_head", p -> new ModPistonHeadBlock(p), headProperties());
     public static final Block FAST_STICKY_PISTON_HEAD = registerHead("fast_sticky_piston_head", p -> new ModPistonHeadBlock(p), headProperties());
 
+    // ---- v2 heads ----
+    public static final Block POTATO_PISTON_HEAD = registerHead("potato_piston_head", p -> new ModPistonHeadBlock(p), headProperties());
+    public static final Block PICKAXE_PISTON_HEAD = registerHead("pickaxe_piston_head", p -> new PickaxePistonHeadBlock(p), headProperties());
+    public static final Block RECURSIVE_PISTON_HEAD = registerHead("recursive_piston_head", p -> new RecursivePistonHeadBlock(p), headProperties());
+    public static final Block RECURSIVE_STICKY_PISTON_HEAD = registerHead("recursive_sticky_piston_head", p -> new RecursivePistonHeadBlock(p), headProperties());
+    public static final Block TURN_PUSH_PISTON_HEAD = registerHead("turn_push_piston_head", p -> new TurnPushPistonHeadBlock(p), headProperties());
+    public static final Block TURN_PUSH_STICKY_PISTON_HEAD = registerHead("turn_push_sticky_piston_head", p -> new TurnPushPistonHeadBlock(p), headProperties());
+    public static final Block WALL_MERGE_PISTON_HEAD = registerHead("wall_merge_piston_head", p -> new WallMergePistonHeadBlock(p), headProperties());
+    public static final Block WALL_MERGE_STICKY_PISTON_HEAD = registerHead("wall_merge_sticky_piston_head", p -> new WallMergePistonHeadBlock(p), headProperties());
+    public static final Block ST_PISTON_HEAD = registerHead("st_piston_head", p -> new ModPistonHeadBlock(p), headProperties());
+    public static final Block ST_STICKY_PISTON_HEAD = registerHead("st_sticky_piston_head", p -> new ModPistonHeadBlock(p), headProperties());
+    public static final Block GRAVITY_PISTON_HEAD = registerHead("gravity_piston_head", p -> new GravityPistonHeadBlock(p), headProperties());
+    public static final Block STRONG_PISTON_HEAD = registerHead("strong_piston_head", p -> new ModPistonHeadBlock(p), headProperties());
+
     private static final Block[] BASES = {
         HONEY_PISTON, PROJECTILE_PISTON, CHAIN_PISTON, CHAIN_STICKY_PISTON, LOOP_PISTON,
         WIND_CHARGE_PISTON, SILENT_PISTON, RECOIL_PISTON, END_ROD_PISTON, SKULL_PISTON,
         QC_PISTON, QC_STICKY_PISTON, OBSERVER_PISTON, OBSERVER_STICKY_PISTON, REDSTONE_END_ROD_PISTON,
-        LONG_PUSH_PISTON, WEAK_PISTON, FAST_PISTON, FAST_STICKY_PISTON
+        LONG_PUSH_PISTON, WEAK_PISTON, FAST_PISTON, FAST_STICKY_PISTON,
+        POTATO_PISTON, PICKAXE_PISTON, RECURSIVE_PISTON, RECURSIVE_STICKY_PISTON,
+        TURN_PUSH_PISTON, TURN_PUSH_STICKY_PISTON, WALL_MERGE_PISTON, WALL_MERGE_STICKY_PISTON,
+        ST_PISTON, ST_STICKY_PISTON, GRAVITY_PISTON,
+        STRONG_PISTON_1, STRONG_PISTON_2, STRONG_PISTON_3
     };
 
     private ModBlocks() {
@@ -153,6 +206,34 @@ public final class ModBlocks {
 
     private static Block registerHead(String name, java.util.function.Function<BlockBehaviour.Properties, Block> factory, BlockBehaviour.Properties properties) {
         return registerBlock(name, factory, properties);
+    }
+
+    /** Structural part (递推杆 / 墙并杆 / 马铃薯移塞): registered without an item. */
+    private static Block registerPart(String name, java.util.function.Function<BlockBehaviour.Properties, Block> factory) {
+        return registerBlock(name, factory, movingPistonProperties());
+    }
+
+    /** The potato moving piston mirrors the vanilla one's properties (unbreakable, immovable). */
+    private static BlockBehaviour.Properties movingPistonProperties() {
+        //? if <1.20 {
+        return BlockBehaviour.Properties.of(net.minecraft.world.level.material.Material.PISTON)
+            .strength(-1.0F)
+            .dynamicShape()
+            .noLootTable()
+            .noOcclusion();
+        //?} else {
+        return BlockBehaviour.Properties.of()
+            .mapColor(net.minecraft.world.level.material.MapColor.STONE)
+            .forceSolidOn()
+            .strength(-1.0F)
+            .dynamicShape()
+            .noLootTable()
+            .noOcclusion()
+            .isRedstoneConductor((s, l, p) -> false)
+            .isSuffocating((s, l, p) -> false)
+            .isViewBlocking((s, l, p) -> false)
+            .pushReaction(PushReaction.BLOCK);
+        //?}
     }
 
     private static Block registerBlock(String name, java.util.function.Function<BlockBehaviour.Properties, Block> factory, BlockBehaviour.Properties properties) {

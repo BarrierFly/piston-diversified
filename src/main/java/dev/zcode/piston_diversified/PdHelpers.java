@@ -8,6 +8,9 @@ import net.minecraft.resources.Identifier;
 
 /** Small cross-version helpers (the only stonecutter guards besides block/ObserverPistonBlock). */
 public final class PdHelpers {
+    /** File id of the potato flight queue's saved data (not a registry id). */
+    public static final String POTATO_FLIGHT_DATA_ID = "piston_diversified_potato_flight";
+
     private PdHelpers() {
     }
 
@@ -116,5 +119,41 @@ public final class PdHelpers {
     public static void explodeTnt(net.minecraft.server.level.ServerLevel level, net.minecraft.core.BlockPos pos) {
         net.minecraft.world.phys.Vec3 center = net.minecraft.world.phys.Vec3.atCenterOf(pos);
         level.explode(null, center.x, center.y, center.z, 4.0F, net.minecraft.world.level.Level.ExplosionInteraction.TNT);
+    }
+
+    /** Dimension id as a string (the ResourceKey accessor was renamed in 1.21.11). */
+    public static String dimensionId(net.minecraft.server.level.ServerLevel level) {
+        //? if <1.21.11 {
+        return level.dimension().location().toString();
+        //?} else {
+        return level.dimension().identifier().toString();
+        //?}
+    }
+
+    /** Whether an NBT compound carries a nested compound under the given key (API moved in 1.21.2). */
+    public static boolean hasCompound(net.minecraft.nbt.CompoundTag tag, String key) {
+        //? if <1.21.2 {
+        return tag.contains(key, net.minecraft.nbt.Tag.TAG_COMPOUND);
+        //?} else {
+        return tag.get(key) instanceof net.minecraft.nbt.CompoundTag;
+        //?}
+    }
+
+    /** World floor (renamed from getMinBuildHeight in 1.20). */
+    public static int minBuildHeight(net.minecraft.world.level.LevelHeightAccessor level) {
+        //? if <1.20 {
+        return level.getMinBuildHeight();
+        //?} else {
+        return level.getMinY();
+        //?}
+    }
+
+    /** World ceiling (renamed from getMaxBuildHeight in 1.20). */
+    public static int maxBuildHeight(net.minecraft.world.level.LevelHeightAccessor level) {
+        //? if <1.20 {
+        return level.getMaxBuildHeight();
+        //?} else {
+        return level.getMaxY();
+        //?}
     }
 }

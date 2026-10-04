@@ -17,5 +17,19 @@
   "block.piston_diversified.long_push_piston": "Long Push Piston",
   "block.piston_diversified.weak_piston": "Weak Piston",
   "block.piston_diversified.fast_piston": "Fast Piston",
-  "block.piston_diversified.fast_sticky_piston": "Fast Sticky Piston"
+  "block.piston_diversified.fast_sticky_piston": "Fast Sticky Piston",
+  "block.piston_diversified.potato_piston": "Potato Piston",
+  "block.piston_diversified.pickaxe_piston": "Pickaxe Piston",
+  "block.piston_diversified.recursive_piston": "Recursive Piston",
+  "block.piston_diversified.recursive_sticky_piston": "Recursive Sticky Piston",
+  "block.piston_diversified.turn_push_piston": "Turn Push Piston",
+  "block.piston_diversified.turn_push_sticky_piston": "Turn Push Sticky Piston",
+  "block.piston_diversified.wall_merge_piston": "Wall Merge Piston",
+  "block.piston_diversified.wall_merge_sticky_piston": "Wall Merge Sticky Piston",
+  "block.piston_diversified.st_piston": "0-Tick Piston",
+  "block.piston_diversified.st_sticky_piston": "0-Tick Sticky Piston",
+  "block.piston_diversified.gravity_piston": "Gravity Piston",
+  "block.piston_diversified.strong_piston_1": "Strong Piston I",
+  "block.piston_diversified.strong_piston_2": "Strong Piston II",
+  "block.piston_diversified.strong_piston_3": "Strong Piston III"
 }

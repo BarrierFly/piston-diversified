@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/piston_extended",
+  "textures": {
+    "bottom": "piston_diversified:block/strong_piston_3_bottom",
+    "side": "piston_diversified:block/strong_piston_3_side",
+    "inside": "piston_diversified:block/strong_piston_3_inner"
+  }
+}

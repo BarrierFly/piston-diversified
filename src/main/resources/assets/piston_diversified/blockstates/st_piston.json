@@ -1,0 +1,50 @@
+{
+  "variants": {
+    "extended=false,facing=north": {
+      "model": "piston_diversified:block/st_piston"
+    },
+    "extended=false,facing=south": {
+      "model": "piston_diversified:block/st_piston",
+      "y": 180
+    },
+    "extended=false,facing=west": {
+      "model": "piston_diversified:block/st_piston",
+      "y": 270
+    },
+    "extended=false,facing=east": {
+      "model": "piston_diversified:block/st_piston",
+      "y": 90
+    },
+    "extended=false,facing=up": {
+      "model": "piston_diversified:block/st_piston",
+      "x": 270
+    },
+    "extended=false,facing=down": {
+      "model": "piston_diversified:block/st_piston",
+      "x": 90
+    },
+    "extended=true,facing=north": {
+      "model": "piston_diversified:block/st_piston_extended"
+    },
+    "extended=true,facing=south": {
+      "model": "piston_diversified:block/st_piston_extended",
+      "y": 180
+    },
+    "extended=true,facing=west": {
+      "model": "piston_diversified:block/st_piston_extended",
+      "y": 270
+    },
+    "extended=true,facing=east": {
+      "model": "piston_diversified:block/st_piston_extended",
+      "y": 90
+    },
+    "extended=true,facing=up": {
+      "model": "piston_diversified:block/st_piston_extended",
+      "x": 270
+    },
+    "extended=true,facing=down": {
+      "model": "piston_diversified:block/st_piston_extended",
+      "x": 90
+    }
+  }
+}

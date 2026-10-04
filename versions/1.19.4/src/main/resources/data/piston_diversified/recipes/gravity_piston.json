@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "redstone",
+  "key": {
+    "T": {
+      "tag": "minecraft:planks"
+    },
+    "#": {
+      "item": "minecraft:cobblestone"
+    },
+    "G": {
+      "item": "minecraft:gravel"
+    },
+    "R": {
+      "item": "minecraft:redstone"
+    }
+  },
+  "pattern": [
+    "TTT",
+    "#G#",
+    "#R#"
+  ],
+  "result": {
+    "item": "piston_diversified:gravity_piston",
+    "count": 1
+  }
+}

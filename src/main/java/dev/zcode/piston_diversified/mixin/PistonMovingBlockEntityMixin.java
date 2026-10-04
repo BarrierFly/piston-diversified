@@ -14,22 +14,29 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-
 //? if >=1.21.2 {
-import net.minecraft.core.HolderLookup;
 import net.minecraft.world.level.redstone.ExperimentalRedstoneUtils;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 //?}
 
 /**
- * 快速活塞 support: moving pistons flagged "fast" convert to their final block the tick the
- * movement progress reaches 1.0, instead of waiting one more tick for {@code progressO >= 1.0}.
+ * 快速活塞 support (a moving piston flagged "fast" converts the tick its progress reaches 1.0)
+ * and 马铃薯活塞 support (the flight record that keeps a launched structure gliding).
+ *
+ * <p>Both ride on the vanilla moving-piston entity instead of a separate block-entity type, so
+ * the movement animation, entity pushing and landing stay exactly vanilla.</p>
  */
 @Mixin(PistonMovingBlockEntity.class)
 public class PistonMovingBlockEntityMixin implements PistonDuck {
     @Unique
     private boolean pistonDiversified$fast;
+    @Unique
+    private long[] pistonDiversified$flight = new long[0];
+    @Unique
+    private boolean pistonDiversified$flightPrimary;
+    @Unique
+    private boolean pistonDiversified$landsInWater;
 
     @Override
     public void pistonDiversified$setFast(boolean fast) {
@@ -41,16 +48,69 @@ public class PistonMovingBlockEntityMixin implements PistonDuck {
         return this.pistonDiversified$fast;
     }
 
+    @Override
+    public void pistonDiversified$setFlight(long[] record, boolean primary, boolean landsInWater) {
+        this.pistonDiversified$flight = record == null ? new long[0] : record;
+        this.pistonDiversified$flightPrimary = primary;
+        this.pistonDiversified$landsInWater = landsInWater;
+    }
+
+    @Override
+    public long[] pistonDiversified$getFlight() {
+        return this.pistonDiversified$flight;
+    }
+
+    @Override
+    public boolean pistonDiversified$isFlightPrimary() {
+        return this.pistonDiversified$flightPrimary;
+    }
+
+    @Override
+    public boolean pistonDiversified$landsInWater() {
+        return this.pistonDiversified$landsInWater;
+    }
+
+    // the block-state validation the vanilla entity type performs lives on BlockEntity and is
+    // widened for the potato moving piston by BlockEntityMixin
+
     @Inject(method = "tick", at = @At("TAIL"))
-    private static void pistonDiversified$convertEarly(Level level, BlockPos pos, BlockState state, PistonMovingBlockEntity be, CallbackInfo ci) {
-        if (!((PistonDuck) be).pistonDiversified$isFast() || level.isClientSide()) {
-            return;
+    private static void pistonDiversified$afterTick(Level level, BlockPos pos, BlockState state, PistonMovingBlockEntity be, CallbackInfo ci) {
+        PistonDuck duck = (PistonDuck) be;
+        if (duck.pistonDiversified$isFast() && !level.isClientSide()) {
+            // Only convert right at the moment progress reached 1.0 this tick.
+            if (((PistonMovingBlockEntityAccessor) be).pistonDiversified$getProgressO() < 1.0F
+                && ((PistonMovingBlockEntityAccessor) be).pistonDiversified$getProgress() >= 1.0F) {
+                pistonDiversified$placeFinal(level, pos, be);
+                return;
+            }
         }
 
-        // Only convert right at the moment progress reached 1.0 this tick.
-        if (((PistonMovingBlockEntityAccessor) be).pistonDiversified$getProgressO() < 1.0F
-            && ((PistonMovingBlockEntityAccessor) be).pistonDiversified$getProgress() >= 1.0F) {
-            pistonDiversified$placeFinal(level, pos, be);
+        // 马铃薯活塞: the landing finished this tick (the vanilla tick wrote the final block and
+        // dropped the entity) — restore waterlogging and queue the next flight step.
+        if (duck.pistonDiversified$getFlight().length > 0
+            && be.isExtending()
+            && duck.pistonDiversified$isFlightPrimary()
+            && !be.isRemoved()
+            && !level.getBlockState(pos).is(Blocks.MOVING_PISTON)) {
+            pistonDiversified$landPotato(level, pos, be, duck);
+        }
+    }
+
+    /** 到位有水恢复含水 + 在身后登记延迟 1gt 的无活塞推出事件（悬浮飞行）。 */
+    @Unique
+    private static void pistonDiversified$landPotato(Level level, BlockPos pos, PistonMovingBlockEntity be, PistonDuck duck) {
+        BlockState landed = level.getBlockState(pos);
+        boolean wantsWater = duck.pistonDiversified$landsInWater();
+        if (!level.isClientSide()
+            && landed.hasProperty(BlockStateProperties.WATERLOGGED)
+            && landed.getValue(BlockStateProperties.WATERLOGGED) != wantsWater) {
+            landed = landed.setValue(BlockStateProperties.WATERLOGGED, wantsWater);
+            level.setBlock(pos, landed, 3);
+        }
+        if (!level.isClientSide() && level instanceof net.minecraft.server.level.ServerLevel serverLevel) {
+            dev.zcode.piston_diversified.logic.PotatoFlightQueue.add(
+                serverLevel, pos, be.getDirection(), duck.pistonDiversified$getFlight(), landed.getBlock()
+            );
         }
     }
 
@@ -83,23 +143,55 @@ public class PistonMovingBlockEntityMixin implements PistonDuck {
 
     //? if >=1.21.2 {
     @Inject(method = "saveAdditional", at = @At("TAIL"))
-    private void pistonDiversified$saveFast(ValueOutput output, CallbackInfo ci) {
+    private void pistonDiversified$saveFlags(ValueOutput output, CallbackInfo ci) {
         output.putBoolean("pistonDiversifiedFast", this.pistonDiversified$fast);
+        this.pistonDiversified$saveFlight(output);
     }
 
     @Inject(method = "loadAdditional", at = @At("TAIL"))
-    private void pistonDiversified$loadFast(ValueInput input, CallbackInfo ci) {
+    private void pistonDiversified$loadFlags(ValueInput input, CallbackInfo ci) {
         this.pistonDiversified$fast = input.getBooleanOr("pistonDiversifiedFast", false);
+        this.pistonDiversified$loadFlight(input);
+    }
+
+    /** The value API has no long-array codec, so the record travels as a list of longs. */
+    @Unique
+    private void pistonDiversified$saveFlight(ValueOutput output) {
+        if (this.pistonDiversified$flight.length > 0) {
+            output.store("PdFlight", com.mojang.serialization.Codec.LONG.listOf(),
+                java.util.Arrays.stream(this.pistonDiversified$flight).boxed().toList());
+            output.putBoolean("PdFlightPrimary", this.pistonDiversified$flightPrimary);
+            output.putBoolean("PdFlightWater", this.pistonDiversified$landsInWater);
+        }
+    }
+
+    @Unique
+    private void pistonDiversified$loadFlight(ValueInput input) {
+        this.pistonDiversified$flight = input.read("PdFlight", com.mojang.serialization.Codec.LONG.listOf())
+            .orElse(java.util.List.of())
+            .stream()
+            .mapToLong(Long::longValue)
+            .toArray();
+        this.pistonDiversified$flightPrimary = input.getBooleanOr("PdFlightPrimary", false);
+        this.pistonDiversified$landsInWater = input.getBooleanOr("PdFlightWater", false);
     }
     //?} else {
     @Inject(method = "saveAdditional", at = @At("TAIL"))
-    private void pistonDiversified$saveFast(CompoundTag tag, CallbackInfo ci) {
+    private void pistonDiversified$saveFlags(CompoundTag tag, CallbackInfo ci) {
         tag.putBoolean("pistonDiversifiedFast", this.pistonDiversified$fast);
+        if (this.pistonDiversified$flight.length > 0) {
+            tag.putLongArray("PdFlight", this.pistonDiversified$flight);
+            tag.putBoolean("PdFlightPrimary", this.pistonDiversified$flightPrimary);
+            tag.putBoolean("PdFlightWater", this.pistonDiversified$landsInWater);
+        }
     }
 
     @Inject(method = "load", at = @At("TAIL"))
-    private void pistonDiversified$loadFast(CompoundTag tag, CallbackInfo ci) {
+    private void pistonDiversified$loadFlags(CompoundTag tag, CallbackInfo ci) {
         this.pistonDiversified$fast = tag.getBoolean("pistonDiversifiedFast");
+        this.pistonDiversified$flight = tag.getLongArray("PdFlight");
+        this.pistonDiversified$flightPrimary = tag.getBoolean("PdFlightPrimary");
+        this.pistonDiversified$landsInWater = tag.getBoolean("PdFlightWater");
     }
     //?}
 }

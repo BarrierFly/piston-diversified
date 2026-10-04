@@ -1,0 +1,6 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "piston_diversified:block/wall_merge_sticky_piston_inventory"
+  }
+}

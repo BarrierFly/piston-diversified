@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "redstone",
+  "key": {
+    "T": "#minecraft:planks",
+    "H": "minecraft:creaking_heart",
+    "#": "minecraft:cobblestone",
+    "X": "minecraft:iron_ingot",
+    "R": "minecraft:redstone"
+  },
+  "pattern": [
+    "THT",
+    "#X#",
+    "#R#"
+  ],
+  "result": {
+    "count": 1,
+    "id": "piston_diversified:strong_piston_1"
+  }
+}

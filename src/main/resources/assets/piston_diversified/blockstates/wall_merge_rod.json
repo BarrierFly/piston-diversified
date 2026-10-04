@@ -1,0 +1,27 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "piston_diversified:block/wall_merge_rod"
+    },
+    "facing=south": {
+      "model": "piston_diversified:block/wall_merge_rod",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "piston_diversified:block/wall_merge_rod",
+      "y": 270
+    },
+    "facing=east": {
+      "model": "piston_diversified:block/wall_merge_rod",
+      "y": 90
+    },
+    "facing=up": {
+      "model": "piston_diversified:block/wall_merge_rod",
+      "x": 270
+    },
+    "facing=down": {
+      "model": "piston_diversified:block/wall_merge_rod",
+      "x": 90
+    }
+  }
+}

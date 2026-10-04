@@ -1,0 +1,6 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "piston_diversified:block/turn_push_sticky_piston_inventory"
+  }
+}
