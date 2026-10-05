@@ -3,6 +3,7 @@ package dev.zcode.piston_diversified.logic;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import dev.zcode.piston_diversified.PdHelpers;
+import dev.zcode.piston_diversified.block.ModPistonBaseBlock;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -40,8 +41,11 @@ public final class PistonlessPush {
  * after. Destroy-on-push cells are cleared as well, matching what the server pops.</p>
  */
     public static void clearStructure(Level level, BlockPos startPos, Direction pushDirection) {
+        // The 7-arg constructor is rooted at a piston cell and starts one cell further along, so
+        // hand it the cell *behind* the start — otherwise the front block itself survives here and
+        // the client goes on to animate a forward push the server never performs.
         ModPistonStructureResolver resolver = new ModPistonStructureResolver(
-            level, startPos, pushDirection, true, true, false, false
+            level, startPos.relative(pushDirection.getOpposite()), pushDirection, true, true, false, false
         );
         if (!resolver.resolve()) {
             return;
@@ -109,7 +113,7 @@ public final class PistonlessPush {
             BlockState movingState = Blocks.MOVING_PISTON
                 .defaultBlockState()
                 .setValue(MovingPistonBlock.FACING, pushDirection);
-            level.setBlock(targetPos, movingState, 324);
+            level.setBlock(targetPos, movingState, ModPistonBaseBlock.SYNC_MOVING_PISTON);
             BlockEntity movingBe = MovingPistonBlock.newMovingBlockEntity(
                 targetPos, movingState, oldStates.get(k), pushDirection, true, false
             );

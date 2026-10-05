@@ -114,44 +114,75 @@ PICKAXE_ICON = [
     "........",
 ]
 
-# 5x7 arrow head, oriented per bend direction (arrow points at the bend)
+# 6x9 arrow, oriented per bend direction (arrow points at the bend). Big enough to read on a
+# 16x16 piston plate at a glance — the previous 5x5 mark was a speck once blitted 1:1.
 ARROW_ICON = [
-    "..#..",
-    ".###.",
-    "#####",
-    "..#..",
-    "..#..",
+    "...#...",
+    "...#...",
+    "..###..",
+    "..###..",
+    ".#####.",
+    "#######",
+    "...#...",
+    "...#...",
+    "...#...",
 ]
 
 
 def _blit(img, icon, ox, oy, color):
-    """Draw a pixel-art icon onto img at (ox, oy) with an outline."""
+    """Draw a pixel-art icon onto img at (ox, oy), one texture pixel per icon cell.
+
+    Each cell is filled plus outlined in near-black: the piston plate is busy wood grain, and a
+    flat colour alone disappeared into it. The outline is what makes the mark readable.
+    """
     d = ImageDraw.Draw(img)
+    h = len(icon)
+    w = len(icon[0])
+    outline = (16, 16, 20, 255)
     for ry, row in enumerate(icon):
         for rx, c in enumerate(row):
             if c != "#":
                 continue
             x, y = ox + rx, oy + ry
-            d.rectangle([x, y, x + 1, y + 1], fill=(18, 18, 18, 255))
-            d.rectangle([x + 1, y + 1, x + 2, y + 2], fill=color)
+            d.rectangle([x, y, x, y], fill=color)
+    # outline pass: darken the border of every filled cell so the shape separates from the grain
+    px = img.load()
+    for ry in range(h):
+        for rx in range(w):
+            if icon[ry][rx] != "#":
+                continue
+            x, y = ox + rx, oy + ry
+            for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+                nx, ny = x + dx, y + dy
+                if 0 <= nx < img.width and 0 <= ny < img.height:
+                    if px[nx, ny][:3] != color[:3]:
+                        px[nx, ny] = outline
 
 
 def _draw_pickaxe_icon(img, tool, color):
     _blit(img, PICKAXE_ICON, 4, 4, (*color, 255))
 
 
+def _rotate(icon, turns):
+    """Rotate a square-ish icon 90° clockwise, `turns` times."""
+    out = [list(row) for row in icon]
+    for _ in range(turns % 4):
+        out = [list(row) for row in zip(*out[::-1])]
+    return out
+
+
 def _draw_bend_arrow(img, bend):
-    """Arrow on the plate pointing at the bend direction (north/south/west/east)."""
-    color = (60, 60, 70, 255)
-    if bend in ("north", "south"):
-        arrow = ARROW_ICON if bend == "north" else list(reversed(ARROW_ICON))
-        _blit(img, arrow, 5, 4, color)
-    else:
-        rotated = [list(row) for row in zip(*ARROW_ICON)]
-        arrow = [list(row) for row in rotated]
-        if bend == "west":
-            arrow = [row[::-1] for row in arrow]
-        _blit(img, arrow, 5, 4, color)
+    """Arrow on the plate pointing at the bend direction, on all six faces.
+
+    The icon is authored pointing north and rotated from there, so every direction is the same
+    shape — the earlier branch drew east/west sideways marks for the up/down faces.
+    """
+    turns = {"north": 0, "east": 1, "south": 2, "west": 3, "up": 3, "down": 1}[bend]
+    arrow = _rotate(ARROW_ICON, turns)
+    h = len(arrow)
+    w = len(arrow[0])
+    # centre it on the 16x16 plate whatever the rotated footprint is
+    _blit(img, arrow, (16 - w) // 2, (16 - h) // 2, (245, 245, 250, 255))
 
 
 def _draw_creaking_heart(img, origin, tint=(196, 62, 74)):
@@ -347,7 +378,9 @@ def build_textures(v: Vanilla):
     emit("recursive_sticky_piston", **vanilla_set, sticky=src["sticky"])
 
     # 拐推活塞: arrow on the plate, pointing at the *model-local* bend direction (6 variants);
-    # the blockstate maps each (facing, bend) pair onto one of these
+    # the blockstate maps each (facing, bend) pair onto one of these.
+    # The sticky variant needs BOTH sets: its retracted base and its normal-typed head show the
+    # plain arrow, its sticky plate shows the slime-textured one.
     for lb in ("north", "south", "west", "east", "up", "down"):
         arrow_top = src["top"].copy()
         _draw_bend_arrow(arrow_top, lb)
@@ -355,7 +388,8 @@ def build_textures(v: Vanilla):
         _draw_bend_arrow(arrow_sticky, lb)
         emit("turn_push_piston", **{**vanilla_set, "top": arrow_top},
              extra={f"turn_push_piston_top_{lb}": arrow_top,
-                    f"turn_push_sticky_piston_top_{lb}": arrow_sticky})
+                    f"turn_push_sticky_piston_top_{lb}": arrow_top,
+                    f"turn_push_sticky_piston_top_sticky_{lb}": arrow_sticky})
     # base textures for the sticky variant come from the same emit; give the sticky variant its
     # own plain set so emit() does not overwrite shared side/bottom textures
     emit("turn_push_sticky_piston", **vanilla_set, sticky=src["sticky"])
@@ -984,9 +1018,10 @@ def bent_head_model(vid, plate_dir, base_sticky, short, sticky_plate=False):
         "parent": "block/block",
         "textures": {
             "particle": side,
-            # the plate carries the bend arrow, so the extended arm still shows where it bends
-            "platform": f"{NS}:block/{vid}_top_sticky_{plate_dir}" if sticky_plate
-                        else f"{NS}:block/{vid}_top_{plate_dir}",
+            # Arrow plate, so the bend stays readable on the extended arm. Only the sticky variant
+            # ships a `_top_sticky_<lb>` set, so the middle segment is the discriminator.
+            "platform": (f"{NS}:block/{vid}_top_sticky_{plate_dir}" if sticky_plate
+                         else f"{NS}:block/{vid}_top_{plate_dir}"),
             "side": side,
         },
         "elements": [plate, rod],
@@ -1277,6 +1312,8 @@ def gen_shared_assets(textures):
         write_json(os.path.join(bs_dir, part + ".json"), {"variants": part_variants})
         write_json(os.path.join(model_dir, part + ".json"), rod_model())
 
+    return assets
+
 
 # ---------------------------------------------------------------- per-version data
 
@@ -1544,13 +1581,43 @@ def gen_version_trees():
                 table["random_sequence"] = f"{NS}:blocks/{vid}"
             write_json(os.path.join(res, "data", NS, loot_dirname, "blocks", vid + ".json"), table)
 
+def verify_texture_refs(assets):
+    """Every `#ns:block/...` reference must resolve to a generated texture.
+
+    A typo in a texture name is invisible at generation time — the model JSON is written happily
+    and the block renders with the purple-black missing texture in game. That is exactly how the
+    turn-push sticky plate (`top_{lb}` emitted vs `top_sticky_{lb}` referenced) went unnoticed, so
+    the check is part of the generator rather than something to remember.
+    """
+    import glob
+
+    # references are `NS:block/<name>`, so strip both segments and look under textures/
+    tex_dir = os.path.join(assets, "textures")
+    missing = set()
+    for path in glob.glob(os.path.join(assets, "models", "block", "*.json")):
+        with open(path, encoding="utf-8") as handle:
+            model = json.load(handle)
+        for value in (model.get("textures") or {}).values():
+            if isinstance(value, str) and value.startswith(f"{NS}:"):
+                if not os.path.exists(os.path.join(tex_dir, value.split(":", 1)[1] + ".png")):
+                    missing.add((os.path.basename(path), value))
+    return missing
+
+
 def main():
     jar = sys.argv[1] if len(sys.argv) > 1 else JAR_DEFAULT
     v = Vanilla(jar)
     textures = build_textures(v)
-    gen_shared_assets(textures)
+    assets = gen_shared_assets(textures)
     gen_version_trees()
     print(f"Generated {len(textures)} textures + assets + version trees from {jar}")
+    missing = verify_texture_refs(assets)
+    if missing:
+        print(f"ERROR: {len(missing)} model(s) reference a texture that was never generated:")
+        for name, ref in sorted(missing)[:20]:
+            print(f"    {name} -> {ref}")
+        raise SystemExit(1)
+    print("All model texture references resolve.")
 
 if __name__ == "__main__":
     main()

@@ -1,6 +1,7 @@
 package dev.zcode.piston_diversified.logic;
 
 import dev.zcode.piston_diversified.PdGamerules;
+import dev.zcode.piston_diversified.block.ModPistonBaseBlock;
 import dev.zcode.piston_diversified.duck.PistonDuck;
 import dev.zcode.piston_diversified.logic.PotatoStructureResolver.Member;
 import dev.zcode.piston_diversified.logic.PotatoStructureResolver.MemberKind;
@@ -85,7 +86,7 @@ public final class PotatoPushLogic {
             BlockState movingState = Blocks.MOVING_PISTON
                 .defaultBlockState()
                 .setValue(MovingPistonBlock.FACING, pushDirection);
-            level.setBlock(target, movingState, 324);
+            level.setBlock(target, movingState, ModPistonBaseBlock.SYNC_MOVING_PISTON);
             // the vanilla moving-piston entity carries the flight record on the mod's duck, so
             // the whole movement/landing path stays vanilla
             net.minecraft.world.level.block.entity.BlockEntity be = MovingPistonBlock.newMovingBlockEntity(

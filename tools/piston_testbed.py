@@ -692,6 +692,29 @@ def clear_rig(rcon):
     rcon.cmd("fill %s %s air" % (_pos(CLEAR_FROM), _pos(CLEAR_TO)))
 
 
+@register_v2("potato piston: pops destroy-on-push blocks with their drop")
+def potato_pops_destroy_blocks(rcon):
+    # A front torch is destroy-on-push: it must pop and drop an item, not vanish. The front cell
+    # used to be cleared before the push ran, which deleted it outright with no drop at all.
+    clear_rig(rcon)
+    rcon.cmd("setblock %s piston_diversified:potato_piston[facing=east,extended=false]" % _pos(BASE))
+    rcon.cmd("setblock %s minecraft:torch" % _pos(FRONT))
+    rcon.cmd("setblock %s redstone_block" % _pos(POWER))
+    time.sleep(2.0)
+    gone = not rcon.has_block(FRONT, "minecraft:torch")
+    # the item entity is what proves it dropped rather than being deleted
+    dropped = "Test passed" in rcon.cmd(
+        "execute if entity @e[type=minecraft:item,distance=..10]")
+    results = [
+        ("front destroy-on-push block popped (not carried)", gone),
+        ("the popped block dropped an item", dropped),
+    ]
+    rcon.cmd("setblock %s air" % _pos(POWER))
+    time.sleep(0.5)
+    clear_rig(rcon)
+    return results
+
+
 def run_case(rcon, name, front_block, expectation):
     clear_rig(rcon)
     rcon.cmd("setblock %s %s[facing=east,extended=false]" % (_pos(BASE), PISTON))

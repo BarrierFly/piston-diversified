@@ -44,14 +44,10 @@ public class ScheduledTickPistonBlock extends ModPistonBaseBlock {
         if (bl && !state.getValue(EXTENDED)) {
             // mirror the vanilla extend event's pre-resolve, re-read at execution time
             if (this.resolveExtend(level, pos, direction) || this.extendEventWithoutResolve(level, pos, direction)) {
-                // the tick channel is server-only, so re-broadcast the decision for the client;
-                // it arrives before this tick's block writes, which slides the head out there too
-                this.sendAnimateEvent(level, pos, direction, true);
                 this.executeExtend(level, pos, direction, state);
             }
         } else if (!bl && state.getValue(EXTENDED)) {
             int type = this.retractType(level, pos, direction, state);
-            this.sendAnimateEvent(level, pos, direction, false);
             this.executeRetract(level, pos, direction, state, type);
         }
         // bl && EXTENDED: a stale retract tick simply re-arms, like cancelRetractIfPowered
@@ -59,11 +55,6 @@ public class ScheduledTickPistonBlock extends ModPistonBaseBlock {
 
     @Override
     public boolean triggerEvent(BlockState state, Level level, BlockPos pos, int id, int param) {
-        // Decision events are unused by this variant, but the animation ids must still reach the
-        // base, otherwise the client never builds the moving pistons the tick chain produces.
-        if (id == ANIMATE_EXTEND || id == ANIMATE_RETRACT) {
-            return super.triggerEvent(state, level, pos, id, param);
-        }
-        return true;
+        return true; // no decision events are used by this variant
     }
 }

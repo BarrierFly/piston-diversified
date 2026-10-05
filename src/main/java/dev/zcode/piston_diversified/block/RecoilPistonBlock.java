@@ -111,7 +111,7 @@ public class RecoilPistonBlock extends ModPistonBaseBlock {
             .defaultBlockState()
             .setValue(MovingPistonBlock.FACING, direction)
             .setValue(MovingPistonBlock.TYPE, PistonType.DEFAULT);
-        level.setBlock(newBasePos, movingState, 324);
+        level.setBlock(newBasePos, movingState, ModPistonBaseBlock.SYNC_MOVING_PISTON);
         BlockEntity movingBe = MovingPistonBlock.newMovingBlockEntity(newBasePos, movingState, baseState, direction, false, false);
         level.setBlockEntity(movingBe);
     }

@@ -28,7 +28,7 @@ A Fabric mod that adds piston variants. **Mod v2** completes the plan: all 33 pi
 
 | Piston | 活塞 | Notes / 说明 |
 | --- | --- | --- |
-| Potato Piston | 马铃薯活塞 | Floatater-style structure selection (3 connection rules, `potato_push_limit` gamerule, default 32); the pushed structure keeps gliding through the air after the piston is gone (递归飞行). A structure that cannot move a full cell stops in place instead of overwriting whatever it would land on. 结构选取采用三条连接规则，飞行结构递归推进；推不动就原地停住，不会覆盖方块。 |
+| Potato Piston | 马铃薯活塞 | Floatater-style structure selection (3 connection rules, `potato_push_limit` gamerule, default 32); the pushed structure keeps gliding through the air after the piston is gone (递归飞行). A structure that cannot move a full cell stops in place instead of overwriting whatever it would land on, and destroy-on-push blocks pop with their drop. 结构选取采用三条连接规则，飞行结构递归推进；推不动就原地停住，不会覆盖方块，POP 类方块正常掉落。 |
 | Pickaxe Piston | 镐活塞 | Mines the front block with its carried pickaxe instead of pushing it (silky touch / fortune apply, no durability); the tool rides on the block and the item. Blocks vanilla cannot push (obsidian and friends) are mined too when the pickaxe can harvest them. 用携带的镐瞬间挖掘前方方块（黑曜石等原版推不动的方块在下界合金镐下也可挖），镐随方块与物品无损往返。 |
 | Recursive Piston / Sticky | 递推活塞/黏塞 | Telescoping arm: while powered the head pushes out one cell at a time (head + rods against the 12 push budget). 通电时逐格伸出，头与杆计入推动上限。 |
 | Turn Push Piston / Sticky | 拐推活塞/黏塞 | Pushes the front structure sideways (placement-time bend direction) and ends in a bent head; the arrow on the plate shows which way it bends, both retracted and extended. The sticky version pulls the block glued to the bent plate back to the head cell. 推出方向为放置时选定的拐弯方向，活塞盖上的箭头指示拐弯方向（收回/推出状态都可见）；黏性版沿拐弯方向把方块拉回头所在格。 |
@@ -90,13 +90,13 @@ Gamerule / 规则：`potato_push_limit` (default 32) caps the potato piston's st
 
 ## Testing / 测试
 
-`tools/piston_testbed.py` boots a headless dev server over RCON and asserts piston behaviour (data-file parse check plus 21 cases) on all four version nodes.
+`tools/piston_testbed.py` boots a headless dev server over RCON and asserts piston behaviour (data-file parse check plus 22 cases) on all four version nodes.
 
 ```bash
 python tools/piston_testbed.py --start --version 1.21.11
 ```
 
-`tools/piston_testbed.py` 启动无头开发服并通过 RCON 断言活塞行为（数据文件解析检查 + 21 项用例），四个版本节点均已跑通。
+`tools/piston_testbed.py` 启动无头开发服并通过 RCON 断言活塞行为（数据文件解析检查 + 22 项用例），四个版本节点均已跑通。
 
 ## Conversions / 转换
 

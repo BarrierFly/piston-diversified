@@ -75,28 +75,7 @@ public class GravityPistonBlock extends ModPistonBaseBlock {
             level.scheduleTick(pos, this, 1);
             return;
         }
-        // broadcast before stepping: the client mirrors the step the server is about to take
-        this.sendAnimateEvent(level, pos, Direction.DOWN, false);
         this.retractOneStep(level, pos, rods);
-    }
-
-    /** The client-side mirror of one downward telescoping step. */
-    @Override
-    protected void animateExtendOnClient(Level level, BlockPos pos, Direction direction, BlockState state) {
-        if (direction == Direction.DOWN) {
-            this.tryDownwardExtend(level, pos);
-        }
-    }
-
-    @Override
-    protected void animateRetractOnClient(Level level, BlockPos pos, Direction direction, BlockState state) {
-        if (direction != Direction.DOWN) {
-            return;
-        }
-        int rods = RecursivePistonBlock.countRods(level, pos, Direction.DOWN);
-        if (rods > 0 && !this.isRetractInFlight(level, pos, rods)) {
-            this.retractOneStep(level, pos, rods);
-        }
     }
 
     /**
@@ -128,12 +107,11 @@ public class GravityPistonBlock extends ModPistonBaseBlock {
         if (rods + 1 + resolver.totalWeight() > PUSH_LIMIT) {
             return; // telescoped out fully
         }
-        this.sendAnimateEvent(level, pos, Direction.DOWN, true);
         if (this.moveBlocksResolved(level, headPos, Direction.DOWN, true, resolver, level.getBlockState(pos))) {
             BlockState rodState = ModBlocks.RECURSIVE_PISTON_ROD.defaultBlockState()
                 .setValue(RecursivePistonRodBlock.FACING, Direction.DOWN);
             // flag 276: replacing the head must not run its removal hooks against the base
-            level.setBlock(headPos, rodState, 276);
+            level.setBlock(headPos, rodState, ModPistonBaseBlock.SYNC_RETRACT);
             level.updateNeighborsAt(headPos, rodState.getBlock());
             this.scheduleNext(level, pos, 2);
         }
@@ -200,7 +178,7 @@ public class GravityPistonBlock extends ModPistonBaseBlock {
             .defaultBlockState()
             .setValue(MovingPistonBlock.FACING, direction)
             .setValue(MovingPistonBlock.TYPE, net.minecraft.world.level.block.state.properties.PistonType.DEFAULT);
-        level.setBlock(rodPos, movingState, 276);
+        level.setBlock(rodPos, movingState, ModPistonBaseBlock.SYNC_RETRACT);
         // non-source: see RecursivePistonBlock — a source retract piston crashes the renderer
         net.minecraft.world.level.block.entity.BlockEntity retractBe =
             MovingPistonBlock.newMovingBlockEntity(rodPos, movingState, headState, direction, false, false);

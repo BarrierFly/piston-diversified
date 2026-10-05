@@ -63,13 +63,25 @@ import net.minecraft.world.level.redstone.Orientation;
  */
 public abstract class ModPistonBaseBlock extends PistonBaseBlock {
     /**
-     * Block-event ids beyond vanilla's 0/1/2: the server has already executed the move through
-     * a channel the client cannot mirror (a scheduled tick, a tick chain), so it re-broadcasts
-     * the decision as one of these ids purely to make the client build the moving pistons and
-     * animate. The server ignores them (the move already happened).
+     * Block-update flags for placing a moving piston / rod so the CLIENT actually gets it.
+     *
+     * <p>Vanilla's own piston uses 324 (= INVISIBLE + MOVE_BY_PISTON + SKIP_BLOCK_ENTITY_SIDEEFFECTS)
+     * and 276 (= INVISIBLE + KNOWN_SHAPE + SKIP_BLOCK_ENTITY_SIDEEFFECTS) — neither carries
+     * bit 2, UPDATE_CLIENTS. Vanilla gets away with it because {@code PistonMovingBlockEntity} is
+     * animated through the block-event broadcast, which the vanilla trigger path sends for every
+     * extend/retract. A piston whose move runs outside that path (a scheduled tick, a tick chain,
+     * a piston-less push) would place its moving piston with no client notification at all:
+     * {@code Level.setBlock} only calls {@code sendBlockUpdated} when {@code (flags & 2) != 0},
+     * and that call is what marks the chunk so {@code ChunkHolder.broadcastChanges} later sends
+     * both the block update and the block-entity data. Without it the block never reaches the
+     * client, so the piston snaps instead of sliding.</p>
+     *
+     * <p>So these are the vanilla flags plus UPDATE_CLIENTS. Everything else is left alone: the
+     * neighbour updates and side effects stay suppressed exactly as upstream intends.</p>
      */
-    public static final int ANIMATE_EXTEND = 10;
-    public static final int ANIMATE_RETRACT = 11;
+    public static final int SYNC_MOVING_PISTON = 324 | Block.UPDATE_CLIENTS;
+    /** Same for the retract animation and for rods/heads placed by a tick chain. */
+    public static final int SYNC_RETRACT = 276 | Block.UPDATE_CLIENTS;
 
     protected final boolean sticky;
 
@@ -186,28 +198,6 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
     /** How a retract decision reaches execution (see {@link #sendExtendEvent}). */
     protected void sendRetractEvent(Level level, BlockPos pos, Direction direction, int type) {
         level.blockEvent(pos, this, type, direction.get3DDataValue());
-    }
-
-    /**
-     * Re-broadcast a move the server already performed, so the client mirrors it. A scheduled tick
-     * never reaches the client, which is why a piston driven by one used to snap its blocks into
-     * place instead of sliding them out. Send this BEFORE the server's own block writes: the client
-     * then builds the moving pistons first and the confirming updates land on top of them.
-     */
-    protected void sendAnimateEvent(Level level, BlockPos pos, Direction direction, boolean extending) {
-        if (!level.isClientSide()) {
-            level.blockEvent(pos, this, extending ? ANIMATE_EXTEND : ANIMATE_RETRACT, direction.get3DDataValue());
-        }
-    }
-
-    /** Client-side mirror of an extend the server already executed (see {@link #sendAnimateEvent}). */
-    protected void animateExtendOnClient(Level level, BlockPos pos, Direction direction, BlockState state) {
-        this.executeExtend(level, pos, direction, state);
-    }
-
-    /** Client-side mirror of a retract the server already executed (see {@link #sendAnimateEvent}). */
-    protected void animateRetractOnClient(Level level, BlockPos pos, Direction direction, BlockState state) {
-        this.executeRetract(level, pos, direction, state, 1);
     }
 
     protected void afterExtendExecuted(ServerLevel level, BlockPos pos, Direction direction) {
@@ -328,18 +318,6 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
     public boolean triggerEvent(BlockState state, Level level, BlockPos pos, int id, int param) {
         Direction direction = state.getValue(FACING);
         BlockState extendedState = state.setValue(EXTENDED, true);
-        if (id == ANIMATE_EXTEND || id == ANIMATE_RETRACT) {
-            // Server-driven move already done (tick chain / scheduled tick): only the client
-            // mirrors it, so the moving pistons exist on this side and the slide is visible.
-            if (level.isClientSide()) {
-                if (id == ANIMATE_EXTEND) {
-                    this.animateExtendOnClient(level, pos, direction, state);
-                } else {
-                    this.animateRetractOnClient(level, pos, direction, state);
-                }
-            }
-            return true;
-        }
         if (!level.isClientSide()) {
             boolean bl = this.hasPowerSignal(level, pos, direction);
             if (bl && (id == 1 || id == 2) && this.cancelRetractIfPowered()) {
@@ -407,7 +385,7 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
             .defaultBlockState()
             .setValue(MovingPistonBlock.FACING, direction)
             .setValue(MovingPistonBlock.TYPE, this.sticky ? PistonType.STICKY : PistonType.DEFAULT);
-        level.setBlock(pos, movingState, 276);
+        level.setBlock(pos, movingState, SYNC_RETRACT);
         // Preserve the current state's extra properties (the observer piston's POWERED) into
         // the restored base — defaultBlockState() would reset them when the retract animation
         // ends, re-arming state machines that rely on them surviving the cycle.
@@ -553,7 +531,7 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
             BlockPos targetPos = pushedPos.relative(moveDirection);
             map.remove(targetPos);
             BlockState movingState = Blocks.MOVING_PISTON.defaultBlockState().setValue(MovingPistonBlock.FACING, facing);
-            level.setBlock(targetPos, movingState, 324);
+            level.setBlock(targetPos, movingState, SYNC_MOVING_PISTON);
             BlockEntity movingBe = MovingPistonBlock.newMovingBlockEntity(targetPos, movingState, oldStates.get(k), facing, extending, false);
             this.markFast(movingBe);
             level.setBlockEntity(movingBe);
@@ -573,7 +551,7 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
                 .setValue(MovingPistonBlock.FACING, facing)
                 .setValue(MovingPistonBlock.TYPE, this.sticky ? PistonType.STICKY : PistonType.DEFAULT);
             map.remove(frontPos);
-            level.setBlock(frontPos, baseMovingState, 324);
+            level.setBlock(frontPos, baseMovingState, SYNC_MOVING_PISTON);
             BlockEntity headBe = MovingPistonBlock.newMovingBlockEntity(frontPos, baseMovingState, headState, facing, true, true);
             this.markFast(headBe);
             level.setBlockEntity(headBe);

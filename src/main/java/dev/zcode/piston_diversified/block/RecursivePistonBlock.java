@@ -75,12 +75,6 @@ public class RecursivePistonBlock extends ModPistonBaseBlock {
         if (this.hasPowerSignal(level, pos, direction)) {
             this.tryRecursiveExtend(level, pos, direction);
         } else {
-            // Broadcast before stepping: the client mirrors the very step the server is about to
-            // take, so its moving pistons exist before the server's updates confirm them.
-            int rods = this.countRods(level, pos, direction);
-            if (rods > 0 && !this.isRetractInFlight(level, pos, direction, rods)) {
-                this.sendAnimateEvent(level, pos, direction, false);
-            }
             this.continueRetract(level, pos, direction);
         }
     }
@@ -101,13 +95,12 @@ public class RecursivePistonBlock extends ModPistonBaseBlock {
             if (rods + 1 + resolver.totalWeight() > PUSH_LIMIT) {
                 return; // telescoped out fully
             }
-            this.sendAnimateEvent(level, pos, direction, true);
             if (this.moveBlocksResolved(level, headPos, direction, true, resolver, level.getBlockState(pos))) {
                 BlockState rodState = ModBlocks.RECURSIVE_PISTON_ROD.defaultBlockState()
                     .setValue(RecursivePistonRodBlock.FACING, direction);
                 // flag 276: replacing the head must not run its affectNeighborsAfterRemoval
                 // (a fitting extended base sits behind the first rod — the piston itself)
-                level.setBlock(headPos, rodState, 276);
+                level.setBlock(headPos, rodState, ModPistonBaseBlock.SYNC_RETRACT);
                 level.updateNeighborsAt(headPos, rodState.getBlock());
                 if (level instanceof ServerLevel serverLevel) {
                     serverLevel.scheduleTick(pos, this, 2);
@@ -219,46 +212,13 @@ public class RecursivePistonBlock extends ModPistonBaseBlock {
             .defaultBlockState()
             .setValue(MovingPistonBlock.FACING, direction)
             .setValue(MovingPistonBlock.TYPE, this.sticky ? PistonType.STICKY : PistonType.DEFAULT);
-        level.setBlock(rodPos, movingState, 276);
+        level.setBlock(rodPos, movingState, ModPistonBaseBlock.SYNC_RETRACT);
         net.minecraft.world.level.block.entity.BlockEntity retractBe =
             MovingPistonBlock.newMovingBlockEntity(rodPos, movingState, headState, direction, false, false);
         level.setBlockEntity(retractBe);
         level.updateNeighborsAt(rodPos, movingState.getBlock());
 
         this.scheduleNext(level, pos, 3);
-    }
-
-    /**
-     * The chain runs on scheduled ticks, which never reach the client — without this the arm would
-     * snap back cell by cell instead of sliding. The client mirrors each step of the same chain.
-     */
-    @Override
-    protected void animateRetractOnClient(Level level, BlockPos pos, Direction direction, BlockState state) {
-        int rods = this.countRods(level, pos, direction);
-        if (rods > 0 && !this.isRetractInFlight(level, pos, direction, rods)) {
-            this.retractOneStep(level, pos, direction, state, rods);
-        }
-    }
-
-    /** Same for the extend chain: each telescoping step is a scheduled tick, mirrored here. */
-    @Override
-    protected void animateExtendOnClient(Level level, BlockPos pos, Direction direction, BlockState state) {
-        int rods = this.countRods(level, pos, direction);
-        BlockPos headPos = pos.relative(direction, rods + 1);
-        if (level.getBlockState(headPos).getBlock() != this.headBlock()) {
-            return;
-        }
-        ModPistonStructureResolver resolver = new ModPistonStructureResolver(
-            level, headPos.relative(direction), direction, headPos, true
-        );
-        if (!resolver.resolve() || rods + 1 + resolver.totalWeight() > PUSH_LIMIT) {
-            return;
-        }
-        this.moveBlocksResolved(level, headPos, direction, true, resolver, level.getBlockState(pos));
-        BlockState rodState = ModBlocks.RECURSIVE_PISTON_ROD.defaultBlockState()
-            .setValue(RecursivePistonRodBlock.FACING, direction);
-        level.setBlock(headPos, rodState, 276);
-        level.updateNeighborsAt(headPos, rodState.getBlock());
     }
 
     /** Schedules the next chain step; a no-op on the client, which never drives the chain. */
