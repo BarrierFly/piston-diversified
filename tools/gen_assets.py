@@ -954,10 +954,14 @@ def bent_head_model(vid, plate_dir, base_sticky, short, sticky_plate=False):
     * the four 4px rims take the 16x4 band along the plate axis plus the ``cullface`` vanilla
       uses. They used to sample [0,12,16,16] (the bottom 4 rows of a 16px texture stretched
       over a 4px rim) and carry no cullface, which is the smeared rim the head still shows;
-    * the rod uses vanilla's own face set (down/up rotated, west reversed, no caps). The old
-      spec sampled [4,4,20,12] — 4px past the 16px texture, so it wrapped to a zero-width strip
-      and rendered as garbage — and gave a rod that runs perpendicular to the plate caps it can
-      never show, while its open end had no cap at all.
+    * the arm is vanilla's own rod (4x4, from 4 to 20 / 16 along the push axis), nudged against
+      the plate when the plate sits on a side of it. The old spec started it at 4 or 12 depending
+      on the plate, which left the arm a stub that missed the plate for the south/up/down plates —
+      a plate floating next to a bar — and shortened it for east/west;
+    * the arm's far end is past the block, inside the base cell, so it stays uncapped as in
+      vanilla; only the near end is capped, and only when a side plate no longer covers it. The
+      old spec capped both ends and sampled [5,4,11,16] / [4,4,20,12] — the latter 4px past the
+      16px texture, so it wrapped to a zero-width strip and rendered as garbage.
     """
     side = f"{NS}:block/{vid}_side"
     inner = _opp(plate_dir)
@@ -991,15 +995,22 @@ def bent_head_model(vid, plate_dir, base_sticky, short, sticky_plate=False):
             face["rotation"] = 90
         faces[rim] = face
 
-    # ---- rod: 4x4 section centred in x/y, running along +z into the base cell
-    # For a north plate it starts behind the plate; otherwise it starts at the plate's inner
-    # face and reaches back to the base, which is what keeps the two touching.
-    rod_from = 12 if (short or plate_dir != "north") else 4
-    rod = {"from": [6, 6, rod_from], "to": [10, 10, 20]}
+    # ---- arm: exactly vanilla's rod, boxZ(4, 4, to) — 4x4 section, running +z from 4 to
+    # 20 (long) / 16 (short). Length matches vanilla's 16 / 12, so its UV strips are exact and
+    # the shape matches PdShapes.arm / TurnPushPistonHeadBlock#getShape.
+    # For a north plate the arm already starts behind the plate; for a south plate it runs
+    # through it. For east/west (and up/down after a blockstate x-rotation) the arm is off to
+    # one side of the plate, so it is nudged over until it meets it.
+    rod_to = 16 if short else 20
+    rod = {"from": [6, 6, 4], "to": [10, 10, rod_to]}
     if plate_dir == "east":
         rod["from"][0], rod["to"][0] = 8, 12
     elif plate_dir == "west":
         rod["from"][0], rod["to"][0] = 4, 8
+    elif plate_dir == "up":
+        rod["from"][1], rod["to"][1] = 8, 12
+    elif plate_dir == "down":
+        rod["from"][1], rod["to"][1] = 4, 8
     strip = [4, 0, 16, 4] if short else [0, 0, 16, 4]
     rod["faces"] = {
         "down": {"uv": list(strip), "texture": side, "rotation": 90},
@@ -1009,8 +1020,11 @@ def bent_head_model(vid, plate_dir, base_sticky, short, sticky_plate=False):
         "east": {"uv": list(strip), "texture": side},
     }
     if plate_dir != "north":
-        # unlike a vanilla head the rod is not tucked behind the plate, so its near end is open
-        rod["faces"]["north"] = {"uv": [0, 0, 4, 16], "texture": side}
+        # Only a north plate sits in front of the arm's near end (z=4); every other plate is
+        # beside it, so that end is open air inside the cell and would be a hole in the model.
+        # The far end is past z=16, inside the base cell, so it stays open exactly as vanilla
+        # leaves it.
+        rod["faces"]["north"] = {"uv": [6, 6, 10, 10], "texture": side}
 
     return {
         "parent": "block/block",

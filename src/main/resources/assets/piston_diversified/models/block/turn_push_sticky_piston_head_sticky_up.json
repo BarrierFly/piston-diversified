@@ -85,12 +85,12 @@
     {
       "from": [
         6,
-        6,
-        12
+        8,
+        4
       ],
       "to": [
         10,
-        10,
+        12,
         20
       ],
       "faces": {
@@ -134,10 +134,10 @@
         },
         "north": {
           "uv": [
-            0,
-            0,
-            4,
-            16
+            6,
+            6,
+            10,
+            10
           ],
           "texture": "piston_diversified:block/turn_push_sticky_piston_side"
         }

@@ -31,8 +31,13 @@ public class PistonDiversified implements ModInitializer {
         ModRecipes.init();
         DyeConversions.register();
         ImpactDebugCommand.register();
-        // the potato piston's flight events live in the mod's own queue (block-independent)
-        ServerTickEvents.END_SERVER_TICK.register(server -> PotatoFlightQueue.tick(server.overworld()));
+        // the potato piston's flight events live in the mod's own queue (block-independent).
+        // START_SERVER_TICK, not END: a flight step run at the end of a tick has its moving
+        // pistons created after every level's chunkSource.tick, so the block-entity update that
+        // finally reaches the client already carries progress 0.5 and the glide snaps instead of
+        // sliding. Run before the levels tick, the update goes out in the same tick with
+        // progress 0 — see PistonMovingBlockEntityMixin#getUpdatePacket.
+        ServerTickEvents.START_SERVER_TICK.register(server -> PotatoFlightQueue.tick(server.overworld()));
         LOGGER.info("Piston Diversified loaded: {} piston variants", ModBlocks.variantCount());
     }
 }

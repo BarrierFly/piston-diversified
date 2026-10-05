@@ -71,13 +71,21 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
      * animated through the block-event broadcast, which the vanilla trigger path sends for every
      * extend/retract. A piston whose move runs outside that path (a scheduled tick, a tick chain,
      * a piston-less push) would place its moving piston with no client notification at all:
-     * {@code Level.setBlock} only calls {@code sendBlockUpdated} when {@code (flags & 2) != 0},
-     * and that call is what marks the chunk so {@code ChunkHolder.broadcastChanges} later sends
-     * both the block update and the block-entity data. Without it the block never reaches the
-     * client, so the piston snaps instead of sliding.</p>
+     * {@code Level.setBlock} only calls {@code sendBlockUpdated} when {@code (flags & 2) != 0}.
+     * Without it the block never reaches the client.</p>
      *
-     * <p>So these are the vanilla flags plus UPDATE_CLIENTS. Everything else is left alone: the
-     * neighbour updates and side effects stay suppressed exactly as upstream intends.</p>
+     * <p><strong>Bit 2 only gets the block, never the block entity.</strong>
+     * {@code BlockEntity#getUpdatePacket} returns null and vanilla's
+     * {@code PistonMovingBlockEntity} does not override it, so {@code ChunkHolder} sends nothing
+     * even once the block is marked — and {@code MovingPistonBlock} is
+     * {@code RenderShape#INVISIBLE}. A moving piston the client did not build itself is
+     * therefore invisible however loudly we mark the chunk. The variants that have to rely on the
+     * server instead of a client replay say so with
+     * {@code PistonDuck#pistonDiversified$setNeedsClientSync}, which makes
+     * {@code PistonMovingBlockEntityMixin} send the update tag after all.</p>
+     *
+     * <p>Everything else is left alone: the neighbour updates and side effects stay suppressed
+     * exactly as upstream intends.</p>
      */
     public static final int SYNC_MOVING_PISTON = 324 | Block.UPDATE_CLIENTS;
     /** Same for the retract animation and for rods/heads placed by a tick chain. */

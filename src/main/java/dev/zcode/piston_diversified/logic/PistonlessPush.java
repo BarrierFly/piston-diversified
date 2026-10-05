@@ -95,6 +95,11 @@ public final class PistonlessPush {
                 targetPos, movingState, oldStates.get(k), pushDirection, true, false
             );
             level.setBlockEntity(movingBe);
+            // a piston-less push has no piston to anchor a client replay on, so the moving piston
+            // only exists client-side if the server sends its block entity
+            if (movingBe instanceof dev.zcode.piston_diversified.duck.PistonDuck duck) {
+                duck.pistonDiversified$setNeedsClientSync(!level.isClientSide());
+            }
         }
 
         BlockState airState = Blocks.AIR.defaultBlockState();

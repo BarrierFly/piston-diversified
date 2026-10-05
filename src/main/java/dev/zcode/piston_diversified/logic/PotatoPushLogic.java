@@ -99,11 +99,14 @@ public final class PotatoPushLogic {
                 target, movingState, carried.get(i), pushDirection, true, false
             );
             level.setBlockEntity(be);
-            // the flight record is server state (it queues the next step on landing); the client
-            // replay gets its copy from the server's block-entity update packet
-            if (be instanceof PistonDuck duck && !level.isClientSide()) {
-                duck.pistonDiversified$setFlight(record, i == 0,
-                    members.get(0).kind() == MemberKind.WATERLOGGED && !fluidOrigin.isEmpty());
+            if (be instanceof PistonDuck duck) {
+                if (!level.isClientSide()) {
+                    duck.pistonDiversified$setFlight(record, i == 0,
+                        members.get(0).kind() == MemberKind.WATERLOGGED && !fluidOrigin.isEmpty());
+                }
+                // nothing replays a flight step on the client, so this moving piston only exists
+                // there if the server sends its block entity (see PistonMovingBlockEntityMixin)
+                duck.pistonDiversified$setNeedsClientSync(!level.isClientSide());
             }
         }
 

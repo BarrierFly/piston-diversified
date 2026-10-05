@@ -5,7 +5,9 @@ package dev.zcode.piston_diversified.duck;
  * <ul>
  *   <li>the 快速活塞 "fast" flag;</li>
  *   <li>the 马铃薯活塞 flight record (the cells making up the flying structure), whether this
- *       cell leads it, and whether it landed in water (to restore waterlogging).</li>
+ *       cell leads it, and whether it landed in water (to restore waterlogging);</li>
+ *   <li>the 客户端同步 flag — whether this moving piston still needs its block entity sent to the
+ *       client (see {@code PistonMovingBlockEntityMixin#getUpdatePacket}).</li>
  * </ul>
  *
  * <p>Implemented onto {@code PistonMovingBlockEntity} itself, so moving pistons keep ticking
@@ -24,4 +26,9 @@ public interface PistonDuck {
     boolean pistonDiversified$isFlightPrimary();
 
     boolean pistonDiversified$landsInWater();
+
+    /** Mark this moving piston as one the client cannot replay on its own. */
+    void pistonDiversified$setNeedsClientSync(boolean needsSync);
+
+    boolean pistonDiversified$needsClientSync();
 }

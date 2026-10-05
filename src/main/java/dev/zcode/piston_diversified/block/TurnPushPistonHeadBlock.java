@@ -34,10 +34,13 @@ public class TurnPushPistonHeadBlock extends ModPistonHeadBlock {
     @Override
     public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
         Direction facing = state.getValue(FACING);
-        if (state.getValue(SHORT)) {
-            return Shapes.or(PdShapes.rod(facing, 12, 16, 4), PdShapes.slab(state.getValue(BEND), 0, 4));
-        }
-        return Shapes.or(PdShapes.rod(facing, 0, 16, 4), PdShapes.slab(state.getValue(BEND), 0, 4));
+        Direction bend = state.getValue(BEND);
+        // vanilla's arm: a 4x4 bar running from just behind the tip out past the base cell
+        // (z 4..20 for the long head, 4..16 for the short one). When the plate sits on an east or
+        // west face the centred bar would miss it by 2px, so both the bar and the model are
+        // nudged against the plate — see gen_assets.bent_head_model.
+        double armTo = state.getValue(SHORT) ? 16.0 : 20.0;
+        return Shapes.or(PdShapes.arm(facing, bend, 4.0, armTo), PdShapes.slab(bend, 0, 4));
     }
 
     @Override

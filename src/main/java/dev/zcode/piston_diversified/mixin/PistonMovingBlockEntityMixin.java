@@ -2,6 +2,7 @@ package dev.zcode.piston_diversified.mixin;
 
 import dev.zcode.piston_diversified.duck.PistonDuck;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
@@ -11,10 +12,12 @@ import net.minecraft.world.level.block.piston.PistonMovingBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 //? if >=1.21.2 {
 import net.minecraft.world.level.redstone.ExperimentalRedstoneUtils;
 import net.minecraft.world.level.storage.ValueInput;
@@ -38,6 +41,8 @@ public class PistonMovingBlockEntityMixin implements PistonDuck {
     private boolean pistonDiversified$flightPrimary;
     @Unique
     private boolean pistonDiversified$landsInWater;
+    @Unique
+    private boolean pistonDiversified$needsClientSync;
 
     @Override
     public void pistonDiversified$setFast(boolean fast) {
@@ -71,8 +76,52 @@ public class PistonMovingBlockEntityMixin implements PistonDuck {
         return this.pistonDiversified$landsInWater;
     }
 
-    // the block-state validation the vanilla entity type performs lives on BlockEntity and is
-    // widened for the potato moving piston by BlockEntityMixin
+    @Override
+    public void pistonDiversified$setNeedsClientSync(boolean needsSync) {
+        this.pistonDiversified$needsClientSync = needsSync;
+    }
+
+    @Override
+    public boolean pistonDiversified$needsClientSync() {
+        return this.pistonDiversified$needsClientSync;
+    }
+
+    /**
+     * A default instance (the one {@code MovingPistonBlockMixin} hands the client for a bare
+     * {@code MOVING_PISTON} block) has no facing yet, and every consumer of it — collision shape,
+     * render state, {@code getMovementDirection} — dereferences that. Give it DOWN so the entity is
+     * merely empty instead of a null dereference until the server's update tag lands.
+     */
+    @Shadow
+    private Direction direction;
+
+    @Inject(method = "<init>(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;)V",
+        at = @At("RETURN"))
+    private void pistonDiversified$defaultFacing(BlockPos pos, BlockState state, CallbackInfo ci) {
+        if (this.direction == null) {
+            this.direction = Direction.DOWN;
+        }
+    }
+
+    /**
+     * Until the entity has a moved state it is the placeholder {@code MovingPistonBlockMixin}
+     * created, and ticking it would run it to completion in two ticks and replace the block with
+     * air — the server's update tag is one packet behind the block update, so the placeholder does
+     * briefly exist. Waiting is also the safe reading: an entity that never receives data stays as
+     * invisible and collision-free as a missing one. Client only: a server-side entity always has
+     * a real moved state, and if it ever did not, vanilla's own "empty piston becomes air" is the
+     * right answer.
+     */
+    @Inject(method = "tick", at = @At("HEAD"), cancellable = true)
+    private static void pistonDiversified$skipPlaceholder(Level level, BlockPos pos, BlockState state,
+                                                         PistonMovingBlockEntity be, CallbackInfo ci) {
+        if (level.isClientSide() && be.getMovedState().isAir()) {
+            ci.cancel();
+        }
+    }
+
+    // (the block-state validation the vanilla entity type performs lives on BlockEntity; nothing
+    //  here needs widening — see BlockEntityMixin for the one thing BlockEntity does need)
 
     @Inject(method = "tick", at = @At("TAIL"))
     private static void pistonDiversified$afterTick(Level level, BlockPos pos, BlockState state, PistonMovingBlockEntity be, CallbackInfo ci) {

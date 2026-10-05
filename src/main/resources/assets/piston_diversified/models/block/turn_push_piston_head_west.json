@@ -84,7 +84,7 @@
       "from": [
         4,
         6,
-        12
+        4
       ],
       "to": [
         8,
@@ -132,10 +132,10 @@
         },
         "north": {
           "uv": [
-            0,
-            0,
-            4,
-            16
+            6,
+            6,
+            10,
+            10
           ],
           "texture": "piston_diversified:block/turn_push_piston_side"
         }
