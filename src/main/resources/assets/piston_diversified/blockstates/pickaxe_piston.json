@@ -1,48 +1,278 @@
 {
   "variants": {
-    "extended=false,facing=north,tool=iron": {
-      "model": "piston_diversified:block/pickaxe_piston"
+    "extended=false,facing=north,tool=wooden": {
+      "model": "piston_diversified:block/pickaxe_piston_wooden"
     },
-    "extended=false,facing=south,tool=iron": {
-      "model": "piston_diversified:block/pickaxe_piston",
+    "extended=false,facing=north,tool=stone": {
+      "model": "piston_diversified:block/pickaxe_piston_stone"
+    },
+    "extended=false,facing=north,tool=iron": {
+      "model": "piston_diversified:block/pickaxe_piston_iron"
+    },
+    "extended=false,facing=north,tool=golden": {
+      "model": "piston_diversified:block/pickaxe_piston_golden"
+    },
+    "extended=false,facing=north,tool=diamond": {
+      "model": "piston_diversified:block/pickaxe_piston_diamond"
+    },
+    "extended=false,facing=north,tool=netherite": {
+      "model": "piston_diversified:block/pickaxe_piston_netherite"
+    },
+    "extended=false,facing=south,tool=wooden": {
+      "model": "piston_diversified:block/pickaxe_piston_wooden",
       "y": 180
     },
-    "extended=false,facing=west,tool=iron": {
-      "model": "piston_diversified:block/pickaxe_piston",
+    "extended=false,facing=south,tool=stone": {
+      "model": "piston_diversified:block/pickaxe_piston_stone",
+      "y": 180
+    },
+    "extended=false,facing=south,tool=iron": {
+      "model": "piston_diversified:block/pickaxe_piston_iron",
+      "y": 180
+    },
+    "extended=false,facing=south,tool=golden": {
+      "model": "piston_diversified:block/pickaxe_piston_golden",
+      "y": 180
+    },
+    "extended=false,facing=south,tool=diamond": {
+      "model": "piston_diversified:block/pickaxe_piston_diamond",
+      "y": 180
+    },
+    "extended=false,facing=south,tool=netherite": {
+      "model": "piston_diversified:block/pickaxe_piston_netherite",
+      "y": 180
+    },
+    "extended=false,facing=west,tool=wooden": {
+      "model": "piston_diversified:block/pickaxe_piston_wooden",
       "y": 270
     },
-    "extended=false,facing=east,tool=iron": {
-      "model": "piston_diversified:block/pickaxe_piston",
+    "extended=false,facing=west,tool=stone": {
+      "model": "piston_diversified:block/pickaxe_piston_stone",
+      "y": 270
+    },
+    "extended=false,facing=west,tool=iron": {
+      "model": "piston_diversified:block/pickaxe_piston_iron",
+      "y": 270
+    },
+    "extended=false,facing=west,tool=golden": {
+      "model": "piston_diversified:block/pickaxe_piston_golden",
+      "y": 270
+    },
+    "extended=false,facing=west,tool=diamond": {
+      "model": "piston_diversified:block/pickaxe_piston_diamond",
+      "y": 270
+    },
+    "extended=false,facing=west,tool=netherite": {
+      "model": "piston_diversified:block/pickaxe_piston_netherite",
+      "y": 270
+    },
+    "extended=false,facing=east,tool=wooden": {
+      "model": "piston_diversified:block/pickaxe_piston_wooden",
       "y": 90
     },
-    "extended=false,facing=up,tool=iron": {
-      "model": "piston_diversified:block/pickaxe_piston",
+    "extended=false,facing=east,tool=stone": {
+      "model": "piston_diversified:block/pickaxe_piston_stone",
+      "y": 90
+    },
+    "extended=false,facing=east,tool=iron": {
+      "model": "piston_diversified:block/pickaxe_piston_iron",
+      "y": 90
+    },
+    "extended=false,facing=east,tool=golden": {
+      "model": "piston_diversified:block/pickaxe_piston_golden",
+      "y": 90
+    },
+    "extended=false,facing=east,tool=diamond": {
+      "model": "piston_diversified:block/pickaxe_piston_diamond",
+      "y": 90
+    },
+    "extended=false,facing=east,tool=netherite": {
+      "model": "piston_diversified:block/pickaxe_piston_netherite",
+      "y": 90
+    },
+    "extended=false,facing=up,tool=wooden": {
+      "model": "piston_diversified:block/pickaxe_piston_wooden",
       "x": 270
     },
-    "extended=false,facing=down,tool=iron": {
-      "model": "piston_diversified:block/pickaxe_piston",
+    "extended=false,facing=up,tool=stone": {
+      "model": "piston_diversified:block/pickaxe_piston_stone",
+      "x": 270
+    },
+    "extended=false,facing=up,tool=iron": {
+      "model": "piston_diversified:block/pickaxe_piston_iron",
+      "x": 270
+    },
+    "extended=false,facing=up,tool=golden": {
+      "model": "piston_diversified:block/pickaxe_piston_golden",
+      "x": 270
+    },
+    "extended=false,facing=up,tool=diamond": {
+      "model": "piston_diversified:block/pickaxe_piston_diamond",
+      "x": 270
+    },
+    "extended=false,facing=up,tool=netherite": {
+      "model": "piston_diversified:block/pickaxe_piston_netherite",
+      "x": 270
+    },
+    "extended=false,facing=down,tool=wooden": {
+      "model": "piston_diversified:block/pickaxe_piston_wooden",
       "x": 90
+    },
+    "extended=false,facing=down,tool=stone": {
+      "model": "piston_diversified:block/pickaxe_piston_stone",
+      "x": 90
+    },
+    "extended=false,facing=down,tool=iron": {
+      "model": "piston_diversified:block/pickaxe_piston_iron",
+      "x": 90
+    },
+    "extended=false,facing=down,tool=golden": {
+      "model": "piston_diversified:block/pickaxe_piston_golden",
+      "x": 90
+    },
+    "extended=false,facing=down,tool=diamond": {
+      "model": "piston_diversified:block/pickaxe_piston_diamond",
+      "x": 90
+    },
+    "extended=false,facing=down,tool=netherite": {
+      "model": "piston_diversified:block/pickaxe_piston_netherite",
+      "x": 90
+    },
+    "extended=true,facing=north,tool=wooden": {
+      "model": "piston_diversified:block/pickaxe_piston_extended"
+    },
+    "extended=true,facing=north,tool=stone": {
+      "model": "piston_diversified:block/pickaxe_piston_extended"
     },
     "extended=true,facing=north,tool=iron": {
       "model": "piston_diversified:block/pickaxe_piston_extended"
+    },
+    "extended=true,facing=north,tool=golden": {
+      "model": "piston_diversified:block/pickaxe_piston_extended"
+    },
+    "extended=true,facing=north,tool=diamond": {
+      "model": "piston_diversified:block/pickaxe_piston_extended"
+    },
+    "extended=true,facing=north,tool=netherite": {
+      "model": "piston_diversified:block/pickaxe_piston_extended"
+    },
+    "extended=true,facing=south,tool=wooden": {
+      "model": "piston_diversified:block/pickaxe_piston_extended",
+      "y": 180
+    },
+    "extended=true,facing=south,tool=stone": {
+      "model": "piston_diversified:block/pickaxe_piston_extended",
+      "y": 180
     },
     "extended=true,facing=south,tool=iron": {
       "model": "piston_diversified:block/pickaxe_piston_extended",
       "y": 180
     },
+    "extended=true,facing=south,tool=golden": {
+      "model": "piston_diversified:block/pickaxe_piston_extended",
+      "y": 180
+    },
+    "extended=true,facing=south,tool=diamond": {
+      "model": "piston_diversified:block/pickaxe_piston_extended",
+      "y": 180
+    },
+    "extended=true,facing=south,tool=netherite": {
+      "model": "piston_diversified:block/pickaxe_piston_extended",
+      "y": 180
+    },
+    "extended=true,facing=west,tool=wooden": {
+      "model": "piston_diversified:block/pickaxe_piston_extended",
+      "y": 270
+    },
+    "extended=true,facing=west,tool=stone": {
+      "model": "piston_diversified:block/pickaxe_piston_extended",
+      "y": 270
+    },
     "extended=true,facing=west,tool=iron": {
       "model": "piston_diversified:block/pickaxe_piston_extended",
       "y": 270
+    },
+    "extended=true,facing=west,tool=golden": {
+      "model": "piston_diversified:block/pickaxe_piston_extended",
+      "y": 270
+    },
+    "extended=true,facing=west,tool=diamond": {
+      "model": "piston_diversified:block/pickaxe_piston_extended",
+      "y": 270
+    },
+    "extended=true,facing=west,tool=netherite": {
+      "model": "piston_diversified:block/pickaxe_piston_extended",
+      "y": 270
+    },
+    "extended=true,facing=east,tool=wooden": {
+      "model": "piston_diversified:block/pickaxe_piston_extended",
+      "y": 90
+    },
+    "extended=true,facing=east,tool=stone": {
+      "model": "piston_diversified:block/pickaxe_piston_extended",
+      "y": 90
     },
     "extended=true,facing=east,tool=iron": {
       "model": "piston_diversified:block/pickaxe_piston_extended",
       "y": 90
     },
+    "extended=true,facing=east,tool=golden": {
+      "model": "piston_diversified:block/pickaxe_piston_extended",
+      "y": 90
+    },
+    "extended=true,facing=east,tool=diamond": {
+      "model": "piston_diversified:block/pickaxe_piston_extended",
+      "y": 90
+    },
+    "extended=true,facing=east,tool=netherite": {
+      "model": "piston_diversified:block/pickaxe_piston_extended",
+      "y": 90
+    },
+    "extended=true,facing=up,tool=wooden": {
+      "model": "piston_diversified:block/pickaxe_piston_extended",
+      "x": 270
+    },
+    "extended=true,facing=up,tool=stone": {
+      "model": "piston_diversified:block/pickaxe_piston_extended",
+      "x": 270
+    },
     "extended=true,facing=up,tool=iron": {
       "model": "piston_diversified:block/pickaxe_piston_extended",
       "x": 270
     },
+    "extended=true,facing=up,tool=golden": {
+      "model": "piston_diversified:block/pickaxe_piston_extended",
+      "x": 270
+    },
+    "extended=true,facing=up,tool=diamond": {
+      "model": "piston_diversified:block/pickaxe_piston_extended",
+      "x": 270
+    },
+    "extended=true,facing=up,tool=netherite": {
+      "model": "piston_diversified:block/pickaxe_piston_extended",
+      "x": 270
+    },
+    "extended=true,facing=down,tool=wooden": {
+      "model": "piston_diversified:block/pickaxe_piston_extended",
+      "x": 90
+    },
+    "extended=true,facing=down,tool=stone": {
+      "model": "piston_diversified:block/pickaxe_piston_extended",
+      "x": 90
+    },
     "extended=true,facing=down,tool=iron": {
+      "model": "piston_diversified:block/pickaxe_piston_extended",
+      "x": 90
+    },
+    "extended=true,facing=down,tool=golden": {
+      "model": "piston_diversified:block/pickaxe_piston_extended",
+      "x": 90
+    },
+    "extended=true,facing=down,tool=diamond": {
+      "model": "piston_diversified:block/pickaxe_piston_extended",
+      "x": 90
+    },
+    "extended=true,facing=down,tool=netherite": {
       "model": "piston_diversified:block/pickaxe_piston_extended",
       "x": 90
     }

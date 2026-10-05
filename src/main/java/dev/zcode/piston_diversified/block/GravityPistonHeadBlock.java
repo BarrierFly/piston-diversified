@@ -32,6 +32,19 @@ public class GravityPistonHeadBlock extends ModPistonHeadBlock {
         return true;
     }
 
+    /** 活塞头消失（下落/破坏）不得连带破坏底座 — the base just goes headless. */
+    //? if >=1.20.3 {
+    @Override
+    protected void affectNeighborsAfterRemoval(BlockState state, net.minecraft.server.level.ServerLevel level, BlockPos pos, boolean movedByPiston) {
+        // no base destruction
+    }
+    //?} else {
+    @Override
+    public void onRemove(BlockState state, net.minecraft.world.level.Level level, BlockPos pos, BlockState newState, boolean movedByPiston) {
+        // no base destruction; skip the vanilla head behaviour entirely
+    }
+    //?}
+
     //? if <1.21.2 {
     @Override
     public void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean movedByPiston) {

@@ -18,10 +18,15 @@ import net.minecraft.world.level.storage.ValueOutput;
 public class PickaxePistonBlockEntity extends BlockEntity {
     public static final String PICKAXE_TAG = "pd_pickaxe";
 
-    private ItemStack pickaxe = ItemStack.EMPTY;
+    private ItemStack pickaxe = defaultPickaxe();
 
     public PickaxePistonBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.PICKAXE_PISTON, pos, state);
+    }
+
+    /** 创造栏取出的活塞默认带下界合金镐（用户 2026-10-05 反馈定稿）。 */
+    public static ItemStack defaultPickaxe() {
+        return new ItemStack(net.minecraft.world.item.Items.NETHERITE_PICKAXE);
     }
 
     public ItemStack getPickaxe() {

@@ -153,9 +153,11 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
     /**
      * The structure resolver for the extend pre-check and every move/pull. Return null for the
      * vanilla resolver. 强力 swaps in the push-conversion resolver; 拐推 returns its bent pull
-     * resolver for retracts ({@code extending=false}).
+     * resolver for retracts ({@code extending=false}). {@code baseState} is the piston's own
+     * captured state — during a retract move the block at {@code pos} is already a moving
+     * piston, so the state cannot be re-read from the level.
      */
-    protected PdResolver createResolver(Level level, BlockPos pos, Direction direction, boolean extending) {
+    protected PdResolver createResolver(Level level, BlockPos pos, Direction direction, boolean extending, BlockState baseState) {
         return null;
     }
 
@@ -242,7 +244,7 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
 
     /** Vanilla pre-resolve for the extend event, routed through {@link #createResolver}. */
     protected boolean resolveExtend(Level level, BlockPos pos, Direction direction) {
-        PdResolver resolver = this.createResolver(level, pos, direction, true);
+        PdResolver resolver = this.createResolver(level, pos, direction, true, null);
         if (resolver != null) {
             return resolver.resolve();
         }
@@ -427,7 +429,7 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
     }
 
     private boolean moveBlocks(Level level, BlockPos pos, Direction facing, boolean extending, BlockState baseState) {
-        PdResolver custom = this.createResolver(level, pos, facing, extending);
+        PdResolver custom = this.createResolver(level, pos, facing, extending, baseState);
         if (custom != null) {
             return this.moveBlocksResolved(level, pos, facing, extending, custom, baseState);
         }

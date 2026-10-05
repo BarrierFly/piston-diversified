@@ -172,8 +172,9 @@ public class GravityPistonBlock extends ModPistonBaseBlock {
             .setValue(MovingPistonBlock.FACING, direction)
             .setValue(MovingPistonBlock.TYPE, net.minecraft.world.level.block.state.properties.PistonType.DEFAULT);
         level.setBlock(rodPos, movingState, 276);
+        // non-source: see RecursivePistonBlock — a source retract piston crashes the renderer
         net.minecraft.world.level.block.entity.BlockEntity retractBe =
-            MovingPistonBlock.newMovingBlockEntity(rodPos, movingState, headState, direction, false, true);
+            MovingPistonBlock.newMovingBlockEntity(rodPos, movingState, headState, direction, false, false);
         level.setBlockEntity(retractBe);
         level.updateNeighborsAt(rodPos, movingState.getBlock());
         level.scheduleTick(pos, this, 3);

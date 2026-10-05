@@ -51,7 +51,12 @@ public class RecursivePistonRodBlock extends Block {
         if (behind.getBlock() instanceof RecursivePistonRodBlock) {
             return behind.getValue(FACING) == facing;
         }
-        return behind.getBlock() instanceof RecursivePistonBlock
+        if (behind.getBlock() instanceof RecursivePistonBlock) {
+            return behind.getValue(RecursivePistonBlock.EXTENDED)
+                && behind.getValue(RecursivePistonBlock.FACING) == facing;
+        }
+        // the gravity piston telescopes down through the same rods
+        return behind.getBlock() instanceof GravityPistonBlock
             && behind.getValue(RecursivePistonBlock.EXTENDED)
             && behind.getValue(RecursivePistonBlock.FACING) == facing;
     }

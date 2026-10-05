@@ -6,6 +6,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.piston.PistonMovingBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
@@ -85,29 +86,37 @@ public class PistonMovingBlockEntityMixin implements PistonDuck {
             }
         }
 
-        // 马铃薯活塞: the landing finished this tick (the vanilla tick wrote the final block and
-        // dropped the entity) — restore waterlogging and queue the next flight step.
-        if (duck.pistonDiversified$getFlight().length > 0
-            && be.isExtending()
-            && duck.pistonDiversified$isFlightPrimary()
-            && !be.isRemoved()
-            && !level.getBlockState(pos).is(Blocks.MOVING_PISTON)) {
-            pistonDiversified$landPotato(level, pos, be, duck);
+        // 马铃薯活塞: the pushed cell lands deterministically the moment its progress reaches 1.0
+        // (same mechanism as the fast piston — the vanilla tick lands a tick later, which the
+        // server does not reliably reach), then waterlogging is restored on every pushed cell
+        // and the leading cell queues the next flight step.
+        if (duck.pistonDiversified$getFlight().length > 0 && be.isExtending() && !level.isClientSide()) {
+            if (level.getBlockState(pos).is(Blocks.MOVING_PISTON)) {
+                if (((PistonMovingBlockEntityAccessor) be).pistonDiversified$getProgress() >= 1.0F) {
+                    pistonDiversified$placeFinal(level, pos, be);
+                    pistonDiversified$landPotato(level, pos, be, duck);
+                }
+            } else {
+                // already finalised by someone else (e.g. a forced finalTick) — just land
+                pistonDiversified$landPotato(level, pos, be, duck);
+            }
         }
     }
 
-    /** 到位有水恢复含水 + 在身后登记延迟 1gt 的无活塞推出事件（悬浮飞行）。 */
+    /**
+     * 到位有水恢复含水（每个被推的格子）+ 首格在身后登记延迟 1gt 的无活塞推出事件（悬浮飞行）。
+     * 到位无水且不可无水的方块走原版落地逻辑（破坏掉落）。
+     */
     @Unique
     private static void pistonDiversified$landPotato(Level level, BlockPos pos, PistonMovingBlockEntity be, PistonDuck duck) {
         BlockState landed = level.getBlockState(pos);
         boolean wantsWater = duck.pistonDiversified$landsInWater();
-        if (!level.isClientSide()
-            && landed.hasProperty(BlockStateProperties.WATERLOGGED)
+        if (landed.hasProperty(BlockStateProperties.WATERLOGGED)
             && landed.getValue(BlockStateProperties.WATERLOGGED) != wantsWater) {
-            landed = landed.setValue(BlockStateProperties.WATERLOGGED, wantsWater);
-            level.setBlock(pos, landed, 3);
+            level.setBlock(pos, landed.setValue(BlockStateProperties.WATERLOGGED, wantsWater), 3);
         }
-        if (!level.isClientSide() && level instanceof net.minecraft.server.level.ServerLevel serverLevel) {
+        if (duck.pistonDiversified$isFlightPrimary()
+            && level instanceof net.minecraft.server.level.ServerLevel serverLevel) {
             dev.zcode.piston_diversified.logic.PotatoFlightQueue.add(
                 serverLevel, pos, be.getDirection(), duck.pistonDiversified$getFlight(), landed.getBlock()
             );

@@ -99,8 +99,14 @@ public class TurnPushPistonBlock extends ModPistonBaseBlock {
      */
     @Override
     protected boolean resolveExtend(Level level, BlockPos pos, Direction direction) {
-        Direction bend = this.bendOf(level, pos, direction);
-        if (bend == null) {
+        // the piston state is still in place during the pre-check; the sideways pre-resolve must
+        // answer "can the front structure be pushed along the bend" (not forward)
+        Level stateHolder = level;
+        BlockState self = stateHolder.getBlockState(pos);
+        Direction bend = self.getBlock() instanceof TurnPushPistonBlock && self.hasProperty(BEND)
+            ? self.getValue(BEND)
+            : this.defaultBend(direction);
+        if (bend.getAxis() == direction.getAxis()) {
             return super.resolveExtend(level, pos, direction);
         }
         return new ModPistonStructureResolver(level, pos.relative(direction), bend, pos, true).resolve();
@@ -143,32 +149,21 @@ public class TurnPushPistonBlock extends ModPistonBaseBlock {
     }
 
     @Override
-    protected PdResolver createResolver(Level level, BlockPos pos, Direction direction, boolean extending) {
-        if (extending) {
+    protected PdResolver createResolver(Level level, BlockPos pos, Direction direction, boolean extending, BlockState baseState) {
+        if (extending || baseState == null) {
             return null;
         }
-        Direction bend = this.bendOf(level, pos, direction);
-        if (bend == null || bend.getAxis() == direction.getAxis()) {
+        // read the bend from the captured base state — the base cell is a moving piston during
+        // the retract move, so the level no longer holds the piston state
+        Direction bend = baseState.getBlock() instanceof TurnPushPistonBlock && baseState.hasProperty(BEND)
+            ? baseState.getValue(BEND)
+            : this.defaultBend(direction);
+        if (bend.getAxis() == direction.getAxis()) {
             return null;
         }
         return new ModPistonStructureResolver(
             level, pos.relative(direction).relative(bend), direction.getOpposite(), pos, true
         );
-    }
-
-    /**
-     * The bend of whatever bend-carrying block sits at pos (the base itself; also called for the
-     * just-placed base during placement edge cases). Falls back to the facing-derived default.
-     */
-    private Direction bendOf(Level level, BlockPos pos, Direction direction) {
-        BlockState state = level.getBlockState(pos);
-        if (state.getBlock() instanceof TurnPushPistonBlock && state.hasProperty(BEND)) {
-            Direction bend = state.getValue(BEND);
-            if (bend.getAxis() != direction.getAxis()) {
-                return bend;
-            }
-        }
-        return this.defaultBend(direction);
     }
 
     private Direction defaultBend(Direction direction) {

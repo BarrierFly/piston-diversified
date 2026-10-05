@@ -44,14 +44,10 @@ public final class PotatoFlightQueue {
             pos.immutable(),
             direction,
             record.clone(),
-            PdHelpers.id(pdBlockPath(expected)).toString(),
+            net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(expected).toString(),
             0
         ));
         data(level).setDirty();
-    }
-
-    private static String pdBlockPath(net.minecraft.world.level.block.Block block) {
-        return net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(block).getPath();
     }
 
     /** Advance every pending event by one tick and run those that reached their 1gt delay. */

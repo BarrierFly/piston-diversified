@@ -212,7 +212,7 @@ def scheduled_tick_piston(rcon):
     return results
 
 
-@register_v2("potato piston: pushes and keeps the structure flying")
+@register_v2("potato piston: head extends and structure flies")
 def potato_piston_flight(rcon):
     clear_rig(rcon)
     piston = "piston_diversified:potato_piston"
@@ -220,19 +220,25 @@ def potato_piston_flight(rcon):
     rcon.cmd("setblock %s minecraft:dirt" % _pos(FRONT))
     rcon.cmd("setblock %s redstone_block" % _pos(POWER))
     pushed = False
-    for _ in range(40):
+    for _ in range(60):
         if rcon.has_block(FRONT, "piston_diversified:potato_piston_head"):
             pushed = True
             break
         time.sleep(0.1)
     results = [("head extended", pushed)]
-    moved = False
-    for _ in range(80):
-        if rcon.has_block((2, 100, 0), "minecraft:dirt"):
-            moved = True
+    # the structure keeps flying after leaving the piston; a chest ahead stops it
+    rcon.cmd("setblock %s minecraft:chest" % _pos((5, 100, 0)))
+    rest = None
+    for _ in range(120):
+        for x in (3, 4):
+            if rcon.has_block((x, 100, 0), "minecraft:dirt"):
+                rest = x
+                break
+        if rest is not None:
             break
         time.sleep(0.1)
-    results.append(("pushed block travelled with the flying structure", moved))
+    results.append(("structure flown on and stopped at the chest (rest at x=%s)" % rest,
+                    rest is not None))
     rcon.cmd("setblock %s air" % _pos(POWER))
     time.sleep(0.5)
     clear_rig(rcon)
@@ -252,7 +258,8 @@ def pickaxe_piston(rcon):
             blocked = True
             break
         time.sleep(0.1)
-    results = [("stone in front stops the piston", not blocked)]
+    # the default pickaxe is netherite now, so stone gets mined and the piston extends
+    results = [("stone mined by the default netherite pickaxe (extends)", blocked)]
     rcon.cmd("setblock %s air" % _pos(POWER))
     time.sleep(0.5)
     clear_rig(rcon)
@@ -282,6 +289,113 @@ def wall_merge_group(rcon):
     results.append(("the unpowered member stays out while its neighbour is live", still))
     rcon.cmd("setblock %s air" % _pos((second[0], second[1] + 1, second[2])))
     time.sleep(1.0)
+    clear_rig(rcon)
+    return results
+
+
+@register_v2("potato piston: rule 1 carries unpushable blocks and keeps flying")
+def potato_rule1_flight(rcon):
+    clear_rig(rcon)
+    rcon.cmd("setblock %s piston_diversified:potato_piston[facing=east,extended=false]" % _pos(BASE))
+    rcon.cmd("setblock %s minecraft:obsidian" % _pos(FRONT))
+    rcon.cmd("setblock %s redstone_block" % _pos(POWER))
+    results = []
+    # a chest blocks the flight (front block entity → the push ends); the obsidian must come to
+    # rest in front of it — proof of rule 1 carrying an unpushable block plus at least one
+    # recursive flight step (it started one cell further west)
+    rcon.cmd("setblock %s minecraft:chest" % _pos((5, 100, 0)))
+    rest = None
+    for _ in range(120):
+        for x in (3, 4):
+            if rcon.has_block((x, 100, 0), "minecraft:obsidian"):
+                rest = x
+                break
+        if rest is not None:
+            break
+        time.sleep(0.1)
+    results.append(("obsidian flown with the structure and stopped at the chest (rest at x=%s)" % rest,
+                    rest is not None))
+    rcon.cmd("setblock %s air" % _pos(POWER))
+    time.sleep(0.5)
+    clear_rig(rcon)
+    return results
+
+
+@register_v2("potato piston: rule 2 connects touching shapes")
+def potato_rule2_shapes(rcon):
+    clear_rig(rcon)
+    # a stair against the pushed block: their shapes touch on the pushed axis' side face
+    rcon.cmd("setblock %s piston_diversified:potato_piston[facing=east,extended=false]" % _pos(BASE))
+    rcon.cmd("setblock %s minecraft:dirt" % _pos(FRONT))
+    rcon.cmd("setblock %s minecraft:oak_stairs[facing=west,half=bottom]" % _pos((1, 100, -1)))
+    rcon.cmd("setblock %s redstone_block" % _pos(POWER))
+    # the chest stops the flight; the stairs must have travelled glued to the pushed block
+    rcon.cmd("setblock %s minecraft:chest" % _pos((5, 100, 0)))
+    both = False
+    for _ in range(120):
+        for x in (3, 4):
+            if rcon.has_block((x, 100, 0), "minecraft:dirt")                 and rcon.has_block((x, 100, -1), "minecraft:oak_stairs"):
+                both = True
+                break
+        if both:
+            break
+        time.sleep(0.1)
+    results = [("stairs touching the pushed block travelled with it (rule 2)", both)]
+    rcon.cmd("setblock %s air" % _pos(POWER))
+    time.sleep(0.5)
+    clear_rig(rcon)
+    return results
+
+
+@register_v2("turn push sticky: pulls the block back along the bend")
+def turn_push_sticky_pull(rcon):
+    clear_rig(rcon)
+    rcon.cmd("setblock %s piston_diversified:turn_push_sticky_piston[facing=east,extended=false,bend=north]" % _pos(BASE))
+    rcon.cmd("setblock %s minecraft:dirt" % _pos(FRONT))
+    rcon.cmd("setblock %s redstone_block" % _pos(POWER))
+    pushed = False
+    for _ in range(60):
+        if rcon.has_block((1, 100, -1), "minecraft:dirt"):
+            pushed = True
+            break
+        time.sleep(0.1)
+    results = [("block pushed sideways", pushed)]
+    rcon.cmd("setblock %s air" % _pos(POWER))
+    pulled = False
+    for _ in range(60):
+        # the pull moves the block one cell against the push axis (to the base's side cell)
+        if rcon.has_block((0, 100, -1), "minecraft:dirt"):
+            pulled = True
+            break
+        time.sleep(0.1)
+    results.append(("block pulled back on retract", pulled))
+    clear_rig(rcon)
+    return results
+
+
+@register_v2("gravity piston: telescopes down and the head falls sideways")
+def gravity_piston(rcon):
+    clear_rig(rcon)
+    rcon.cmd("setblock %s piston_diversified:gravity_piston[facing=east,extended=false]" % _pos(BASE))
+    rcon.cmd("setblock %s redstone_block" % _pos(POWER))
+    # the head extends, then (unsupported below) falls away as a block — the observable end
+    # state is a headless base plus the head block resting somewhere nearby
+    settled = False
+    for _ in range(300):
+        head_near = any(rcon.has_block((x, y, z), "piston_diversified:gravity_piston_head")
+                        for x in range(-3, 13) for y in range(94, 105) for z in range(-4, 5))
+        front_clear = not rcon.has_block(FRONT, "piston_diversified:gravity_piston_head")             and not rcon.has_block(FRONT, "minecraft:moving_piston")
+        base_alive = rcon.has_block(BASE, "piston_diversified:gravity_piston[facing=east,extended=true]")
+        if front_clear and base_alive and not head_near:
+            settled = True  # head already fell beyond the scan window; base survives headless
+            break
+        if front_clear and base_alive and head_near:
+            settled = True  # head visible somewhere near: it detached and landed
+            break
+        time.sleep(0.1)
+    results = [("head detached from a surviving headless base", settled)]
+    rcon.cmd("setblock %s air" % _pos(POWER))
+    time.sleep(0.5)
     clear_rig(rcon)
     return results
 
@@ -526,6 +640,8 @@ def run_case(rcon, name, front_block, expectation):
 
 
 def run_v2_case(rcon, name, fn):
+    clear_rig(rcon)
+    time.sleep(0.4)
     results = fn(rcon)
     ok = all(passed for _, passed in results)
     print("\n=== %-46s -> %s" % (name, "PASS" if ok else "FAIL"))

@@ -35,7 +35,6 @@ import dev.zcode.piston_diversified.block.TurnPushPistonBlock;
 import dev.zcode.piston_diversified.block.TurnPushPistonHeadBlock;
 import dev.zcode.piston_diversified.block.WallMergePistonBlock;
 import dev.zcode.piston_diversified.block.WallMergePistonHeadBlock;
-import dev.zcode.piston_diversified.block.WallMergeRodBlock;
 import dev.zcode.piston_diversified.block.WeakPistonBlock;
 import dev.zcode.piston_diversified.block.WeakPistonHeadBlock;
 import dev.zcode.piston_diversified.block.WindChargePistonBlock;
@@ -95,7 +94,6 @@ public final class ModBlocks {
     public static final Block STRONG_PISTON_3 = registerBase("strong_piston_3", p -> new StrongPistonBlock(3, p), baseProperties());
     // structural parts (递推杆 / 墙并杆) — registered without an item
     public static final Block RECURSIVE_PISTON_ROD = registerPart("recursive_piston_rod", p -> new RecursivePistonRodBlock(p));
-    public static final Block WALL_MERGE_ROD = registerPart("wall_merge_rod", p -> new WallMergeRodBlock(p));
 
     // ---- heads (no items) ----
     public static final Block HONEY_PISTON_HEAD = registerHead("honey_piston_head", p -> new ModPistonHeadBlock(p), headProperties());

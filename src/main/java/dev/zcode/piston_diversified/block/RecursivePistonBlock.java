@@ -183,14 +183,16 @@ public class RecursivePistonBlock extends ModPistonBaseBlock {
             return;
         }
 
-        // the head slides back onto the rod: a source moving piston on the rod cell renders it
+        // The head slides back onto the rod. A non-source moving piston still renders the head
+        // sliding from headPos onto rodPos — a *source* one would make the vanilla renderer treat
+        // the moved head state as a piston base and crash on setValue(EXTENDED).
         BlockState movingState = Blocks.MOVING_PISTON
             .defaultBlockState()
             .setValue(MovingPistonBlock.FACING, direction)
             .setValue(MovingPistonBlock.TYPE, this.sticky ? PistonType.STICKY : PistonType.DEFAULT);
         level.setBlock(rodPos, movingState, 276);
         net.minecraft.world.level.block.entity.BlockEntity retractBe =
-            MovingPistonBlock.newMovingBlockEntity(rodPos, movingState, headState, direction, false, true);
+            MovingPistonBlock.newMovingBlockEntity(rodPos, movingState, headState, direction, false, false);
         level.setBlockEntity(retractBe);
         level.updateNeighborsAt(rodPos, movingState.getBlock());
 

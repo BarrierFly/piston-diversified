@@ -105,12 +105,12 @@ public final class PotatoStructureResolver {
             } else if (state.getPistonPushReaction() == PushReaction.DESTROY) {
                 this.toDestroy.add(pos);
                 continue; // popped in place, never carried
-            } else if (!PistonBaseBlock.isPushable(state, this.level, pos, this.pushDirection, false, this.pushDirection)) {
-                return this.fail("unpushable member blocks the structure: " + state.getBlock());
             } else if (state.hasProperty(BlockStateProperties.WATERLOGGED)
                 && state.getValue(BlockStateProperties.WATERLOGGED)) {
                 kind = MemberKind.WATERLOGGED; // travels waterless, leaves water behind
             } else {
+                // rule 1 carries unpushable blocks too (obsidian, bedrock, ...) — an
+                // irreplaceable block in front of a pushed block simply joins the structure
                 kind = MemberKind.NORMAL;
             }
 
@@ -218,15 +218,30 @@ public final class PotatoStructureResolver {
         return false;
     }
 
-    /** Whether box {@code a}'s {@code side} face overlaps box {@code b}'s opposite face. */
+    private static final float FACE_EPS = 1.0E-5F;
+
+    /**
+     * Whether box {@code a}'s {@code side} face touches box {@code b}'s opposite face. Both AABBs
+     * are in their own cell's local space (0..1): the touch means a's far face sits at the shared
+     * cell boundary and b's near face sits at the same boundary from the other side.
+     */
     private static boolean faceOverlap(net.minecraft.world.phys.AABB a, net.minecraft.world.phys.AABB b, Direction side) {
+        boolean touching = switch (side) {
+            case EAST -> a.maxX > 1.0F - FACE_EPS && b.minX < FACE_EPS;
+            case WEST -> a.minX < FACE_EPS && b.maxX > 1.0F - FACE_EPS;
+            case UP -> a.maxY > 1.0F - FACE_EPS && b.minY < FACE_EPS;
+            case DOWN -> a.minY < FACE_EPS && b.maxY > 1.0F - FACE_EPS;
+            case SOUTH -> a.maxZ > 1.0F - FACE_EPS && b.minZ < FACE_EPS;
+            case NORTH -> a.minZ < FACE_EPS && b.maxZ > 1.0F - FACE_EPS;
+        };
+        if (!touching) {
+            return false;
+        }
+        // the contact patch must overlap on the two tangential axes (strict: edge-touch is not overlap)
         return switch (side.getAxis()) {
-            case X -> a.minY < b.maxY && a.maxY > b.minY && a.minZ < b.maxZ && a.maxZ > b.minZ
-                && Math.abs(a.minX - b.maxX) < 1.0E-6F;
-            case Y -> a.minX < b.maxX && a.maxX > b.minX && a.minZ < b.maxZ && a.maxZ > b.minZ
-                && Math.abs(a.maxY - b.minY) < 1.0E-6F;
-            case Z -> a.minX < b.maxX && a.maxX > b.minX && a.minY < b.maxY && a.maxY > b.minY
-                && Math.abs(a.maxZ - b.minZ) < 1.0E-6F;
+            case X -> a.minY < b.maxY && a.maxY > b.minY && a.minZ < b.maxZ && a.maxZ > b.minZ;
+            case Y -> a.minX < b.maxX && a.maxX > b.minX && a.minZ < b.maxZ && a.maxZ > b.minZ;
+            default -> a.minX < b.maxX && a.maxX > b.minX && a.minY < b.maxY && a.maxY > b.minY;
         };
     }
 

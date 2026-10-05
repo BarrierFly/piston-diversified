@@ -4,107 +4,107 @@
       "model": "piston_diversified:block/turn_push_piston_head_north"
     },
     "bend=north,facing=south,short=false,type=normal": {
-      "model": "piston_diversified:block/turn_push_piston_head_north",
+      "model": "piston_diversified:block/turn_push_piston_head_south",
       "y": 180
     },
     "bend=north,facing=west,short=false,type=normal": {
-      "model": "piston_diversified:block/turn_push_piston_head_north",
+      "model": "piston_diversified:block/turn_push_piston_head_east",
       "y": 270
     },
     "bend=north,facing=east,short=false,type=normal": {
-      "model": "piston_diversified:block/turn_push_piston_head_north",
+      "model": "piston_diversified:block/turn_push_piston_head_west",
       "y": 90
     },
     "bend=north,facing=up,short=false,type=normal": {
-      "model": "piston_diversified:block/turn_push_piston_head_north",
+      "model": "piston_diversified:block/turn_push_piston_head_down",
       "x": 270
     },
     "bend=north,facing=down,short=false,type=normal": {
-      "model": "piston_diversified:block/turn_push_piston_head_north",
+      "model": "piston_diversified:block/turn_push_piston_head_up",
       "x": 90
     },
     "bend=north,facing=north,short=true,type=normal": {
       "model": "piston_diversified:block/turn_push_piston_head_north_short"
     },
     "bend=north,facing=south,short=true,type=normal": {
-      "model": "piston_diversified:block/turn_push_piston_head_north_short",
+      "model": "piston_diversified:block/turn_push_piston_head_south_short",
       "y": 180
     },
     "bend=north,facing=west,short=true,type=normal": {
-      "model": "piston_diversified:block/turn_push_piston_head_north_short",
+      "model": "piston_diversified:block/turn_push_piston_head_east_short",
       "y": 270
     },
     "bend=north,facing=east,short=true,type=normal": {
-      "model": "piston_diversified:block/turn_push_piston_head_north_short",
+      "model": "piston_diversified:block/turn_push_piston_head_west_short",
       "y": 90
     },
     "bend=north,facing=up,short=true,type=normal": {
-      "model": "piston_diversified:block/turn_push_piston_head_north_short",
+      "model": "piston_diversified:block/turn_push_piston_head_down_short",
       "x": 270
     },
     "bend=north,facing=down,short=true,type=normal": {
-      "model": "piston_diversified:block/turn_push_piston_head_north_short",
+      "model": "piston_diversified:block/turn_push_piston_head_up_short",
       "x": 90
     },
     "bend=south,facing=north,short=false,type=normal": {
       "model": "piston_diversified:block/turn_push_piston_head_south"
     },
     "bend=south,facing=south,short=false,type=normal": {
-      "model": "piston_diversified:block/turn_push_piston_head_south",
+      "model": "piston_diversified:block/turn_push_piston_head_north",
       "y": 180
     },
     "bend=south,facing=west,short=false,type=normal": {
-      "model": "piston_diversified:block/turn_push_piston_head_south",
+      "model": "piston_diversified:block/turn_push_piston_head_west",
       "y": 270
     },
     "bend=south,facing=east,short=false,type=normal": {
-      "model": "piston_diversified:block/turn_push_piston_head_south",
+      "model": "piston_diversified:block/turn_push_piston_head_east",
       "y": 90
     },
     "bend=south,facing=up,short=false,type=normal": {
-      "model": "piston_diversified:block/turn_push_piston_head_south",
+      "model": "piston_diversified:block/turn_push_piston_head_up",
       "x": 270
     },
     "bend=south,facing=down,short=false,type=normal": {
-      "model": "piston_diversified:block/turn_push_piston_head_south",
+      "model": "piston_diversified:block/turn_push_piston_head_down",
       "x": 90
     },
     "bend=south,facing=north,short=true,type=normal": {
       "model": "piston_diversified:block/turn_push_piston_head_south_short"
     },
     "bend=south,facing=south,short=true,type=normal": {
-      "model": "piston_diversified:block/turn_push_piston_head_south_short",
+      "model": "piston_diversified:block/turn_push_piston_head_north_short",
       "y": 180
     },
     "bend=south,facing=west,short=true,type=normal": {
-      "model": "piston_diversified:block/turn_push_piston_head_south_short",
+      "model": "piston_diversified:block/turn_push_piston_head_west_short",
       "y": 270
     },
     "bend=south,facing=east,short=true,type=normal": {
-      "model": "piston_diversified:block/turn_push_piston_head_south_short",
+      "model": "piston_diversified:block/turn_push_piston_head_east_short",
       "y": 90
     },
     "bend=south,facing=up,short=true,type=normal": {
-      "model": "piston_diversified:block/turn_push_piston_head_south_short",
+      "model": "piston_diversified:block/turn_push_piston_head_up_short",
       "x": 270
     },
     "bend=south,facing=down,short=true,type=normal": {
-      "model": "piston_diversified:block/turn_push_piston_head_south_short",
+      "model": "piston_diversified:block/turn_push_piston_head_down_short",
       "x": 90
     },
     "bend=west,facing=north,short=false,type=normal": {
       "model": "piston_diversified:block/turn_push_piston_head_west"
     },
     "bend=west,facing=south,short=false,type=normal": {
-      "model": "piston_diversified:block/turn_push_piston_head_west",
+      "model": "piston_diversified:block/turn_push_piston_head_east",
       "y": 180
     },
     "bend=west,facing=west,short=false,type=normal": {
-      "model": "piston_diversified:block/turn_push_piston_head_west",
+      "model": "piston_diversified:block/turn_push_piston_head_north",
       "y": 270
     },
     "bend=west,facing=east,short=false,type=normal": {
-      "model": "piston_diversified:block/turn_push_piston_head_west",
+      "model": "piston_diversified:block/turn_push_piston_head_south",
       "y": 90
     },
     "bend=west,facing=up,short=false,type=normal": {
@@ -119,15 +119,15 @@
       "model": "piston_diversified:block/turn_push_piston_head_west_short"
     },
     "bend=west,facing=south,short=true,type=normal": {
-      "model": "piston_diversified:block/turn_push_piston_head_west_short",
+      "model": "piston_diversified:block/turn_push_piston_head_east_short",
       "y": 180
     },
     "bend=west,facing=west,short=true,type=normal": {
-      "model": "piston_diversified:block/turn_push_piston_head_west_short",
+      "model": "piston_diversified:block/turn_push_piston_head_north_short",
       "y": 270
     },
     "bend=west,facing=east,short=true,type=normal": {
-      "model": "piston_diversified:block/turn_push_piston_head_west_short",
+      "model": "piston_diversified:block/turn_push_piston_head_south_short",
       "y": 90
     },
     "bend=west,facing=up,short=true,type=normal": {
@@ -142,15 +142,15 @@
       "model": "piston_diversified:block/turn_push_piston_head_east"
     },
     "bend=east,facing=south,short=false,type=normal": {
-      "model": "piston_diversified:block/turn_push_piston_head_east",
+      "model": "piston_diversified:block/turn_push_piston_head_west",
       "y": 180
     },
     "bend=east,facing=west,short=false,type=normal": {
-      "model": "piston_diversified:block/turn_push_piston_head_east",
+      "model": "piston_diversified:block/turn_push_piston_head_south",
       "y": 270
     },
     "bend=east,facing=east,short=false,type=normal": {
-      "model": "piston_diversified:block/turn_push_piston_head_east",
+      "model": "piston_diversified:block/turn_push_piston_head_north",
       "y": 90
     },
     "bend=east,facing=up,short=false,type=normal": {
@@ -165,15 +165,15 @@
       "model": "piston_diversified:block/turn_push_piston_head_east_short"
     },
     "bend=east,facing=south,short=true,type=normal": {
-      "model": "piston_diversified:block/turn_push_piston_head_east_short",
+      "model": "piston_diversified:block/turn_push_piston_head_west_short",
       "y": 180
     },
     "bend=east,facing=west,short=true,type=normal": {
-      "model": "piston_diversified:block/turn_push_piston_head_east_short",
+      "model": "piston_diversified:block/turn_push_piston_head_south_short",
       "y": 270
     },
     "bend=east,facing=east,short=true,type=normal": {
-      "model": "piston_diversified:block/turn_push_piston_head_east_short",
+      "model": "piston_diversified:block/turn_push_piston_head_north_short",
       "y": 90
     },
     "bend=east,facing=up,short=true,type=normal": {
@@ -182,6 +182,98 @@
     },
     "bend=east,facing=down,short=true,type=normal": {
       "model": "piston_diversified:block/turn_push_piston_head_east_short",
+      "x": 90
+    },
+    "bend=up,facing=north,short=false,type=normal": {
+      "model": "piston_diversified:block/turn_push_piston_head_up"
+    },
+    "bend=up,facing=south,short=false,type=normal": {
+      "model": "piston_diversified:block/turn_push_piston_head_up",
+      "y": 180
+    },
+    "bend=up,facing=west,short=false,type=normal": {
+      "model": "piston_diversified:block/turn_push_piston_head_up",
+      "y": 270
+    },
+    "bend=up,facing=east,short=false,type=normal": {
+      "model": "piston_diversified:block/turn_push_piston_head_up",
+      "y": 90
+    },
+    "bend=up,facing=up,short=false,type=normal": {
+      "model": "piston_diversified:block/turn_push_piston_head_north",
+      "x": 270
+    },
+    "bend=up,facing=down,short=false,type=normal": {
+      "model": "piston_diversified:block/turn_push_piston_head_south",
+      "x": 90
+    },
+    "bend=up,facing=north,short=true,type=normal": {
+      "model": "piston_diversified:block/turn_push_piston_head_up_short"
+    },
+    "bend=up,facing=south,short=true,type=normal": {
+      "model": "piston_diversified:block/turn_push_piston_head_up_short",
+      "y": 180
+    },
+    "bend=up,facing=west,short=true,type=normal": {
+      "model": "piston_diversified:block/turn_push_piston_head_up_short",
+      "y": 270
+    },
+    "bend=up,facing=east,short=true,type=normal": {
+      "model": "piston_diversified:block/turn_push_piston_head_up_short",
+      "y": 90
+    },
+    "bend=up,facing=up,short=true,type=normal": {
+      "model": "piston_diversified:block/turn_push_piston_head_north_short",
+      "x": 270
+    },
+    "bend=up,facing=down,short=true,type=normal": {
+      "model": "piston_diversified:block/turn_push_piston_head_south_short",
+      "x": 90
+    },
+    "bend=down,facing=north,short=false,type=normal": {
+      "model": "piston_diversified:block/turn_push_piston_head_down"
+    },
+    "bend=down,facing=south,short=false,type=normal": {
+      "model": "piston_diversified:block/turn_push_piston_head_down",
+      "y": 180
+    },
+    "bend=down,facing=west,short=false,type=normal": {
+      "model": "piston_diversified:block/turn_push_piston_head_down",
+      "y": 270
+    },
+    "bend=down,facing=east,short=false,type=normal": {
+      "model": "piston_diversified:block/turn_push_piston_head_down",
+      "y": 90
+    },
+    "bend=down,facing=up,short=false,type=normal": {
+      "model": "piston_diversified:block/turn_push_piston_head_south",
+      "x": 270
+    },
+    "bend=down,facing=down,short=false,type=normal": {
+      "model": "piston_diversified:block/turn_push_piston_head_north",
+      "x": 90
+    },
+    "bend=down,facing=north,short=true,type=normal": {
+      "model": "piston_diversified:block/turn_push_piston_head_down_short"
+    },
+    "bend=down,facing=south,short=true,type=normal": {
+      "model": "piston_diversified:block/turn_push_piston_head_down_short",
+      "y": 180
+    },
+    "bend=down,facing=west,short=true,type=normal": {
+      "model": "piston_diversified:block/turn_push_piston_head_down_short",
+      "y": 270
+    },
+    "bend=down,facing=east,short=true,type=normal": {
+      "model": "piston_diversified:block/turn_push_piston_head_down_short",
+      "y": 90
+    },
+    "bend=down,facing=up,short=true,type=normal": {
+      "model": "piston_diversified:block/turn_push_piston_head_south_short",
+      "x": 270
+    },
+    "bend=down,facing=down,short=true,type=normal": {
+      "model": "piston_diversified:block/turn_push_piston_head_north_short",
       "x": 90
     }
   }

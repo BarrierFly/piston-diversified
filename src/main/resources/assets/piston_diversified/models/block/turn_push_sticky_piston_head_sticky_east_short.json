@@ -8,14 +8,14 @@
   "elements": [
     {
       "from": [
-        0,
+        12,
         0,
         0
       ],
       "to": [
         16,
         16,
-        4
+        16
       ],
       "faces": {
         "down": {
@@ -25,9 +25,8 @@
             16,
             4
           ],
-          "texture": "#side",
-          "rotation": 180,
-          "cullface": "down"
+          "texture": "piston_diversified:block/turn_push_sticky_piston_side",
+          "rotation": 180
         },
         "up": {
           "uv": [
@@ -36,10 +35,36 @@
             16,
             4
           ],
-          "texture": "#side",
-          "cullface": "up"
+          "texture": "piston_diversified:block/turn_push_sticky_piston_side"
         },
         "north": {
+          "uv": [
+            0,
+            0,
+            4,
+            16
+          ],
+          "texture": "piston_diversified:block/turn_push_sticky_piston_side"
+        },
+        "south": {
+          "uv": [
+            12,
+            0,
+            16,
+            16
+          ],
+          "texture": "piston_diversified:block/turn_push_sticky_piston_side"
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "piston_diversified:block/turn_push_sticky_piston_side"
+        },
+        "east": {
           "uv": [
             0,
             0,
@@ -47,108 +72,77 @@
             16
           ],
           "texture": "#platform",
-          "cullface": "north"
-        },
-        "south": {
-          "uv": [
-            0,
-            0,
-            16,
-            16
-          ],
-          "texture": "#platform"
-        },
-        "west": {
-          "uv": [
-            0,
-            0,
-            16,
-            4
-          ],
-          "texture": "#side",
-          "rotation": 270,
-          "cullface": "west"
-        },
-        "east": {
-          "uv": [
-            0,
-            0,
-            16,
-            4
-          ],
-          "texture": "#side",
-          "rotation": 90,
           "cullface": "east"
         }
       }
     },
     {
       "from": [
+        8,
         6,
-        6,
-        0
+        12
       ],
       "to": [
+        12,
         10,
-        10,
-        12
+        20
       ],
       "faces": {
         "down": {
           "uv": [
             5,
-            0,
+            4,
             11,
-            12
+            8
           ],
-          "texture": "#side",
+          "texture": "piston_diversified:block/turn_push_sticky_piston_side",
           "rotation": 90
         },
         "up": {
           "uv": [
             5,
-            0,
+            4,
             11,
-            12
+            8
           ],
-          "texture": "#side",
+          "texture": "piston_diversified:block/turn_push_sticky_piston_side",
           "rotation": 270
         },
         "north": {
           "uv": [
             5,
-            0,
+            4,
             11,
-            6
+            8
           ],
-          "texture": "#side"
+          "texture": "piston_diversified:block/turn_push_sticky_piston_side"
         },
         "south": {
           "uv": [
             5,
-            0,
+            4,
             11,
-            12
+            8
           ],
-          "texture": "#side"
+          "texture": "piston_diversified:block/turn_push_sticky_piston_side"
         },
         "west": {
           "uv": [
             12,
-            0,
-            0,
-            10
+            4,
+            20,
+            12
           ],
-          "texture": "#side"
+          "texture": "piston_diversified:block/turn_push_sticky_piston_side"
         },
         "east": {
           "uv": [
             12,
-            0,
-            0,
-            10
+            4,
+            20,
+            12
           ],
-          "texture": "#side"
+          "texture": "piston_diversified:block/turn_push_sticky_piston_side"
         }
       }
     }

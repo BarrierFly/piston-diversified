@@ -36,7 +36,7 @@ public class PickaxePistonBlock extends ModPistonBaseBlock implements EntityBloc
 
     public PickaxePistonBlock(Properties properties) {
         super(false, properties);
-        this.registerDefaultState(this.defaultBlockState().setValue(TOOL, PickaxeTool.DEFAULT));
+        this.registerDefaultState(this.defaultBlockState().setValue(TOOL, PickaxeTool.NETHERITE));
     }
 
     @Override
@@ -60,14 +60,13 @@ public class PickaxePistonBlock extends ModPistonBaseBlock implements EntityBloc
         super.setPlacedBy(level, pos, state, placer, stack);
         if (!level.isClientSide() && level.getBlockEntity(pos) instanceof PickaxePistonBlockEntity be) {
             ItemStack pickaxe = PickaxeData.get(stack, level.registryAccess());
-            if (!pickaxe.isEmpty()) {
-                be.setPickaxe(pickaxe);
-                if (state.hasProperty(TOOL)) {
-                    PickaxeTool tool = PickaxeTool.of(pickaxe);
-                    if (tool != null && state.getValue(TOOL) != tool) {
-                        level.setBlock(pos, state.setValue(TOOL, tool), 2);
-                    }
-                }
+            if (pickaxe.isEmpty()) {
+                pickaxe = PickaxePistonBlockEntity.defaultPickaxe(); // no carry data: keep the default
+            }
+            be.setPickaxe(pickaxe);
+            PickaxeTool tool = PickaxeTool.of(pickaxe);
+            if (tool != null && state.getValue(TOOL) != tool) {
+                level.setBlock(pos, state.setValue(TOOL, tool), 2);
             }
         }
     }
@@ -86,7 +85,7 @@ public class PickaxePistonBlock extends ModPistonBaseBlock implements EntityBloc
         if (be instanceof PickaxePistonBlockEntity pickaxeBe) {
             // 1.19.4's loot builder hands out a ServerLevel already; newer ones a plain Level
             //? if <1.20.5 {
-            PickaxeData.set(out, pickaxeBe.getPickaxe(), params.getLevel().registryAccess());
+            PickaxeData.set(out, pickaxeBe.getPickaxe(), ((net.minecraft.server.level.ServerLevel) params.getLevel()).registryAccess());
             //?} else {
             if (params.getLevel() instanceof net.minecraft.server.level.ServerLevel serverLevel) {
                 PickaxeData.set(out, pickaxeBe.getPickaxe(), serverLevel.registryAccess());

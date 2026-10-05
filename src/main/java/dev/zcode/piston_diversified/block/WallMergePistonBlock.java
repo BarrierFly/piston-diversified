@@ -6,10 +6,14 @@ import java.util.List;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.piston.PistonStructureResolver;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.Shapes;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraft.world.level.block.state.BlockBehaviour.Properties;
 
 /**
@@ -20,11 +24,17 @@ import net.minecraft.world.level.block.state.BlockBehaviour.Properties;
  * resolves and the summed structure size fits the summed limits (12 per sticky member) —
  * otherwise all members retract their heads without pulling (仅收回活塞头不拉方块).
  *
- * <p>Geometry: vanilla base, a wall-post head ({@link WallMergePistonHeadBlock}), plus a
- * {@link WallMergeRodBlock} nub poking half a block past the plate while retracted.</p>
+ * <p>Geometry: the retracted base itself shows a wall-centre-post rod poking half a block past
+ * the plate (收回时超出活塞盖半格) — model and collision both belong to the base block, reaching
+ * into the front cell without occupying it. The extended head carries the matching wall-post rod
+ * ({@link WallMergePistonHeadBlock}), so the posts form a continuous wall in both states.</p>
  */
 public class WallMergePistonBlock extends ModPistonBaseBlock {
     private static final int GROUP_LIMIT = 64;
+
+    /** Retracted: full base plus the wall post reaching 8px past the front face. */
+    private static final VoxelShape RETRACTED_SHAPE = Shapes.or(
+        Shapes.block(), PdShapes.rod(Direction.NORTH, -8, 0, 8));
 
     public WallMergePistonBlock(boolean sticky, Properties properties) {
         super(sticky, properties);
@@ -33,6 +43,24 @@ public class WallMergePistonBlock extends ModPistonBaseBlock {
     @Override
     public Block headBlock() {
         return this.sticky ? ModBlocks.WALL_MERGE_STICKY_PISTON_HEAD : ModBlocks.WALL_MERGE_PISTON_HEAD;
+    }
+
+    /** Retracted shapes per facing: full base plus the wall post reaching 8px past the front face. */
+    private static VoxelShape retractedShape(Direction facing) {
+        return Shapes.or(Shapes.block(), PdShapes.rod(facing, -8, 0, 8));
+    }
+
+    @Override
+    public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+        if (state.getValue(EXTENDED)) {
+            return super.getShape(state, level, pos, context);
+        }
+        return retractedShape(state.getValue(FACING));
+    }
+
+    @Override
+    public VoxelShape getCollisionShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+        return this.getShape(state, level, pos, context);
     }
 
     // ------------------------------------------------------------- group logic
@@ -103,7 +131,6 @@ public class WallMergePistonBlock extends ModPistonBaseBlock {
             // every member retracts right now; its own queued retract event self-cancels later
             // because the block at its position has already changed by then
             member.executeRetract(serverLevel, memberPos, direction, memberState, id, pullAllowed);
-            member.restoreRodNub(serverLevel, memberPos);
         }
     }
 
@@ -131,81 +158,5 @@ public class WallMergePistonBlock extends ModPistonBaseBlock {
             total += resolver.getToPush().size();
         }
         return stickyMembers > 0 && total <= 12 * stickyMembers;
-    }
-
-    // ------------------------------------------------------------- rod nub lifecycle
-
-    /**
-     * The nub is part of the piston and is push-resistant like a moving piston, so it has to
-     * leave the front cell before the extend pre-resolve looks at it. This runs before
-     * {@link #handleExtend} and therefore also before the block event, which is the only place
-     * where the cell can be cleared without a neighbour-update loop (flag 276).
-     */
-    @Override
-    protected boolean resolveExtend(Level level, BlockPos pos, Direction direction) {
-        this.clearRodNub(level, pos, direction);
-        return super.resolveExtend(level, pos, direction);
-    }
-
-    @Override
-    protected boolean handleExtend(Level level, BlockPos pos, Direction direction, BlockState state) {
-        this.clearRodNub(level, pos, direction);
-        return false; // proceed with the vanilla push
-    }
-
-    private void clearRodNub(Level level, BlockPos pos, Direction direction) {
-        BlockPos frontPos = pos.relative(direction);
-        if (level.getBlockState(frontPos).getBlock() instanceof WallMergeRodBlock) {
-            // flag 276: no neighbour updates, or checkIfExtend re-enters mid-extension and loops
-            level.setBlock(frontPos, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(), 276);
-        }
-    }
-
-    /** The nub belongs to the retracted piston: put it back once the head is home again. */
-    private void restoreRodNub(Level level, BlockPos pos) {
-        BlockState current = level.getBlockState(pos);
-        if (current.getBlock() instanceof WallMergePistonBlock && !current.getValue(EXTENDED)) {
-            this.updateRodNub(level, pos, current);
-        }
-    }
-
-    @Override
-    public void setPlacedBy(Level level, BlockPos pos, BlockState state, net.minecraft.world.entity.LivingEntity placer, net.minecraft.world.item.ItemStack stack) {
-        super.setPlacedBy(level, pos, state, placer, stack);
-        this.updateRodNub(level, pos, state);
-    }
-
-    //? if <1.21.2 {
-    @Override
-    public void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean movedByPiston) {
-        super.onPlace(state, level, pos, oldState, movedByPiston);
-        this.updateRodNub(level, pos, state);
-    }
-    //?} else {
-    @Override
-    protected void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean movedByPiston) {
-        super.onPlace(state, level, pos, oldState, movedByPiston);
-        this.updateRodNub(level, pos, state);
-    }
-    //?}
-
-    /**
-     * A retracted, unpowered wall-merge piston shows its rod nub; regenerate it when missing. A
-     * powered one leaves the cell empty instead, so the extend pre-resolve sees free space (the
-     * nub comes back on retract).
-     */
-    private void updateRodNub(Level level, BlockPos pos, BlockState state) {
-        if (level.isClientSide() || state.getValue(EXTENDED)) {
-            return;
-        }
-        Direction facing = state.getValue(FACING);
-        if (this.hasPowerSignal(level, pos, facing)) {
-            return;
-        }
-        BlockPos frontPos = pos.relative(facing);
-        if (level.getBlockState(frontPos).isAir()) {
-            // flag 2: client-only, so placing the nub never bounces back into checkIfExtend
-            level.setBlock(frontPos, ModBlocks.WALL_MERGE_ROD.defaultBlockState().setValue(WallMergeRodBlock.FACING, facing), 2);
-        }
     }
 }

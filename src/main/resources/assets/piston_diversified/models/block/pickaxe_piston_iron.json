@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/template_piston",
+  "textures": {
+    "bottom": "piston_diversified:block/pickaxe_piston_bottom",
+    "platform": "piston_diversified:block/pickaxe_piston_top_iron",
+    "side": "piston_diversified:block/pickaxe_piston_side"
+  }
+}

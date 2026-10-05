@@ -39,7 +39,7 @@ public class StrongPistonBlock extends ModPistonBaseBlock {
     }
 
     @Override
-    protected PdResolver createResolver(Level level, BlockPos pos, Direction direction, boolean extending) {
+    protected PdResolver createResolver(Level level, BlockPos pos, Direction direction, boolean extending, BlockState baseState) {
         return new ModPistonStructureResolver(level, pos, direction, extending, true, false, false, this.tier);
     }
 }
