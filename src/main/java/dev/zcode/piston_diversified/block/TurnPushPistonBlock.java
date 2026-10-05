@@ -12,6 +12,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.state.BlockState;
@@ -124,10 +125,19 @@ public class TurnPushPistonBlock extends ModPistonBaseBlock {
             return false; // nothing to push: vanilla empty push gives the bent head
         }
         if (level.isClientSide()) {
-            // The server has (or will) push the front structure sideways, not forward. Mirroring
-            // that here is what stops the client from animating a phantom forward push of the
-            // front cell; the real sideways move arrives as an ordinary block update.
-            PistonlessPush.clearStructure(level, frontPos, bend);
+            // Replay the sideways push locally. The piston fires a vanilla block event, so this
+            // runs before the server's block updates and is the only thing that builds the moving
+            // pistons with progress 0 — the difference between watching the front structure slide
+            // away sideways and seeing it snap into place. Re-resolving the bend push here is
+            // enough: the server's updates arrive right after and overwrite whatever we guessed.
+            boolean replayed = PistonlessPush.execute(
+                level, pos.relative(direction).relative(bend.getOpposite()), bend, true, false, false
+            ).success();
+            if (!replayed) {
+                // the client resolved something the server would not have pushed — emptying the
+                // front cell is still the right guess: the server never pushes it forward
+                level.setBlock(frontPos, Blocks.AIR.defaultBlockState(), 2);
+            }
             return false; // the front cell is clear — the vanilla move slides the (bent) head out
         }
         // root the sideways resolver so its start cell is the piston's front cell

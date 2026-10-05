@@ -26,37 +26,14 @@ import net.minecraft.world.level.gameevent.GameEvent;
  * place), then place a moving piston carrying each pushed block. The moving piston performs the
  * landing — state refresh, neighbour updates, entity pushing — exactly like a vanilla piston
  * push, only without a piston base or head.</p>
+ *
+ * <p>Runs on the client too. 拐推活塞 fires a vanilla block event, so the client replays the
+ * sideways push here and builds the moving pistons with progress 0 — without that the client only
+ * ever sees the finished cells and the push reads as a snap. Drops and explosions stay
+ * server-side.</p>
  */
 public final class PistonlessPush {
     private PistonlessPush() {
-    }
-
-    /**
- * Clears the cells a sideways (无活塞) push would carry away, without moving anything. Only the
- * client uses it: the server has already pushed the structure for real, and mirroring that here is
- * what stops the client from also animating a phantom push along the piston axis (拐推活塞).
- *
- * <p>Resolution is skipped deliberately — the client only needs the front cell emptied so the
- * vanilla move slides the head out, and the authoritative cells arrive as block updates right
- * after. Destroy-on-push cells are cleared as well, matching what the server pops.</p>
- */
-    public static void clearStructure(Level level, BlockPos startPos, Direction pushDirection) {
-        // The 7-arg constructor is rooted at a piston cell and starts one cell further along, so
-        // hand it the cell *behind* the start — otherwise the front block itself survives here and
-        // the client goes on to animate a forward push the server never performs.
-        ModPistonStructureResolver resolver = new ModPistonStructureResolver(
-            level, startPos.relative(pushDirection.getOpposite()), pushDirection, true, true, false, false
-        );
-        if (!resolver.resolve()) {
-            return;
-        }
-        BlockState air = Blocks.AIR.defaultBlockState();
-        for (BlockPos pos : resolver.getToPush()) {
-            level.setBlock(pos, air, 2);
-        }
-        for (BlockPos pos : resolver.getToDestroy()) {
-            level.setBlock(pos, air, 2);
-        }
     }
 
     /** Outcome of a push: whether it ran, plus the states it destroyed (for impact feedback). */
@@ -64,7 +41,7 @@ public final class PistonlessPush {
         static final Result FAILURE = new Result(false, List.of());
     }
 
-    public static Result execute(ServerLevel level, BlockPos fromPos, Direction pushDirection,
+    public static Result execute(Level level, BlockPos fromPos, Direction pushDirection,
                                  boolean allowStickiness, boolean destroyFragile, boolean destroyTnt) {
         ModPistonStructureResolver resolver = new ModPistonStructureResolver(
             level, fromPos, pushDirection, true, allowStickiness, destroyFragile, destroyTnt
@@ -91,8 +68,8 @@ public final class PistonlessPush {
             }
             level.setBlock(pos, Blocks.AIR.defaultBlockState(), 18);
             level.gameEvent(GameEvent.BLOCK_DESTROY, pos, GameEvent.Context.of(state));
-            if (tnt) {
-                PdHelpers.explodeTnt(level, pos);
+            if (tnt && level instanceof ServerLevel serverLevel) {
+                PdHelpers.explodeTnt(serverLevel, pos);
             }
         }
 

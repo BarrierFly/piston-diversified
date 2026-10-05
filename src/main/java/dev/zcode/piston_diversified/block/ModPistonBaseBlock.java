@@ -90,6 +90,12 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
      * pistons their progress-0 start and therefore their full slide. Without the replay the
      * client only learns about a finished piston from the block-entity packet and the pushed
      * blocks read as snapping into place.
+     *
+     * <p>Note that the replay only helps if it reaches the client <em>before</em> the server's
+     * block updates. {@code ServerLevel.tick} runs block events after {@code chunkSource.tick()},
+     * so anything this channel is used for must move the world <em>inside</em> the block event,
+     * never before it — see {@link ScheduledTickPistonBlock}, which therefore makes its
+     * scheduled tick only decide and lets the block event execute.</p>
      */
     public static final int MIRROR_EXTEND = 10;
     public static final int MIRROR_RETRACT = 11;
@@ -510,6 +516,12 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
      * Clears the head sitting in front of a retracting base, if there is one. Vanilla does this
      * with flag 276 (no neighbour updates) at the head of its retract move; a signal-emitting head
      * still needs its second-order update burst, hence the extra hook.
+     *
+     * <p>{@code SYNC_RETRACT}, not vanilla's 276: 276 carries no {@code UPDATE_CLIENTS}, so the
+     * client is never told about this clearing. The later {@code removeBlock(pos.relative(dir))}
+     * cannot make up for it either — by then the cell already holds air server-side, so its
+     * {@code setBlock} is a no-op and sends nothing. Every retract therefore left a stale head
+     * block on the client (假活塞头) that no later packet ever replaced.</p>
      */
     protected void clearHeadCell(Level level, BlockPos pos, Direction direction) {
         BlockPos frontPos = pos.relative(direction);
@@ -517,7 +529,7 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
         if (frontState.getBlock() instanceof PistonHeadBlock) {
             // instanceof, not a registry check: our modded heads must clear the way too,
             // otherwise the vanilla resolver treats them as obstacles and the pull fails.
-            level.setBlock(frontPos, Blocks.AIR.defaultBlockState(), 276);
+            level.setBlock(frontPos, Blocks.AIR.defaultBlockState(), SYNC_RETRACT);
             if (frontState.getBlock() instanceof ModPistonHeadBlock modHead) {
                 modHead.pdAfterHeadRemovedWithoutUpdate(level, frontPos, frontState);
             }

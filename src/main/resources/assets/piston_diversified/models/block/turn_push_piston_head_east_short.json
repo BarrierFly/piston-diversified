@@ -1,8 +1,9 @@
 {
   "parent": "block/block",
   "textures": {
-    "particle": "piston_diversified:block/turn_push_piston_side",
+    "particle": "#platform",
     "platform": "piston_diversified:block/turn_push_piston_top",
+    "unsticky": "piston_diversified:block/turn_push_piston_top",
     "side": "piston_diversified:block/turn_push_piston_side"
   },
   "elements": [
@@ -18,52 +19,6 @@
         16
       ],
       "faces": {
-        "down": {
-          "uv": [
-            0,
-            0,
-            16,
-            4
-          ],
-          "texture": "piston_diversified:block/turn_push_piston_side",
-          "rotation": 180
-        },
-        "up": {
-          "uv": [
-            0,
-            0,
-            16,
-            4
-          ],
-          "texture": "piston_diversified:block/turn_push_piston_side"
-        },
-        "north": {
-          "uv": [
-            0,
-            0,
-            4,
-            16
-          ],
-          "texture": "piston_diversified:block/turn_push_piston_side"
-        },
-        "south": {
-          "uv": [
-            12,
-            0,
-            16,
-            16
-          ],
-          "texture": "piston_diversified:block/turn_push_piston_side"
-        },
-        "west": {
-          "uv": [
-            0,
-            0,
-            16,
-            16
-          ],
-          "texture": "piston_diversified:block/turn_push_piston_side"
-        },
         "east": {
           "uv": [
             0,
@@ -73,6 +28,55 @@
           ],
           "texture": "#platform",
           "cullface": "east"
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "#unsticky"
+        },
+        "down": {
+          "texture": "piston_diversified:block/turn_push_piston_side",
+          "cullface": "down",
+          "uv": [
+            0,
+            0,
+            16,
+            4
+          ]
+        },
+        "up": {
+          "texture": "piston_diversified:block/turn_push_piston_side",
+          "cullface": "up",
+          "uv": [
+            0,
+            0,
+            16,
+            4
+          ]
+        },
+        "north": {
+          "texture": "piston_diversified:block/turn_push_piston_side",
+          "cullface": "north",
+          "uv": [
+            0,
+            0,
+            4,
+            16
+          ]
+        },
+        "south": {
+          "texture": "piston_diversified:block/turn_push_piston_side",
+          "cullface": "south",
+          "uv": [
+            12,
+            0,
+            16,
+            16
+          ]
         }
       }
     },
@@ -90,57 +94,48 @@
       "faces": {
         "down": {
           "uv": [
-            5,
             4,
-            11,
-            8
+            0,
+            16,
+            4
           ],
           "texture": "piston_diversified:block/turn_push_piston_side",
           "rotation": 90
         },
         "up": {
           "uv": [
-            5,
             4,
-            11,
-            8
+            0,
+            16,
+            4
           ],
           "texture": "piston_diversified:block/turn_push_piston_side",
           "rotation": 270
         },
-        "north": {
-          "uv": [
-            5,
-            4,
-            11,
-            8
-          ],
-          "texture": "piston_diversified:block/turn_push_piston_side"
-        },
-        "south": {
-          "uv": [
-            5,
-            4,
-            11,
-            8
-          ],
-          "texture": "piston_diversified:block/turn_push_piston_side"
-        },
         "west": {
           "uv": [
-            12,
+            16,
             4,
-            20,
-            12
+            4,
+            0
           ],
           "texture": "piston_diversified:block/turn_push_piston_side"
         },
         "east": {
           "uv": [
-            12,
             4,
-            20,
-            12
+            0,
+            16,
+            4
+          ],
+          "texture": "piston_diversified:block/turn_push_piston_side"
+        },
+        "north": {
+          "uv": [
+            0,
+            0,
+            4,
+            16
           ],
           "texture": "piston_diversified:block/turn_push_piston_side"
         }

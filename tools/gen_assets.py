@@ -937,101 +937,95 @@ def bent_base_model(vid, bend, sticky, extended):
     }
 
 
-def bent_head_model(vid, plate_dir, base_sticky, short, sticky_plate=False):
-    """拐推 head: the plate sits on the model-local bend face, the rod runs along FACING.
+def _opp(d):
+    return {"north": "south", "south": "north", "east": "west", "west": "east",
+            "up": "down", "down": "up"}[d]
 
-    plate_dir is one of the six model-local directions; only the ones reachable for a given
-    (facing, bend) pair are referenced by the blockstate.
+
+def bent_head_model(vid, plate_dir, base_sticky, short, sticky_plate=False):
+    """拐推 head: the plate sits on the model-local bend face, the rod runs along local +z.
+
+    Faces and UVs follow vanilla ``template_piston_head`` exactly, only re-aimed at the bent
+    silhouette:
+
+    * the plate's outer face (the one on the BEND, i.e. where the blocks were pushed to) is
+      ``#platform`` and culled, its inner face is ``#unsticky`` — the piston top. Handing the
+      inner face ``#side`` instead is what made the head plate read as a slab of casing;
+    * the four 4px rims take the 16x4 band along the plate axis plus the ``cullface`` vanilla
+      uses. They used to sample [0,12,16,16] (the bottom 4 rows of a 16px texture stretched
+      over a 4px rim) and carry no cullface, which is the smeared rim the head still shows;
+    * the rod uses vanilla's own face set (down/up rotated, west reversed, no caps). The old
+      spec sampled [4,4,20,12] — 4px past the 16px texture, so it wrapped to a zero-width strip
+      and rendered as garbage — and gave a rod that runs perpendicular to the plate caps it can
+      never show, while its open end had no cap at all.
     """
     side = f"{NS}:block/{vid}_side"
+    inner = _opp(plate_dir)
+    plate_vertical = plate_dir in ("up", "down")
 
-    def slab(lo, hi, faces, tex="#side"):
-        return {"from": lo, "to": hi, "faces": faces}
+    # ---- plate: 16x16 across the bend face, 4px thick
+    lo, hi = [0, 0, 0], [16, 16, 16]
+    axis = {"north": 2, "south": 2, "east": 0, "west": 0, "up": 1, "down": 1}[plate_dir]
+    if plate_dir in ("south", "east", "up"):
+        lo[axis], hi[axis] = 12, 16
+    else:
+        lo[axis], hi[axis] = 0, 4
 
-    plate = {
-        "north": slab([0, 0, 0], [16, 16, 4], {
-            "down": {"uv": [0, 12, 16, 16], "texture": side, "rotation": 180},
-            "up": {"uv": [0, 12, 16, 16], "texture": side},
-            "north": {"uv": [0, 0, 16, 16], "texture": "#platform", "cullface": "north"},
-            "south": {"uv": [0, 0, 16, 16], "texture": side},
-            "west": {"uv": [0, 12, 16, 16], "texture": side, "rotation": 270},
-            "east": {"uv": [0, 12, 16, 16], "texture": side, "rotation": 90},
-        }),
-        "south": slab([0, 0, 12], [16, 16, 16], {
-            "down": {"uv": [0, 0, 16, 4], "texture": side, "rotation": 180},
-            "up": {"uv": [0, 0, 16, 4], "texture": side},
-            "north": {"uv": [0, 0, 16, 16], "texture": side},
-            "south": {"uv": [0, 0, 16, 16], "texture": "#platform"},
-            "west": {"uv": [0, 0, 16, 4], "texture": side, "rotation": 270},
-            "east": {"uv": [0, 0, 16, 4], "texture": side, "rotation": 90},
-        }),
-        "east": slab([12, 0, 0], [16, 16, 16], {
-            "down": {"uv": [0, 0, 16, 4], "texture": side, "rotation": 180},
-            "up": {"uv": [0, 0, 16, 4], "texture": side},
-            "north": {"uv": [0, 0, 4, 16], "texture": side},
-            "south": {"uv": [12, 0, 16, 16], "texture": side},
-            "west": {"uv": [0, 0, 16, 16], "texture": side},
-            "east": {"uv": [0, 0, 16, 16], "texture": "#platform", "cullface": "east"},
-        }),
-        "west": slab([0, 0, 0], [4, 16, 16], {
-            "down": {"uv": [0, 0, 16, 4], "texture": side, "rotation": 180},
-            "up": {"uv": [0, 0, 16, 4], "texture": side},
-            "north": {"uv": [12, 0, 16, 16], "texture": side},
-            "south": {"uv": [0, 0, 4, 16], "texture": side},
-            "west": {"uv": [0, 0, 16, 16], "texture": "#platform", "cullface": "west"},
-            "east": {"uv": [0, 0, 16, 16], "texture": side},
-        }),
-        "down": slab([0, 0, 0], [16, 4, 16], {
-            "down": {"uv": [0, 0, 16, 16], "texture": "#platform", "cullface": "down"},
-            "up": {"uv": [0, 0, 16, 16], "texture": side},
-            "north": {"uv": [0, 12, 16, 16], "texture": side},
-            "south": {"uv": [0, 12, 16, 16], "texture": side},
-            "west": {"uv": [0, 12, 16, 16], "texture": side, "rotation": 270},
-            "east": {"uv": [0, 12, 16, 16], "texture": side, "rotation": 90},
-        }),
-        "up": slab([0, 12, 0], [16, 16, 16], {
-            "down": {"uv": [0, 0, 16, 16], "texture": side},
-            "up": {"uv": [0, 0, 16, 16], "texture": "#platform", "cullface": "up"},
-            "north": {"uv": [0, 0, 16, 4], "texture": side},
-            "south": {"uv": [0, 0, 16, 4], "texture": side},
-            "west": {"uv": [0, 0, 16, 4], "texture": side, "rotation": 270},
-            "east": {"uv": [0, 0, 16, 4], "texture": side, "rotation": 90},
-        }),
-    }[plate_dir]
-
-    # the rod runs along the push axis (local z) and pokes 4px into the base cell (z 16..20);
-    # for the north plate it starts behind the plate, otherwise it hides behind/next to it
-    rod_from = 12 if (short or plate_dir in ("south", "down", "up")) else 4
-    rod = {
-        "from": [6, 6, rod_from], "to": [10, 10, 20],
-        "faces": {
-            "down": {"uv": [5, 4, 11, 20 - rod_from], "texture": side, "rotation": 90},
-            "up": {"uv": [5, 4, 11, 20 - rod_from], "texture": side, "rotation": 270},
-            "north": {"uv": [5, 4, 11, 8], "texture": side},
-            "south": {"uv": [5, 4, 11, 20 - rod_from], "texture": side},
-            "west": {"uv": [rod_from, 4, 20, 12], "texture": side},
-            "east": {"uv": [rod_from, 4, 20, 12], "texture": side},
-        },
+    faces = {
+        plate_dir: {"uv": [0, 0, 16, 16], "texture": "#platform", "cullface": plate_dir},
+        inner: {"uv": [0, 0, 16, 16], "texture": "#unsticky"},
     }
-    # side plates leave the rod centred; east/west plates pull it against the plate so it connects
+    for rim in ("down", "up", "north", "south", "west", "east"):
+        if rim in (plate_dir, inner):
+            continue
+        face = {"texture": side, "cullface": rim}
+        # the 4px band runs along the plate axis; a rim whose short side is X or Z needs the
+        # tall UV, mirrored on the opposite rim so the casing grain is not reversed
+        if not plate_vertical and rim in ("north", "south"):
+            face["uv"] = [12, 0, 16, 16] if rim == "south" else [0, 0, 4, 16]
+        else:
+            face["uv"] = [0, 0, 16, 4]
+        if rim == "west":
+            face["rotation"] = 270
+        elif rim == "east":
+            face["rotation"] = 90
+        faces[rim] = face
+
+    # ---- rod: 4x4 section centred in x/y, running along +z into the base cell
+    # For a north plate it starts behind the plate; otherwise it starts at the plate's inner
+    # face and reaches back to the base, which is what keeps the two touching.
+    rod_from = 12 if (short or plate_dir != "north") else 4
+    rod = {"from": [6, 6, rod_from], "to": [10, 10, 20]}
     if plate_dir == "east":
         rod["from"][0], rod["to"][0] = 8, 12
     elif plate_dir == "west":
         rod["from"][0], rod["to"][0] = 4, 8
+    strip = [4, 0, 16, 4] if short else [0, 0, 16, 4]
+    rod["faces"] = {
+        "down": {"uv": list(strip), "texture": side, "rotation": 90},
+        "up": {"uv": list(strip), "texture": side, "rotation": 270},
+        # vanilla's reversed strip, so the casing grain does not mirror on the left face
+        "west": {"uv": [16, 4, 4 if short else 0, 0], "texture": side},
+        "east": {"uv": list(strip), "texture": side},
+    }
+    if plate_dir != "north":
+        # unlike a vanilla head the rod is not tucked behind the plate, so its near end is open
+        rod["faces"]["north"] = {"uv": [0, 0, 4, 16], "texture": side}
 
     return {
         "parent": "block/block",
         "textures": {
-            "particle": side,
+            "particle": "#platform",
             # The head's plate faces the BEND, so an arrow "pointing at the bend" would have to
             # point out of its own face — unreadable, and it is what made the head plate look
             # wrong. The head's bent silhouette carries that information instead, so the plate
             # gets the plain piston top.
             "platform": (f"{NS}:block/{vid}_top_sticky" if sticky_plate
                          else f"{NS}:block/{vid}_top"),
+            "unsticky": f"{NS}:block/{vid}_top",
             "side": side,
         },
-        "elements": [plate, rod],
+        "elements": [{"from": lo, "to": hi, "faces": faces}, rod],
     }
 
 

@@ -43,14 +43,17 @@ public class PotatoPistonBlock extends ModPistonBaseBlock {
     @Override
     protected boolean handleExtend(Level level, BlockPos pos, Direction direction, BlockState state) {
         if (level.isClientSide()) {
-            // Mirror the decision so the client slides the head out instead of animating a vanilla
-            // forward push the server never performs: clear the cells the server carries away and
-            // place the same source moving piston for the head.
+            // Replay the whole move locally. The piston fires a vanilla block event, so this runs
+            // before the server's block updates and is the only thing that builds the moving
+            // pistons with progress 0 — the difference between watching the structure slide and
+            // seeing it snap into place. Re-resolving the structure here is enough: the server's
+            // updates arrive right after and overwrite whatever this guessed.
             PotatoStructureResolver clientResolver =
                 new PotatoStructureResolver(level, pos, direction, PdGamerules.POTATO_PUSH_LIMIT_DEFAULT);
             BlockPos frontPos = pos.relative(direction);
-            if (clientResolver.resolve(frontPos)) {
-                PotatoPushLogic.clearStructure(level, frontPos, direction, clientResolver);
+            if (clientResolver.resolve(frontPos)
+                && PotatoPushLogic.executePush(
+                    level, clientResolver.getMembers(), clientResolver.getToDestroy(), direction, new long[0])) {
                 this.placeHead(level, pos, direction);
                 level.setBlock(pos, state.setValue(EXTENDED, true), 67);
             }

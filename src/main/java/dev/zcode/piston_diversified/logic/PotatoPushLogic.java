@@ -29,6 +29,12 @@ import net.minecraft.world.level.gameevent.GameEvent;
  * recursive piston-less push that keeps a flying structure airborne (悬浮飞行): the new front
  * structure is intersected with the recorded one, the front cell's destroy-on-push block is
  * cleared, and the result pushes on — the fresh leading cell's landing registers the next event.
+ *
+ * <p>Runs on the client too: the piston fires a vanilla block event, so the client replays the
+ * whole move here and builds the moving pistons with progress 0 — the only way it gets to watch
+ * the slide instead of the blocks snapping into their final cells. Everything the server alone
+ * owns (drops, game events, the flight record) is skipped there; the server's block updates
+ * arrive right after and replace whatever the client guessed.</p>
  */
 public final class PotatoPushLogic {
     private PotatoPushLogic() {
@@ -38,14 +44,14 @@ public final class PotatoPushLogic {
      * Moves {@code members} one cell along {@code pushDirection} and clears {@code toDestroy}.
      * The record travels on the leading cell (the one closest to the previous head) and marks it
      * primary, which is what schedules the next flight step when it lands.
- *
+     *
  * <p>Refuses the whole push ({@code false}, nothing touched) when any member's destination cell
      * still holds a block that is not itself moving. The structure is not a straight line, so a
-     * side member can be aimed at a cell the resolver never claimed — pushing anyway would
-     * overwrite that block with a moving piston and destroy it outright, with no drop. That is how
-     * unpushable blocks went missing mid-flight.</p>
+     *      side member can be aimed at a cell the resolver never claimed — pushing anyway would
+     *      overwrite that block with a moving piston and destroy it outright, with no drop. That is how
+     *      unpushable blocks went missing mid-flight.</p>
      */
-    public static boolean executePush(ServerLevel level, List<Member> members, List<BlockPos> toDestroy,
+    public static boolean executePush(Level level, List<Member> members, List<BlockPos> toDestroy,
                                       Direction pushDirection, long[] record) {
         if (!canMove(level, members, toDestroy, pushDirection)) {
             return false;
@@ -93,7 +99,9 @@ public final class PotatoPushLogic {
                 target, movingState, carried.get(i), pushDirection, true, false
             );
             level.setBlockEntity(be);
-            if (be instanceof PistonDuck duck) {
+            // the flight record is server state (it queues the next step on landing); the client
+            // replay gets its copy from the server's block-entity update packet
+            if (be instanceof PistonDuck duck && !level.isClientSide()) {
                 duck.pistonDiversified$setFlight(record, i == 0,
                     members.get(0).kind() == MemberKind.WATERLOGGED && !fluidOrigin.isEmpty());
             }
@@ -123,31 +131,12 @@ public final class PotatoPushLogic {
     }
 
     /**
-     * Clears the cells the server's push carries away, without moving anything. The client runs
-     * this so it mirrors the decision and slides the head out, instead of animating a vanilla
-     * forward push that the server never performs. The authoritative cells arrive as block updates
-     * right after, so nothing has to match the server exactly here — the front cell must simply
-     * come out empty so the head can slide into it.
-     */
-    public static void clearStructure(Level level, BlockPos startPos, Direction pushDirection,
-                                      PotatoStructureResolver resolver) {
-        BlockState air = Blocks.AIR.defaultBlockState();
-        for (PotatoStructureResolver.Member member : resolver.getMembers()) {
-            level.setBlock(member.pos(), air, 2);
-        }
-        for (BlockPos pos : resolver.getToDestroy()) {
-            level.setBlock(pos, air, 2);
-        }
-        level.setBlock(startPos, air, 2);
-    }
-
-    /**
      * Whether every member's destination is either free or occupied by another member that is
      * vacating it in the same step. Cells listed in {@code toDestroy} are cleared first, so they
      * count as free. A destination holding anything else means the structure as selected cannot
      * actually move one cell — refuse rather than overwrite.
      */
-    private static boolean canMove(ServerLevel level, List<Member> members, List<BlockPos> toDestroy,
+    private static boolean canMove(Level level, List<Member> members, List<BlockPos> toDestroy,
                                    Direction pushDirection) {
         Set<BlockPos> vacated = new HashSet<>();
         for (Member member : members) {
