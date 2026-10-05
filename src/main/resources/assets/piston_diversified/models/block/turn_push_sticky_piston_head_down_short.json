@@ -39,46 +39,46 @@
           "texture": "#unsticky"
         },
         "north": {
-          "texture": "piston_diversified:block/turn_push_sticky_piston_side",
-          "cullface": "north",
           "uv": [
             0,
             0,
             16,
             4
-          ]
+          ],
+          "texture": "piston_diversified:block/turn_push_sticky_piston_side",
+          "cullface": "north"
         },
         "south": {
+          "uv": [
+            0,
+            0,
+            16,
+            4
+          ],
           "texture": "piston_diversified:block/turn_push_sticky_piston_side",
           "cullface": "south",
-          "uv": [
-            0,
-            0,
-            16,
-            4
-          ]
+          "rotation": 180
         },
         "west": {
-          "texture": "piston_diversified:block/turn_push_sticky_piston_side",
-          "cullface": "west",
           "uv": [
             0,
             0,
             16,
             4
           ],
-          "rotation": 270
+          "texture": "piston_diversified:block/turn_push_sticky_piston_side",
+          "cullface": "west"
         },
         "east": {
-          "texture": "piston_diversified:block/turn_push_sticky_piston_side",
-          "cullface": "east",
           "uv": [
             0,
             0,
             16,
             4
           ],
-          "rotation": 90
+          "texture": "piston_diversified:block/turn_push_sticky_piston_side",
+          "cullface": "east",
+          "rotation": 180
         }
       }
     },
@@ -134,10 +134,10 @@
         },
         "north": {
           "uv": [
-            6,
-            6,
-            10,
-            10
+            4,
+            0,
+            8,
+            4
           ],
           "texture": "piston_diversified:block/turn_push_sticky_piston_side"
         }

@@ -516,6 +516,41 @@ def potato_blocked_no_loss(rcon):
 
 
 
+@register_v2("potato piston: a block resting on another survives the flight")
+def potato_carries_dependent_block(rcon):
+    """A torch riding a block through the flight.
+
+    The torch only survives while the block under it still offers a support, and a moving piston
+    only offers one because its block entity translates the carried state by the progress. This
+    fails outright if that entity is gone before the cell resolves its final state, which is how a
+    dependent block used to come off mid-flight."""
+    clear_rig(rcon)
+    rcon.cmd("setblock %s piston_diversified:potato_piston[facing=east,extended=false]" % _pos(BASE))
+    rcon.cmd("setblock %s minecraft:stone" % _pos(FRONT))
+    rcon.cmd("setblock %s minecraft:torch" % _pos((1, 101, 0)))
+    rcon.cmd("setblock %s redstone_block" % _pos(POWER))
+    # a chest ahead stops the flight after a few cells, so the structure comes to rest mid-air
+    rcon.cmd("setblock %s minecraft:chest" % _pos((5, 100, 0)))
+    rest = None
+    for _ in range(120):
+        for x in (3, 4):
+            if rcon.has_block((x, 100, 0), "minecraft:stone"):
+                rest = x
+                break
+        if rest is not None:
+            break
+        time.sleep(0.1)
+    results = [("structure flown on and stopped at the chest (rest at x=%s)" % rest,
+                rest is not None)]
+    if rest is not None:
+        results.append(("the torch rode along and is still standing on the stone",
+                        rcon.has_block((rest, 101, 0), "minecraft:torch")))
+    rcon.cmd("setblock %s air" % _pos(POWER))
+    time.sleep(0.5)
+    clear_rig(rcon)
+    return results
+
+
 # --------------------------------------------------------------------------- RCON
 
 

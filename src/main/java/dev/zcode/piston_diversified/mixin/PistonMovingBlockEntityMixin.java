@@ -174,29 +174,41 @@ public class PistonMovingBlockEntityMixin implements PistonDuck {
 
     @Unique
     private static void pistonDiversified$placeFinal(Level level, BlockPos pos, PistonMovingBlockEntity be) {
+        if (!level.getBlockState(pos).is(Blocks.MOVING_PISTON)) {
+            level.removeBlockEntity(pos);
+            be.setRemoved();
+            return;
+        }
+        BlockState moved = be.getMovedState();
+        if (moved.hasProperty(BlockStateProperties.WATERLOGGED) && moved.getValue(BlockStateProperties.WATERLOGGED)) {
+            moved = moved.setValue(BlockStateProperties.WATERLOGGED, false);
+        }
+        // Land by placing the carried state and letting the ordinary neighbour update decide
+        // whether it can stay — deliberately NOT the way vanilla's tick does it. Vanilla resolves
+        // the shape up front, but it does so from progressO >= 1.0, a tick after the block settled;
+        // the potato lands the moment progress reaches 1.0, while the cells around it are still in
+        // the same moving-piston tick and their entities are about to be torn down. Asking a torch
+        // "is your support still there?" at that moment reads the support's entity a moment too
+        // late, resolves the torch to air and loses it — a torch riding a block through the flight
+        // never arrived. Placing it instead runs the same shape update inside Level#setBlock, so an
+        // unsupported block still goes in the same tick; it just cannot be dropped by asking early.
         level.removeBlockEntity(pos);
         be.setRemoved();
-        if (level.getBlockState(pos).is(Blocks.MOVING_PISTON)) {
-            BlockState moved = be.getMovedState();
-            BlockState finalState = Block.updateFromNeighbourShapes(moved, level, pos);
-            if (finalState.isAir()) {
-                level.setBlock(pos, moved, 340);
-                Block.updateOrDestroy(moved, finalState, level, pos, 3);
-            } else {
-                if (finalState.hasProperty(BlockStateProperties.WATERLOGGED) && finalState.getValue(BlockStateProperties.WATERLOGGED)) {
-                    finalState = finalState.setValue(BlockStateProperties.WATERLOGGED, false);
-                }
-
-                level.setBlock(pos, finalState, 67);
-                //? if >=1.21.2 {
-                level.neighborChanged(
-                    pos, finalState.getBlock(), ExperimentalRedstoneUtils.initialOrientation(level, be.getPushDirection(), null)
-                );
-                //?} else {
-                level.neighborChanged(pos, finalState.getBlock(), pos);
-                //?}
-            }
+        level.setBlock(pos, moved, 67);
+        if (level.getBlockState(pos).isAir()) {
+            // the shape update rejected it after all — restore and destroy so it drops instead of
+            // being swallowed
+            level.setBlock(pos, moved, 340);
+            Block.updateOrDestroy(moved, Blocks.AIR.defaultBlockState(), level, pos, 3);
+            return;
         }
+        //? if >=1.21.2 {
+        level.neighborChanged(
+            pos, moved.getBlock(), ExperimentalRedstoneUtils.initialOrientation(level, be.getPushDirection(), null)
+        );
+        //?} else {
+        level.neighborChanged(pos, moved.getBlock(), pos);
+        //?}
     }
 
     //? if >=1.21.2 {

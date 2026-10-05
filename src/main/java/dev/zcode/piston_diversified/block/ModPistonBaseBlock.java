@@ -92,6 +92,22 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
     public static final int SYNC_RETRACT = 276 | Block.UPDATE_CLIENTS;
 
     /**
+     * Vacating a cell without letting anything react to it: the client still gets the block, but no
+     * neighbour update, no shape update and no {@code onPlace} run. Raw 786 = 2 (UPDATE_CLIENTS) |
+     * 16 (UPDATE_KNOWN_SHAPE) | 256 (SKIP_BLOCK_ENTITY_SIDEEFFECTS) | 512 (SKIP_ON_PLACE); the last
+     * one is unnamed in 1.19.4's mappings but has meant "skip onPlace" there too.
+     *
+     * <p>Vanilla empties the vacated cells with flag 82, which is safe there only because a piston
+     * structure is a straight line — no vacated cell is ever the support of another block that is
+     * still standing. The 马铃薯活塞's structure is a blob, so it can be: {@code BaseTorchBlock}
+     * (and every other "rests on the block below" block) drops to air from a shape update, and
+     * since the originals are all still in place while the cells are emptied, a torch riding a
+     * block was destroyed by the very first push. Callers that clear a whole structure at once
+     * must use this and run their own shape updates once every cell has been replaced.</p>
+     */
+    public static final int SILENT_CLEAR = 786;
+
+    /**
      * Block-event id for the client mirror of a move the server drove outside the block-event
      * channel (a scheduled tick, a tick chain). Vanilla never needs it because its pistons always
      * send a block event and the client replays the move locally — which is what gives the moving
@@ -452,6 +468,7 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
             .setValue(FACING, direction);
         BlockEntity retractBe = MovingPistonBlock.newMovingBlockEntity(pos, movingState, restoredBase, direction, false, true);
         this.markFast(retractBe);
+        markClientSync(retractBe);
         level.setBlockEntity(retractBe);
         level.updateNeighborsAt(pos, movingState.getBlock());
         movingState.updateNeighbourShapes(level, pos, 2);
@@ -508,6 +525,19 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
     private void markFast(BlockEntity be) {
         if (this.marksMovingPistonsFast() && be instanceof dev.zcode.piston_diversified.duck.PistonDuck duck) {
             duck.pistonDiversified$setFast(true);
+        }
+    }
+
+    /**
+     * Every moving piston this mod creates is flagged so the server sends its block entity to the
+     * client. Most moves reach the client through the block event, where the client builds the
+     * entity itself and the packet only re-syncs a progress it already has; the ones that cannot
+     * (递推/重力 的 tick 链, 墙并 的成组收回) have nothing else, and without this they are invisible
+     * blocks over there. See {@code BlockEntityMixin}.
+     */
+    public static void markClientSync(BlockEntity be) {
+        if (be instanceof dev.zcode.piston_diversified.duck.PistonDuck duck) {
+            duck.pistonDiversified$setNeedsClientSync(true);
         }
     }
 
@@ -604,6 +634,7 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
             level.setBlock(targetPos, movingState, SYNC_MOVING_PISTON);
             BlockEntity movingBe = MovingPistonBlock.newMovingBlockEntity(targetPos, movingState, oldStates.get(k), beDirection, extending, false);
             this.markFast(movingBe);
+            markClientSync(movingBe);
             level.setBlockEntity(movingBe);
             destroyedStates[i++] = pushedState;
         }
@@ -624,6 +655,7 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
             level.setBlock(frontPos, baseMovingState, SYNC_MOVING_PISTON);
             BlockEntity headBe = MovingPistonBlock.newMovingBlockEntity(frontPos, baseMovingState, headState, facing, true, true);
             this.markFast(headBe);
+            markClientSync(headBe);
             level.setBlockEntity(headBe);
         }
 

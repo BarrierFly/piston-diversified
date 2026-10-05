@@ -115,7 +115,14 @@ public final class PotatoPushLogic {
             if (kinds.get(sourcePos) == MemberKind.WATERLOGGED) {
                 continue; // 原位残留的水保留
             }
-            level.setBlock(sourcePos, air, 82);
+            // Silent on purpose. The structure is a blob, not vanilla's straight line, so a cell
+            // can be the support of another member — and the originals are all still standing
+            // while this loop runs. Clearing the support first (flag 82, as vanilla does) tells
+            // the block above that it lost its footing and it comes off before its own moving
+            // piston ever lands: a torch riding a block was destroyed by the very first push.
+            // The shape updates the next loop would fire are deferred until every cell has been
+            // replaced, at which point the members live in their moving pistons.
+            level.setBlock(sourcePos, air, ModPistonBaseBlock.SILENT_CLEAR);
         }
 
         for (BlockPos sourcePos : sourceCells) {

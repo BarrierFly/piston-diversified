@@ -942,30 +942,55 @@ def _opp(d):
             "up": "down", "down": "up"}[d]
 
 
-def bent_head_model(vid, plate_dir, base_sticky, short, sticky_plate=False):
-    """拐推 head: the plate sits on the model-local bend face, the rod runs along local +z.
+def _opp(d):
+    return {"north": "south", "south": "north", "east": "west", "west": "east",
+            "up": "down", "down": "up"}[d]
 
-    Faces and UVs follow vanilla ``template_piston_head`` exactly, only re-aimed at the bent
-    silhouette:
+
+# A rim is 16 long along one axis and 4 along the plate axis, and the wood band in the side
+# texture is 16 wide x 4 tall — so every rim face must sample the [0,0,16,4] strip, rotated
+# only when the rim's long direction is vertical. Getting this wrong is what smeared the
+# plate: a 4x16 UV on a 16x4 rim, and a 16x4 strip with no rotation on the east/west plate's
+# down/up rims (which are 4 wide x 16 tall), stretch the band instead of turning it.
+#
+# The rotation doubles as the mirroring, so opposite rims differ by 180 and neighbours by 90.
+# Vanilla's own assignment for the north/south plate is kept verbatim — down 180, up 0,
+# west 270, east 90 — so a straight 拐推 head matches a vanilla piston head pixel for pixel.
+_RIM_ROTATION = {
+    "north": {"down": 180, "up": 0, "west": 270, "east": 90},
+    "south": {"down": 180, "up": 0, "west": 270, "east": 90},
+    # plate thickness on X: every rim is 4 wide and 16 tall, so every band turns vertical
+    "east": {"down": 90, "up": 270, "north": 90, "south": 270},
+    "west": {"down": 90, "up": 270, "north": 90, "south": 270},
+    # plate thickness on Y: every rim is 16 wide and 4 tall, so no band turns
+    "up": {"north": 0, "south": 180, "west": 0, "east": 180},
+    "down": {"north": 0, "south": 180, "west": 0, "east": 180},
+}
+
+
+def bent_head_model(vid, plate_dir, base_sticky, short, sticky_plate=False):
+    """拐推 head: the plate sits on the model-local bend face, the arm runs along local +z.
+
+    Faces and UVs follow vanilla ``template_piston_head``, only re-aimed at the bent silhouette:
 
     * the plate's outer face (the one on the BEND, i.e. where the blocks were pushed to) is
       ``#platform`` and culled, its inner face is ``#unsticky`` — the piston top. Handing the
       inner face ``#side`` instead is what made the head plate read as a slab of casing;
-    * the four 4px rims take the 16x4 band along the plate axis plus the ``cullface`` vanilla
-      uses. They used to sample [0,12,16,16] (the bottom 4 rows of a 16px texture stretched
-      over a 4px rim) and carry no cullface, which is the smeared rim the head still shows;
+    * the four 4px rims are the 16x4 wood band, rotated per ``_RIM_ROTATION``, each with the
+      ``cullface`` vanilla uses. They used to sample [0,12,16,16] (the bottom 4 rows of a 16px
+      texture stretched over a 4px rim) with no cullface at all;
     * the arm is vanilla's own rod (4x4, from 4 to 20 / 16 along the push axis), nudged against
       the plate when the plate sits on a side of it. The old spec started it at 4 or 12 depending
       on the plate, which left the arm a stub that missed the plate for the south/up/down plates —
       a plate floating next to a bar — and shortened it for east/west;
-    * the arm's far end is past the block, inside the base cell, so it stays uncapped as in
-      vanilla; only the near end is capped, and only when a side plate no longer covers it. The
-      old spec capped both ends and sampled [5,4,11,16] / [4,4,20,12] — the latter 4px past the
-      16px texture, so it wrapped to a zero-width strip and rendered as garbage.
+    * the arm's faces are vanilla's four, and its far end is past the block, inside the base cell,
+      so it stays uncapped just as in vanilla. Only the near end is capped, and only when a plate
+      beside the arm no longer covers it. The old spec capped both ends and sampled
+      [5,4,11,16] / [4,4,20,12] — the latter 4px past the 16px texture, so it wrapped to a
+      zero-width strip and rendered as garbage.
     """
     side = f"{NS}:block/{vid}_side"
     inner = _opp(plate_dir)
-    plate_vertical = plate_dir in ("up", "down")
 
     # ---- plate: 16x16 across the bend face, 4px thick
     lo, hi = [0, 0, 0], [16, 16, 16]
@@ -982,21 +1007,14 @@ def bent_head_model(vid, plate_dir, base_sticky, short, sticky_plate=False):
     for rim in ("down", "up", "north", "south", "west", "east"):
         if rim in (plate_dir, inner):
             continue
-        face = {"texture": side, "cullface": rim}
-        # the 4px band runs along the plate axis; a rim whose short side is X or Z needs the
-        # tall UV, mirrored on the opposite rim so the casing grain is not reversed
-        if not plate_vertical and rim in ("north", "south"):
-            face["uv"] = [12, 0, 16, 16] if rim == "south" else [0, 0, 4, 16]
-        else:
-            face["uv"] = [0, 0, 16, 4]
-        if rim == "west":
-            face["rotation"] = 270
-        elif rim == "east":
-            face["rotation"] = 90
+        rot = _RIM_ROTATION[plate_dir][rim]
+        face = {"uv": [0, 0, 16, 4], "texture": side, "cullface": rim}
+        if rot:
+            face["rotation"] = rot
         faces[rim] = face
 
     # ---- arm: exactly vanilla's rod, boxZ(4, 4, to) — 4x4 section, running +z from 4 to
-    # 20 (long) / 16 (short). Length matches vanilla's 16 / 12, so its UV strips are exact and
+    # 20 (long) / 16 (short). That length matches vanilla's, so its UV strips are exact and
     # the shape matches PdShapes.arm / TurnPushPistonHeadBlock#getShape.
     # For a north plate the arm already starts behind the plate; for a south plate it runs
     # through it. For east/west (and up/down after a blockstate x-rotation) the arm is off to
@@ -1013,6 +1031,7 @@ def bent_head_model(vid, plate_dir, base_sticky, short, sticky_plate=False):
         rod["from"][1], rod["to"][1] = 4, 8
     strip = [4, 0, 16, 4] if short else [0, 0, 16, 4]
     rod["faces"] = {
+        # the arm is 4 across and 16 along, so the wood band turns on every face
         "down": {"uv": list(strip), "texture": side, "rotation": 90},
         "up": {"uv": list(strip), "texture": side, "rotation": 270},
         # vanilla's reversed strip, so the casing grain does not mirror on the left face
@@ -1022,9 +1041,8 @@ def bent_head_model(vid, plate_dir, base_sticky, short, sticky_plate=False):
     if plate_dir != "north":
         # Only a north plate sits in front of the arm's near end (z=4); every other plate is
         # beside it, so that end is open air inside the cell and would be a hole in the model.
-        # The far end is past z=16, inside the base cell, so it stays open exactly as vanilla
-        # leaves it.
-        rod["faces"]["north"] = {"uv": [6, 6, 10, 10], "texture": side}
+        # Cap it with a 4x4 piece of the same wood band, rotated the way its neighbours are.
+        rod["faces"]["north"] = {"uv": [4, 0, 8, 4], "texture": side}
 
     return {
         "parent": "block/block",
@@ -1561,8 +1579,16 @@ def gen_version_trees():
             "package": "dev.zcode.piston_diversified.mixin",
             "compatibilityLevel": "JAVA_17",
             "mixins": [
+                # BlockEntityMixin: sends the block entity of a moving piston the mod drove itself
+                #   (BlockEntity#getUpdatePacket returns null by default and vanilla never overrides
+                #   it, so without this every replayless push is invisible client-side)
+                "BlockEntityMixin",
                 "BootstrapMixin",
                 "FallingBlockEntityAccessor",
+                # MovingPistonBlockMixin: lets the client build that entity at all — vanilla's
+                #   newBlockEntity returns null, and handleBlockEntityData drops a packet for an
+                #   entity that does not exist yet
+                "MovingPistonBlockMixin",
                 "PistonMovingBlockEntityAccessor",
                 "PistonMovingBlockEntityMixin",
             ],

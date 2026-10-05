@@ -65,15 +65,15 @@ public class PotatoPistonBlock extends ModPistonBaseBlock {
             return true; // 推不动就不动
         }
         List<PotatoStructureResolver.Member> members = resolver.getMembers();
-        BlockPos frontPos = pos.relative(direction);
         long[] record = members.isEmpty() ? new long[0] : PotatoStructureResolver.record(members, members.get(0).pos());
-        // Move the structure FIRST, then empty the front cell for the head. Clearing it up front
-        // deleted a front destroy-on-push block (torch, grass, …) outright with no drop, which is
-        // why the potato piston looked like it swallowed POP blocks instead of popping them.
         if (!PotatoPushLogic.executePush(serverLevel, members, resolver.getToDestroy(), direction, record)) {
             return true; // 推不动就不动 — the structure could not move a full cell, nothing changed
         }
-        level.setBlock(frontPos, Blocks.AIR.defaultBlockState(), 82);
+        // executePush already vacated every member cell, the front one included, so there is nothing
+        // left to empty here. This line used to, and it cost a torch riding a block: the cell held
+        // air already, but Level#setBlock runs its shape updates even when the state is unchanged,
+        // so the block above was told it had lost its footing and dropped out silently. placeHead
+        // overwrites the cell either way, empty structure or not.
         this.placeHead(serverLevel, pos, direction);
         level.setBlock(pos, state.setValue(EXTENDED, true), 67);
         if (!this.isSilent()) {
@@ -110,9 +110,10 @@ public class PotatoPistonBlock extends ModPistonBaseBlock {
             .defaultBlockState()
             .setValue(net.minecraft.world.level.block.piston.MovingPistonBlock.FACING, direction);
         level.setBlock(frontPos, movingState, ModPistonBaseBlock.SYNC_MOVING_PISTON);
-        net.minecraft.world.level.block.entity.BlockEntity be =
+        net.minecraft.world.level.block.entity.        BlockEntity be =
             net.minecraft.world.level.block.piston.MovingPistonBlock.newMovingBlockEntity(
                 frontPos, movingState, headState, direction, true, true);
+        ModPistonBaseBlock.markClientSync(be);
         level.setBlockEntity(be);
     }
 }
