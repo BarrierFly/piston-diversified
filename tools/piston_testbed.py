@@ -347,32 +347,6 @@ def potato_rule2_shapes(rcon):
     return results
 
 
-@register_v2("turn push sticky: pulls the block back along the bend")
-def turn_push_sticky_pull(rcon):
-    clear_rig(rcon)
-    rcon.cmd("setblock %s piston_diversified:turn_push_sticky_piston[facing=east,extended=false,bend=north]" % _pos(BASE))
-    rcon.cmd("setblock %s minecraft:dirt" % _pos(FRONT))
-    rcon.cmd("setblock %s redstone_block" % _pos(POWER))
-    pushed = False
-    for _ in range(60):
-        if rcon.has_block((1, 100, -1), "minecraft:dirt"):
-            pushed = True
-            break
-        time.sleep(0.1)
-    results = [("block pushed sideways", pushed)]
-    rcon.cmd("setblock %s air" % _pos(POWER))
-    pulled = False
-    for _ in range(60):
-        # the pull moves the block one cell against the push axis (to the base's side cell)
-        if rcon.has_block((0, 100, -1), "minecraft:dirt"):
-            pulled = True
-            break
-        time.sleep(0.1)
-    results.append(("block pulled back on retract", pulled))
-    clear_rig(rcon)
-    return results
-
-
 @register_v2("gravity piston: telescopes down and the head falls sideways")
 def gravity_piston(rcon):
     clear_rig(rcon)
@@ -413,6 +387,128 @@ def turn_push_piston(rcon):
             break
         time.sleep(0.1)
     results = [("front block moved to the bend side", pushed_side)]
+    rcon.cmd("setblock %s air" % _pos(POWER))
+    time.sleep(0.5)
+    clear_rig(rcon)
+    return results
+
+
+@register_v2("pickaxe piston: netherite pick mines obsidian")
+def pickaxe_piston_obsidian(rcon):
+    # obsidian is in no MINEABLE_WITH_PICKAXE tag and fails the vanilla pre-resolve, so this
+    # covers both halves of the fix: the tool gate and the extend event that never got sent.
+    clear_rig(rcon)
+    rcon.cmd("setblock %s piston_diversified:pickaxe_piston[facing=east,extended=false]" % _pos(BASE))
+    rcon.cmd("setblock %s minecraft:obsidian" % _pos(FRONT))
+    rcon.cmd("setblock %s redstone_block" % _pos(POWER))
+    extended = False
+    for _ in range(40):
+        if rcon.has_block(FRONT, "piston_diversified:pickaxe_piston_head"):
+            extended = True
+            break
+        time.sleep(0.1)
+    results = [
+        ("obsidian mined by the default netherite pickaxe (head slid out)", extended),
+        ("obsidian no longer sits in front", not rcon.has_block(FRONT, "minecraft:obsidian")),
+    ]
+    rcon.cmd("setblock %s air" % _pos(POWER))
+    time.sleep(0.5)
+    clear_rig(rcon)
+    return results
+
+
+@register_v2("recursive sticky: pulls the block back")
+def recursive_sticky_pull(rcon):
+    clear_rig(rcon)
+    rcon.cmd("setblock %s piston_diversified:recursive_sticky_piston[facing=east,extended=false]" % _pos(BASE))
+    rcon.cmd("setblock %s minecraft:dirt" % _pos(FRONT))
+    rcon.cmd("setblock %s redstone_block" % _pos(POWER))
+    # The arm telescopes for as long as it stays powered, so the block ends up far out — poll for
+    # it to leave the head cell rather than pinning a distance the push budget decides.
+    pushed = False
+    for _ in range(120):
+        if any(rcon.has_block((x, 100, 0), "minecraft:dirt") for x in range(2, 26)):
+            pushed = True
+            break
+        time.sleep(0.1)
+    rcon.cmd("setblock %s air" % _pos(POWER))
+    pulled = False
+    for _ in range(150):
+        if rcon.has_block(FRONT, "minecraft:dirt"):
+            pulled = True
+            break
+        time.sleep(0.1)
+    results = [
+        ("structure pushed out with the telescoping arm", pushed),
+        ("sticky retract pulled the block back to the head cell", pulled),
+    ]
+    clear_rig(rcon)
+    return results
+
+
+@register_v2("wall merge sticky: pulls the block back")
+def wall_merge_sticky_pull(rcon):
+    clear_rig(rcon)
+    for z in (0, 1):
+        rcon.cmd("setblock 0 100 %d piston_diversified:wall_merge_sticky_piston[facing=east,extended=false]" % z)
+        rcon.cmd("setblock 0 101 %d redstone_block" % z)
+    rcon.cmd("setblock %s minecraft:dirt" % _pos(FRONT))
+    time.sleep(2.5)
+    rcon.cmd("setblock 0 101 0 air")
+    rcon.cmd("setblock 0 101 1 air")
+    pulled = False
+    for _ in range(80):
+        if rcon.has_block(FRONT, "minecraft:dirt"):
+            pulled = True
+            break
+        time.sleep(0.1)
+    results = [("group sticky retract pulled the block back", pulled)]
+    clear_rig(rcon)
+    return results
+
+
+@register_v2("turn push sticky: pulls back along the bend, not onto the base side")
+def turn_push_sticky_direction(rcon):
+    clear_rig(rcon)
+    rcon.cmd("setblock %s piston_diversified:turn_push_sticky_piston[facing=east,extended=false,bend=north]" % _pos(BASE))
+    rcon.cmd("setblock %s minecraft:dirt" % _pos(FRONT))
+    rcon.cmd("setblock %s redstone_block" % _pos(POWER))
+    pushed = False
+    for _ in range(60):
+        if rcon.has_block((1, 100, -1), "minecraft:dirt"):
+            pushed = True
+            break
+        time.sleep(0.1)
+    rcon.cmd("setblock %s air" % _pos(POWER))
+    at_head = False
+    for _ in range(60):
+        # the block glued to the bent plate belongs in the head cell, not beside the base
+        if rcon.has_block(FRONT, "minecraft:dirt"):
+            at_head = True
+            break
+        time.sleep(0.1)
+    results = [
+        ("front block pushed sideways onto the bend", pushed),
+        ("sticky retract pulled it back to the head cell", at_head),
+        ("it did not land on the base's side", not rcon.has_block((0, 100, -1), "minecraft:dirt")),
+    ]
+    clear_rig(rcon)
+    return results
+
+
+@register_v2("potato piston: a blocked structure never loses a block")
+def potato_blocked_no_loss(rcon):
+    clear_rig(rcon)
+    rcon.cmd("setblock %s piston_diversified:potato_piston[facing=east,extended=false]" % _pos(BASE))
+    rcon.cmd("setblock %s minecraft:obsidian" % _pos(FRONT))
+    rcon.cmd("setblock %s redstone_block" % _pos(POWER))
+    # a chest immediately ahead: the flight cannot continue, so the structure must stay put
+    rcon.cmd("setblock %s minecraft:chest" % _pos((2, 100, 0)))
+    time.sleep(3.0)
+    results = [
+        ("unpushable block survived a blocked push (no silent overwrite)",
+         rcon.has_block(FRONT, "minecraft:obsidian")),
+    ]
     rcon.cmd("setblock %s air" % _pos(POWER))
     time.sleep(0.5)
     clear_rig(rcon)

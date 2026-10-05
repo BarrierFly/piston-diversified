@@ -2,7 +2,7 @@
   "parent": "minecraft:block/piston_extended",
   "textures": {
     "bottom": "piston_diversified:block/turn_push_piston_bottom",
-    "inside": "piston_diversified:block/turn_push_piston_inner",
+    "inside": "piston_diversified:block/turn_push_piston_top_south",
     "platform": "piston_diversified:block/turn_push_piston_top",
     "side": "piston_diversified:block/turn_push_piston_side"
   }

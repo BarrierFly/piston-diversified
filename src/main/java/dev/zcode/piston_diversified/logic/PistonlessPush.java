@@ -9,6 +9,7 @@ import java.util.Map.Entry;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -27,6 +28,31 @@ import net.minecraft.world.level.gameevent.GameEvent;
  */
 public final class PistonlessPush {
     private PistonlessPush() {
+    }
+
+    /**
+ * Clears the cells a sideways (无活塞) push would carry away, without moving anything. Only the
+ * client uses it: the server has already pushed the structure for real, and mirroring that here is
+ * what stops the client from also animating a phantom push along the piston axis (拐推活塞).
+ *
+ * <p>Resolution is skipped deliberately — the client only needs the front cell emptied so the
+ * vanilla move slides the head out, and the authoritative cells arrive as block updates right
+ * after. Destroy-on-push cells are cleared as well, matching what the server pops.</p>
+ */
+    public static void clearStructure(Level level, BlockPos startPos, Direction pushDirection) {
+        ModPistonStructureResolver resolver = new ModPistonStructureResolver(
+            level, startPos, pushDirection, true, true, false, false
+        );
+        if (!resolver.resolve()) {
+            return;
+        }
+        BlockState air = Blocks.AIR.defaultBlockState();
+        for (BlockPos pos : resolver.getToPush()) {
+            level.setBlock(pos, air, 2);
+        }
+        for (BlockPos pos : resolver.getToDestroy()) {
+            level.setBlock(pos, air, 2);
+        }
     }
 
     /** Outcome of a push: whether it ran, plus the states it destroyed (for impact feedback). */

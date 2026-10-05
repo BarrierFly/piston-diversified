@@ -2,7 +2,7 @@
   "parent": "block/block",
   "textures": {
     "particle": "piston_diversified:block/turn_push_piston_side",
-    "platform": "piston_diversified:block/turn_push_piston_top",
+    "platform": "piston_diversified:block/turn_push_piston_top_west",
     "side": "piston_diversified:block/turn_push_piston_side"
   },
   "elements": [

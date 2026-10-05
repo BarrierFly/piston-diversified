@@ -62,6 +62,15 @@ import net.minecraft.world.level.redstone.Orientation;
  * </ul>
  */
 public abstract class ModPistonBaseBlock extends PistonBaseBlock {
+    /**
+     * Block-event ids beyond vanilla's 0/1/2: the server has already executed the move through
+     * a channel the client cannot mirror (a scheduled tick, a tick chain), so it re-broadcasts
+     * the decision as one of these ids purely to make the client build the moving pistons and
+     * animate. The server ignores them (the move already happened).
+     */
+    public static final int ANIMATE_EXTEND = 10;
+    public static final int ANIMATE_RETRACT = 11;
+
     protected final boolean sticky;
 
     protected ModPistonBaseBlock(boolean sticky, Properties properties) {
@@ -177,6 +186,28 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
     /** How a retract decision reaches execution (see {@link #sendExtendEvent}). */
     protected void sendRetractEvent(Level level, BlockPos pos, Direction direction, int type) {
         level.blockEvent(pos, this, type, direction.get3DDataValue());
+    }
+
+    /**
+     * Re-broadcast a move the server already performed, so the client mirrors it. A scheduled tick
+     * never reaches the client, which is why a piston driven by one used to snap its blocks into
+     * place instead of sliding them out. Send this BEFORE the server's own block writes: the client
+     * then builds the moving pistons first and the confirming updates land on top of them.
+     */
+    protected void sendAnimateEvent(Level level, BlockPos pos, Direction direction, boolean extending) {
+        if (!level.isClientSide()) {
+            level.blockEvent(pos, this, extending ? ANIMATE_EXTEND : ANIMATE_RETRACT, direction.get3DDataValue());
+        }
+    }
+
+    /** Client-side mirror of an extend the server already executed (see {@link #sendAnimateEvent}). */
+    protected void animateExtendOnClient(Level level, BlockPos pos, Direction direction, BlockState state) {
+        this.executeExtend(level, pos, direction, state);
+    }
+
+    /** Client-side mirror of a retract the server already executed (see {@link #sendAnimateEvent}). */
+    protected void animateRetractOnClient(Level level, BlockPos pos, Direction direction, BlockState state) {
+        this.executeRetract(level, pos, direction, state, 1);
     }
 
     protected void afterExtendExecuted(ServerLevel level, BlockPos pos, Direction direction) {
@@ -297,6 +328,18 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
     public boolean triggerEvent(BlockState state, Level level, BlockPos pos, int id, int param) {
         Direction direction = state.getValue(FACING);
         BlockState extendedState = state.setValue(EXTENDED, true);
+        if (id == ANIMATE_EXTEND || id == ANIMATE_RETRACT) {
+            // Server-driven move already done (tick chain / scheduled tick): only the client
+            // mirrors it, so the moving pistons exist on this side and the slide is visible.
+            if (level.isClientSide()) {
+                if (id == ANIMATE_EXTEND) {
+                    this.animateExtendOnClient(level, pos, direction, state);
+                } else {
+                    this.animateRetractOnClient(level, pos, direction, state);
+                }
+            }
+            return true;
+        }
         if (!level.isClientSide()) {
             boolean bl = this.hasPowerSignal(level, pos, direction);
             if (bl && (id == 1 || id == 2) && this.cancelRetractIfPowered()) {
@@ -356,6 +399,10 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
      * hand every member the group's verdict).
      */
     protected void executeRetract(Level level, BlockPos pos, Direction direction, BlockState state, int id, Boolean pullOverride) {
+        // A piston head is push-resistant, so any resolver that runs while it still sits in front
+        // of the base fails on it. Vanilla's retract therefore clears the head before resolving;
+        // variants that pre-check their pull (递推黏塞, 墙并黏塞) must clear it themselves too.
+        this.clearHeadCell(level, pos, direction);
         BlockState movingState = Blocks.MOVING_PISTON
             .defaultBlockState()
             .setValue(MovingPistonBlock.FACING, direction)
@@ -437,22 +484,28 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
         return this.moveBlocksResolved(level, pos, facing, extending, wrap(resolver), baseState);
     }
 
+    /**
+     * Clears the head sitting in front of a retracting base, if there is one. Vanilla does this
+     * with flag 276 (no neighbour updates) at the head of its retract move; a signal-emitting head
+     * still needs its second-order update burst, hence the extra hook.
+     */
+    protected void clearHeadCell(Level level, BlockPos pos, Direction direction) {
+        BlockPos frontPos = pos.relative(direction);
+        BlockState frontState = level.getBlockState(frontPos);
+        if (frontState.getBlock() instanceof PistonHeadBlock) {
+            // instanceof, not a registry check: our modded heads must clear the way too,
+            // otherwise the vanilla resolver treats them as obstacles and the pull fails.
+            level.setBlock(frontPos, Blocks.AIR.defaultBlockState(), 276);
+            if (frontState.getBlock() instanceof ModPistonHeadBlock modHead) {
+                modHead.pdAfterHeadRemovedWithoutUpdate(level, frontPos, frontState);
+            }
+        }
+    }
+
     /** The move body, parameterised over the resolver (vanilla copy of {@code moveBlocks}). */
     protected boolean moveBlocksResolved(Level level, BlockPos pos, Direction facing, boolean extending, PdResolver resolver, BlockState baseState) {
-        BlockPos frontPos = pos.relative(facing);
-        // instanceof, not a registry check: our modded heads must clear the way on retract too,
-        // otherwise the vanilla resolver treats them as obstacles and the pull silently fails.
         if (!extending) {
-            BlockState frontState = level.getBlockState(frontPos);
-            if (frontState.getBlock() instanceof PistonHeadBlock) {
-                // Vanilla clears the head with flag 276 (no neighbour updates). A signal-emitting
-                // head must still release its second-order update burst after it is gone, or
-                // redstone logic around the retracting piston stays stale.
-                level.setBlock(frontPos, Blocks.AIR.defaultBlockState(), 276);
-                if (frontState.getBlock() instanceof ModPistonHeadBlock modHead) {
-                    modHead.pdAfterHeadRemovedWithoutUpdate(level, frontPos, frontState);
-                }
-            }
+            this.clearHeadCell(level, pos, facing);
         }
 
         if (!resolver.resolve()) {
@@ -475,7 +528,9 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
 
         List<BlockPos> toDestroy = resolver.getToDestroy();
         BlockState[] destroyedStates = new BlockState[toPush.size() + toDestroy.size()];
-        Direction moveDirection = extending ? facing : facing.getOpposite();
+        // The retract direction comes from the resolver, not from the piston: 拐推's sticky pull
+        // runs along the bend (head+bend → head), which is perpendicular to the piston facing.
+        Direction moveDirection = extending ? facing : resolver.getPushDirection();
         int i = 0;
 
         for (int j = toDestroy.size() - 1; j >= 0; j--) {
@@ -506,6 +561,7 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
         }
 
         if (extending) {
+            BlockPos frontPos = pos.relative(facing);
             PistonType headType = this.sticky ? PistonType.STICKY : PistonType.DEFAULT;
             BlockState headState = this.customizeHeadState(
                 this.headBlock().defaultBlockState().setValue(PistonHeadBlock.FACING, facing).setValue(PistonHeadBlock.TYPE, headType),
@@ -557,7 +613,7 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
         }
 
         if (extending) {
-            this.updateNeighbors(level, frontPos, Blocks.PISTON_HEAD, facing);
+            this.updateNeighbors(level, pos.relative(facing), Blocks.PISTON_HEAD, facing);
         }
 
         return true;

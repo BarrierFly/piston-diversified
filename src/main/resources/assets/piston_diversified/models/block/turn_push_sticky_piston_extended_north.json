@@ -2,8 +2,8 @@
   "parent": "minecraft:block/piston_extended",
   "textures": {
     "bottom": "piston_diversified:block/turn_push_sticky_piston_bottom",
-    "inside": "piston_diversified:block/turn_push_sticky_piston_inner",
-    "platform": "piston_diversified:block/turn_push_sticky_piston_top_sticky",
+    "inside": "piston_diversified:block/turn_push_sticky_piston_top_sticky_north",
+    "platform": "piston_diversified:block/turn_push_sticky_piston_top",
     "side": "piston_diversified:block/turn_push_sticky_piston_side"
   }
 }

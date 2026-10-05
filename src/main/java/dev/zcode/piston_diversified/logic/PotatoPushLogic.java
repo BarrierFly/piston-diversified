@@ -12,6 +12,7 @@ import java.util.Set;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -36,9 +37,18 @@ public final class PotatoPushLogic {
      * Moves {@code members} one cell along {@code pushDirection} and clears {@code toDestroy}.
      * The record travels on the leading cell (the one closest to the previous head) and marks it
      * primary, which is what schedules the next flight step when it lands.
+ *
+ * <p>Refuses the whole push ({@code false}, nothing touched) when any member's destination cell
+     * still holds a block that is not itself moving. The structure is not a straight line, so a
+     * side member can be aimed at a cell the resolver never claimed — pushing anyway would
+     * overwrite that block with a moving piston and destroy it outright, with no drop. That is how
+     * unpushable blocks went missing mid-flight.</p>
      */
-    public static void executePush(ServerLevel level, List<Member> members, List<BlockPos> toDestroy,
-                                   Direction pushDirection, long[] record) {
+    public static boolean executePush(ServerLevel level, List<Member> members, List<BlockPos> toDestroy,
+                                      Direction pushDirection, long[] record) {
+        if (!canMove(level, members, toDestroy, pushDirection)) {
+            return false;
+        }
         for (int i = toDestroy.size() - 1; i >= 0; i--) {
             BlockPos destroyPos = toDestroy.get(i);
             BlockState destroyState = level.getBlockState(destroyPos);
@@ -48,7 +58,7 @@ public final class PotatoPushLogic {
             level.gameEvent(GameEvent.BLOCK_DESTROY, destroyPos, GameEvent.Context.of(destroyState));
         }
         if (members.isEmpty()) {
-            return;
+            return true;
         }
 
         BlockPos origin = members.get(0).pos();
@@ -108,6 +118,52 @@ public final class PotatoPushLogic {
             level.updateNeighborsAt(target, Blocks.MOVING_PISTON);
             level.updateNeighborsAt(member.pos(), Blocks.AIR);
         }
+        return true;
+    }
+
+    /**
+     * Clears the cells the server's push carries away, without moving anything. The client runs
+     * this so it mirrors the decision and slides the head out, instead of animating a vanilla
+     * forward push that the server never performs. The authoritative cells arrive as block updates
+     * right after, so nothing has to match the server exactly here — the front cell must simply
+     * come out empty so the head can slide into it.
+     */
+    public static void clearStructure(Level level, BlockPos startPos, Direction pushDirection,
+                                      PotatoStructureResolver resolver) {
+        BlockState air = Blocks.AIR.defaultBlockState();
+        for (PotatoStructureResolver.Member member : resolver.getMembers()) {
+            level.setBlock(member.pos(), air, 2);
+        }
+        for (BlockPos pos : resolver.getToDestroy()) {
+            level.setBlock(pos, air, 2);
+        }
+        level.setBlock(startPos, air, 2);
+    }
+
+    /**
+     * Whether every member's destination is either free or occupied by another member that is
+     * vacating it in the same step. Cells listed in {@code toDestroy} are cleared first, so they
+     * count as free. A destination holding anything else means the structure as selected cannot
+     * actually move one cell — refuse rather than overwrite.
+     */
+    private static boolean canMove(ServerLevel level, List<Member> members, List<BlockPos> toDestroy,
+                                   Direction pushDirection) {
+        Set<BlockPos> vacated = new HashSet<>();
+        for (Member member : members) {
+            vacated.add(member.pos());
+        }
+        vacated.addAll(toDestroy);
+        for (Member member : members) {
+            BlockPos target = member.pos().relative(pushDirection);
+            if (vacated.contains(target)) {
+                continue;
+            }
+            BlockState targetState = level.getBlockState(target);
+            if (!targetState.isAir() && !targetState.canBeReplaced() && targetState.getFluidState().isEmpty()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
@@ -168,7 +224,7 @@ public final class PotatoPushLogic {
 
         BlockPos newOrigin = intersection.get(0).pos();
         long[] newRecord = PotatoStructureResolver.record(intersection, newOrigin);
-        executePush(level, intersection, destroy, direction, newRecord);
-        return true;
+        // a refused push stops the flight with every cell still in place — never a lost block
+        return executePush(level, intersection, destroy, direction, newRecord);
     }
 }

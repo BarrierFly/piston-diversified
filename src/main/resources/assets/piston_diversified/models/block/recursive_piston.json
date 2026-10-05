@@ -190,8 +190,7 @@
             16,
             16
           ],
-          "texture": "#platform",
-          "cullface": "north"
+          "texture": "#platform"
         },
         "south": {
           "uv": [

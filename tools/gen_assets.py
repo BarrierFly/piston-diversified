@@ -706,21 +706,18 @@ def recoil_head_model(vid, short):
 
 # ---- v2 custom geometries -------------------------------------------------------
 
-# Which bend direction a placement-facing state resolves to by default (the blockstate carries
-# every one; this mapping only keeps the generator's base blockstate complete).
-BEND_FOR = {
-    "north": "east", "south": "west", "west": "south", "east": "north",
-    "up": "north", "down": "north",
-}
-
 
 def recursive_base_model(vid, extended):
     """递推 base: thin plate at the back plus a bare rod running to the front face.
 
     At rest the plate still occupies the front 4px of this cell (the head is in the cell next
     door); extended it is a 4px plate + rod only.
+
+    Cullfaces are only put on faces that actually border a neighbouring cell. The rod runs the
+    full 16px depth, so its north face is interior and must NOT be culled — giving it a cullface
+    made the rod's north face disappear whenever a block sat in front of the piston, which is
+    exactly the "one face of the back half not showing" report.
     """
-    plate_from, plate_to = (12, 16) if extended else (12, 16)
     elements = [
         {
             "from": [0, 0, 0], "to": [16, 16, 4],
@@ -751,7 +748,10 @@ def recursive_base_model(vid, extended):
             "faces": {
                 "down": {"uv": [0, 0, 16, 4], "texture": "#side", "rotation": 180},
                 "up": {"uv": [0, 0, 16, 4], "texture": "#side"},
-                "north": {"uv": [0, 0, 16, 16], "texture": "#platform", "cullface": "north"},
+                # No cullface: this face sits at z=12, the interior boundary shared with the rod,
+                # not the cell's outer edge. Culling it against the cell in front made the rear
+                # half of the piston lose a face as soon as anything stood in front of it.
+                "north": {"uv": [0, 0, 16, 16], "texture": "#platform"},
                 "south": {"uv": [0, 0, 16, 16], "texture": "#platform"},
                 "west": {"uv": [0, 0, 16, 4], "texture": "#side", "rotation": 270},
                 "east": {"uv": [0, 0, 16, 4], "texture": "#side", "rotation": 90},
@@ -880,40 +880,19 @@ def bare_rod_model():
     }
 
 
-def wall_post_model():
-    """墙并杆 block: an 8px wall-centre post spanning the cell."""
-    return {
-        "parent": "block/block",
-        "textures": {"particle": f"{NS}:block/wall_merge_piston_side", "side": f"{NS}:block/wall_merge_piston_side"},
-        "elements": [
-            {
-                "from": [4, 4, 0], "to": [12, 12, 16],
-                "faces": {
-                    "down": {"uv": [3, 0, 13, 16], "texture": "#side", "rotation": 90},
-                    "up": {"uv": [3, 0, 13, 16], "texture": "#side", "rotation": 270},
-                    "north": {"uv": [3, 0, 13, 8], "texture": "#side"},
-                    "south": {"uv": [3, 0, 13, 16], "texture": "#side"},
-                    "west": {"uv": [0, 3, 16, 13], "texture": "#side"},
-                    "east": {"uv": [0, 3, 16, 13], "texture": "#side"},
-                },
-            },
-        ],
-    }
-
-
-def _bend_rot(bend):
-    """Model rotation for a bend-facing base/head (the plate lives on the bend face)."""
-    return {"north": {}, "south": {"y": 180}, "west": {"y": 270}, "east": {"y": 90}}[bend]
-
-
 def bent_base_model(vid, bend, sticky, extended):
-    """拐推 base: vanilla base geometry, plate texture from the bend state."""
+    """拐推 base: vanilla base geometry, plate texture from the bend state.
+
+    The retracted plate carries the arrow pointing at the bend — it is the only place the bend
+    direction is readable, so it must use the per-bend arrow texture. An extended base has no
+    plate at all, so it keeps the plain top (the head beside it shows the arrow instead).
+    """
     return {
         "parent": "minecraft:block/piston_extended" if extended else "minecraft:block/template_piston",
         "textures": {
             "bottom": f"{NS}:block/{vid}_bottom",
             "inside": f"{NS}:block/{vid}_inner",
-            "platform": f"{NS}:block/{vid}_top_sticky" if sticky else f"{NS}:block/{vid}_top",
+            "platform": f"{NS}:block/{vid}_top",
             "side": f"{NS}:block/{vid}_side",
         },
     }
@@ -925,7 +904,6 @@ def bent_head_model(vid, plate_dir, base_sticky, short, sticky_plate=False):
     plate_dir is one of the six model-local directions; only the ones reachable for a given
     (facing, bend) pair are referenced by the blockstate.
     """
-    plate_texture = f"{NS}:block/{vid}_top_sticky" if sticky_plate else f"{NS}:block/{vid}_top"
     side = f"{NS}:block/{vid}_side"
 
     def slab(lo, hi, faces, tex="#side"):
@@ -1006,7 +984,9 @@ def bent_head_model(vid, plate_dir, base_sticky, short, sticky_plate=False):
         "parent": "block/block",
         "textures": {
             "particle": side,
-            "platform": plate_texture,
+            # the plate carries the bend arrow, so the extended arm still shows where it bends
+            "platform": f"{NS}:block/{vid}_top_sticky_{plate_dir}" if sticky_plate
+                        else f"{NS}:block/{vid}_top_{plate_dir}",
             "side": side,
         },
         "elements": [plate, rod],
@@ -1076,11 +1056,9 @@ def gen_shared_assets(textures):
                 for facing, rot in FACING_ROT.items():
                     for bend in ("north", "south", "west", "east"):
                         key = f"extended={str(extended).lower()},facing={facing},bend={bend}"
-                        if extended:
-                            variants[key] = {"model": f"{NS}:block/{vid}_extended", **rot}
-                        else:
-                            lb = local_bend(facing, bend)
-                            variants[key] = {"model": f"{NS}:block/{vid}_{lb}", **rot}
+                        lb = local_bend(facing, bend)
+                        # both states need the per-bend model: the arrow is the only bend cue
+                        variants[key] = {"model": f"{NS}:block/{vid}{'_extended' if extended else ''}_{lb}", **rot}
         elif head_kind == "pickaxe":
             # (extended, facing, tool) in one file — every tool value needs its own variant
             for extended in (False, True):
@@ -1118,10 +1096,20 @@ def gen_shared_assets(textures):
             write_json(os.path.join(model_dir, vid + ".json"), wall_merge_retracted_model(vid, sticky))
             write_json(os.path.join(model_dir, vid + "_extended.json"), base_model_extended(vid))
         elif head_kind == "bent":
-            # 拐推: retracted base per local bend (arrow plate); extended shares the plain model
+            # 拐推: retracted base per local bend (arrow plate). An extended base has no plate,
+            # so its arrow is drawn on the inner (top) face instead — the bend stays readable
+            # while the arm is out, which is when it is hardest to tell.
             for lb in ("north", "south", "west", "east", "up", "down"):
-                write_json(os.path.join(model_dir, f"{vid}_{lb}.json"), bent_base_model(vid, lb, sticky, False))
-            write_json(os.path.join(model_dir, vid + "_extended.json"), base_model_extended(vid))
+                model = bent_base_model(vid, lb, sticky, False)
+                # the arrow pointing at the bend is what makes the direction readable at all
+                model["textures"]["platform"] = (f"{NS}:block/{vid}_top_sticky_{lb}" if sticky
+                                                 else f"{NS}:block/{vid}_top_{lb}")
+                write_json(os.path.join(model_dir, f"{vid}_{lb}.json"), model)
+            for lb in ("north", "south", "west", "east", "up", "down"):
+                model = bent_base_model(vid, lb, sticky, True)
+                model["textures"]["inside"] = (f"{NS}:block/{vid}_top_sticky_{lb}" if sticky
+                                               else f"{NS}:block/{vid}_top_{lb}")
+                write_json(os.path.join(model_dir, f"{vid}_extended_{lb}.json"), model)
         elif head_kind == "pickaxe":
             # retracted base per tool (platform texture); extended has no plate
             for tool in PICKAXE_TINTS:
@@ -1278,8 +1266,10 @@ def gen_shared_assets(textures):
                 strong_head_variants[sticky_key] = dict(strong_head_variants[normal_key])
     write_json(os.path.join(bs_dir, "strong_piston_head.json"), {"variants": strong_head_variants})
 
-    # --- structural parts (递推杆 / 墙并杆) -------------------------------------
-    for part, rod_model in (("recursive_piston_rod", bare_rod_model), ("wall_merge_rod", wall_post_model)):
+    # --- structural parts (递推杆) ---------------------------------------------------
+    # Only the recursive rod is a real block; the wall-merge rod lives inside the base/head
+    # models, so there is no wall_merge_rod block to emit assets for.
+    for part, rod_model in (("recursive_piston_rod", bare_rod_model),):
         part_variants = {}
         for facing, rot in FACING_ROT.items():
             model = f"{NS}:block/{part}" if rod_model is bare_rod_model else f"{NS}:block/{part}"

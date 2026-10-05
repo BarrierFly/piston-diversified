@@ -100,6 +100,25 @@ public class PickaxePistonBlock extends ModPistonBaseBlock implements EntityBloc
         return headState.setValue(PickaxePistonHeadBlock.TOOL, baseState.getValue(TOOL));
     }
 
+    /**
+     * Obsidian (and every other block vanilla refuses to push) fails the extend pre-resolve, so
+     * the extend event would never be sent and the mining branch never even got to run. Answer the
+     * pre-check for exactly the fronts this piston can actually mine — anything else must stay a
+ * *failed* resolve, or the piston would extend with a move that cannot clear its own front cell.
+ */
+@Override
+    protected boolean extendEventWithoutResolve(Level level, BlockPos pos, Direction direction) {
+        BlockPos frontPos = pos.relative(direction);
+        BlockState frontState = level.getBlockState(frontPos);
+        if (frontState.isAir() || !frontState.getFluidState().isEmpty()) {
+            return true; // the vanilla resolve already handles these; nothing extra needed
+        }
+        ItemStack pickaxe = level.getBlockEntity(pos) instanceof PickaxePistonBlockEntity be
+            ? be.getPickaxe()
+            : ItemStack.EMPTY;
+        return !pickaxe.isEmpty() && this.canMine(frontState, pickaxe);
+    }
+
     // ------------------------------------------------------------- mining extension
 
     @Override
@@ -129,12 +148,20 @@ public class PickaxePistonBlock extends ModPistonBaseBlock implements EntityBloc
     }
 
     /**
-     * 合适挖掘工具: the block must be pickaxe-mineable at all AND the carried pickaxe's tier
-     * must be sufficient for drops (a wooden pick does not "suit" iron ore).
+     * 合适挖掘工具: the carried pickaxe must be able to harvest the block. Obsidian is deliberately
+     * NOT in {@code MINEABLE_WITH_PICKAXE} — vanilla gates it behind
+     * {@code requiresCorrectToolForDrops} + the pickaxe's harvest tier instead — so testing the tag
+     * alone made a netherite pickaxe refuse obsidian. A block qualifies when it is pickaxe-mineable
+     * by tag, or when it demands a correct tool and the carried pickaxe supplies one.
      */
     private boolean canMine(BlockState state, ItemStack pickaxe) {
-        return state.is(net.minecraft.tags.BlockTags.MINEABLE_WITH_PICKAXE)
-            && state.getPistonPushReaction() == PushReaction.NORMAL
-            && pickaxe.isCorrectToolForDrops(state);
+        if (state.getPistonPushReaction() != PushReaction.NORMAL) {
+            return false;
+        }
+        if (!state.is(net.minecraft.tags.BlockTags.MINEABLE_WITH_PICKAXE)
+            && !state.requiresCorrectToolForDrops()) {
+            return false;
+        }
+        return pickaxe.isCorrectToolForDrops(state);
     }
 }

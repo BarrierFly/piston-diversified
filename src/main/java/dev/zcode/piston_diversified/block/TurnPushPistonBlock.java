@@ -115,16 +115,24 @@ public class TurnPushPistonBlock extends ModPistonBaseBlock {
     @Override
     protected boolean handleExtend(Level level, BlockPos pos, Direction direction, BlockState state) {
         Direction bend = state.getValue(BEND);
-        if (bend.getAxis() == direction.getAxis() || !(level instanceof ServerLevel serverLevel)) {
+        if (bend.getAxis() == direction.getAxis()) {
             return false;
         }
-        BlockState frontState = level.getBlockState(pos.relative(direction));
+        BlockPos frontPos = pos.relative(direction);
+        BlockState frontState = level.getBlockState(frontPos);
         if (frontState.isAir()) {
             return false; // nothing to push: vanilla empty push gives the bent head
         }
+        if (level.isClientSide()) {
+            // The server has (or will) push the front structure sideways, not forward. Mirroring
+            // that here is what stops the client from animating a phantom forward push of the
+            // front cell; the real sideways move arrives as an ordinary block update.
+            PistonlessPush.clearStructure(level, frontPos, bend);
+            return false; // the front cell is clear — the vanilla move slides the (bent) head out
+        }
         // root the sideways resolver so its start cell is the piston's front cell
         boolean pushed = PistonlessPush.execute(
-            serverLevel, pos.relative(direction).relative(bend.getOpposite()), bend, true, false, false
+            (ServerLevel) level, pos.relative(direction).relative(bend.getOpposite()), bend, true, false, false
         ).success();
         if (!pushed) {
             return true; // blocked sideways: nothing happens at all
@@ -139,12 +147,11 @@ public class TurnPushPistonBlock extends ModPistonBaseBlock {
 
     // ------------------------------------------------------------- retract: bent pull
 
+    /** The head's plate — and the cell it glued itself to — is offset by the bend from the push axis. */
     @Override
     protected BlockPos retractPullSource(BlockPos pos, Direction direction, BlockState state) {
         // the sticky pull grabs the cell in front of the bent plate, not piston+2
-        Direction bend = state.getBlock() instanceof TurnPushPistonBlock && state.hasProperty(BEND)
-            ? state.getValue(BEND)
-            : this.defaultBend(direction);
+        Direction bend = this.bendOf(direction, state);
         return pos.relative(direction).relative(bend);
     }
 
@@ -155,15 +162,24 @@ public class TurnPushPistonBlock extends ModPistonBaseBlock {
         }
         // read the bend from the captured base state — the base cell is a moving piston during
         // the retract move, so the level no longer holds the piston state
-        Direction bend = baseState.getBlock() instanceof TurnPushPistonBlock && baseState.hasProperty(BEND)
-            ? baseState.getValue(BEND)
-            : this.defaultBend(direction);
+        Direction bend = this.bendOf(direction, baseState);
         if (bend.getAxis() == direction.getAxis()) {
             return null;
         }
+        // Pull along the bend, not along the piston axis: the block glued to the bent plate sits
+        // at head+bend and must travel back to the head cell (head+bend-bend). Using the opposite
+        // of `direction` here would drag it a cell sideways onto the base instead — 规划 §三.14
+        // "拐推黏塞向拐弯方向非共线拉回" reads as "pull it back along the bend".
         return new ModPistonStructureResolver(
-            level, pos.relative(direction).relative(bend), direction.getOpposite(), pos, true
+            level, pos.relative(direction).relative(bend), bend.getOpposite(), pos, true
         );
+    }
+
+    /** The bend from a state, or the placement default when the state cannot carry one. */
+    private Direction bendOf(Direction direction, BlockState state) {
+        return state.getBlock() instanceof TurnPushPistonBlock && state.hasProperty(BEND)
+            ? state.getValue(BEND)
+            : this.defaultBend(direction);
     }
 
     private Direction defaultBend(Direction direction) {

@@ -111,26 +111,25 @@ public class WallMergePistonBlock extends ModPistonBaseBlock {
 
     @Override
     protected void executeRetract(Level level, BlockPos pos, Direction direction, BlockState state, int id) {
-        if (!(level instanceof ServerLevel serverLevel)) {
-            super.executeRetract(level, pos, direction, state, id);
-            return;
-        }
         List<BlockPos> group = this.collectGroup(level, pos, direction);
         if (group.size() <= 1) {
             super.executeRetract(level, pos, direction, state, id);
             return;
         }
 
-        boolean pullAllowed = this.computeGroupPullAllowed(serverLevel, group, direction);
+        boolean pullAllowed = this.computeGroupPullAllowed(level, group, direction);
         for (BlockPos memberPos : group) {
             BlockState memberState = level.getBlockState(memberPos);
             if (!(memberState.getBlock() instanceof WallMergePistonBlock member)
                 || !memberState.getValue(EXTENDED)) {
                 continue;
             }
-            // every member retracts right now; its own queued retract event self-cancels later
-            // because the block at its position has already changed by then
-            member.executeRetract(serverLevel, memberPos, direction, memberState, id, pullAllowed);
+            // Everyone retracts right now, on the server AND on the client: the client used to
+            // bail out to a single-piston retract, which left every other group member's head
+            // standing there forever (残留活塞头). It reaches the same verdict below, so both
+            // sides agree. Its own queued retract event self-cancels later — the cell is a moving
+            // piston by then.
+            member.executeRetract(level, memberPos, direction, memberState, id, pullAllowed);
         }
     }
 
@@ -138,8 +137,12 @@ public class WallMergePistonBlock extends ModPistonBaseBlock {
      * Every sticky member's pull must resolve individually and the summed structure sizes must
      * fit the summed limits (12 per sticky member); any failure means nobody pulls. Non-sticky
      * groups never pull.
+     *
+     * <p>Runs on both sides: the client has to reach the same verdict or it would animate a pull
+     * the server refused (or the other way round). Heads are cleared first because a piston head
+     * is push-resistant and would fail every member's resolve.</p>
      */
-    private boolean computeGroupPullAllowed(ServerLevel level, List<BlockPos> group, Direction facing) {
+    private boolean computeGroupPullAllowed(Level level, List<BlockPos> group, Direction facing) {
         if (!this.sticky) {
             return false;
         }
@@ -151,6 +154,7 @@ public class WallMergePistonBlock extends ModPistonBaseBlock {
                 continue;
             }
             stickyMembers++;
+            this.clearHeadCell(level, memberPos, facing);
             PistonStructureResolver resolver = new PistonStructureResolver(level, memberPos, facing, false);
             if (!resolver.resolve()) {
                 return false; // a member alone cannot pull its structure: nobody pulls

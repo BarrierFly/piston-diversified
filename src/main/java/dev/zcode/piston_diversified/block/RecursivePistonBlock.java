@@ -12,6 +12,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.piston.PistonHeadBlock;
+import net.minecraft.world.level.block.piston.PistonMovingBlockEntity;
 import net.minecraft.world.level.block.piston.MovingPistonBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.BlockBehaviour.Properties;
@@ -74,6 +75,12 @@ public class RecursivePistonBlock extends ModPistonBaseBlock {
         if (this.hasPowerSignal(level, pos, direction)) {
             this.tryRecursiveExtend(level, pos, direction);
         } else {
+            // Broadcast before stepping: the client mirrors the very step the server is about to
+            // take, so its moving pistons exist before the server's updates confirm them.
+            int rods = this.countRods(level, pos, direction);
+            if (rods > 0 && !this.isRetractInFlight(level, pos, direction, rods)) {
+                this.sendAnimateEvent(level, pos, direction, false);
+            }
             this.continueRetract(level, pos, direction);
         }
     }
@@ -94,6 +101,7 @@ public class RecursivePistonBlock extends ModPistonBaseBlock {
             if (rods + 1 + resolver.totalWeight() > PUSH_LIMIT) {
                 return; // telescoped out fully
             }
+            this.sendAnimateEvent(level, pos, direction, true);
             if (this.moveBlocksResolved(level, headPos, direction, true, resolver, level.getBlockState(pos))) {
                 BlockState rodState = ModBlocks.RECURSIVE_PISTON_ROD.defaultBlockState()
                     .setValue(RecursivePistonRodBlock.FACING, direction);
@@ -126,7 +134,22 @@ public class RecursivePistonBlock extends ModPistonBaseBlock {
             }
             return;
         }
+        if (this.sticky && this.pullStillInFlight(level, pos, direction)) {
+            // The chain is done but the block the last step pulled is still travelling. Retracting
+            // now would classify as 瞬推 and silently drop the pull, leaving the block one cell
+            // short of the head — wait for it to land and let the tick chain re-run the retract.
+            this.scheduleNext(level, pos, 1);
+            return;
+        }
         super.executeRetract(level, pos, direction, state, id);
+    }
+
+    /** Whether the cell the sticky retract pulls from still carries an outbound moving piston. */
+    private boolean pullStillInFlight(Level level, BlockPos pos, Direction direction) {
+        BlockPos pullPos = this.retractPullSource(pos, direction, level.getBlockState(pos));
+        return level.getBlockState(pullPos).is(Blocks.MOVING_PISTON)
+            && level.getBlockEntity(pullPos) instanceof PistonMovingBlockEntity be
+            && be.isExtending();
     }
 
     /** Called from the tick while unpowered: keep consuming rods until the base is reached. */
@@ -141,6 +164,13 @@ public class RecursivePistonBlock extends ModPistonBaseBlock {
             }
             this.retractOneStep(level, pos, direction, level.getBlockState(pos), rods);
         } else {
+            // Wait for the last step's pull to land before handing over to the vanilla retract.
+            // A retract that starts while a pulled block is still flying reads as 瞬推 (type 2),
+            // which drops the pull — so the chain would always end with the block one cell short.
+            if (level.getBlockState(pos.relative(direction, 2)).is(Blocks.MOVING_PISTON)) {
+                this.scheduleNext(level, pos, 1);
+                return;
+            }
             // no rods left: the plain vanilla retract onto the base (sticky pulls apply)
             level.blockEvent(pos, this, 1, direction.get3DDataValue());
         }
@@ -156,31 +186,30 @@ public class RecursivePistonBlock extends ModPistonBaseBlock {
         BlockState headState = level.getBlockState(headPos);
         boolean headIsBlock = headState.getBlock() == this.headBlock();
 
-        if (headIsBlock && this.sticky) {
+        if (!headIsBlock) {
+            // head was broken mid-chain: just consume the last rod, no animation possible
+            level.removeBlock(rodPos, false);
+            this.scheduleNext(level, pos, 3);
+            return;
+        }
+
+        // The head must leave before the pull can resolve. A piston head is push-resistant, so a
+        // resolver that walks into it fails outright — resolving first made the sticky pull a
+        // silent no-op and the arm retracted empty. Flag 276 (no updates): the head's removal
+        // hook would otherwise destroy the extended base behind the first rod.
+        level.setBlock(headPos, Blocks.AIR.defaultBlockState(), 276);
+
+        if (this.sticky && level instanceof ServerLevel serverLevel) {
             int budget = PUSH_LIMIT - rods;
             // resolver rooted one cell in front of the head, pulling backwards
             ModPistonStructureResolver resolver = new ModPistonStructureResolver(
                 level, headPos.relative(direction), direction.getOpposite(), headPos, true
             );
-            if (resolver.resolve() && resolver.getToPush().size() <= budget) {
+            if (resolver.resolve() && resolver.totalWeight() <= budget) {
                 PistonlessPush.execute(
-                    (net.minecraft.server.level.ServerLevel) level,
-                    headPos.relative(direction, 2), direction.getOpposite(), true, false, false
+                    serverLevel, headPos.relative(direction, 2), direction.getOpposite(), true, false, false
                 );
             }
-        }
-
-        if (headIsBlock && !level.getBlockState(headPos).is(Blocks.MOVING_PISTON)) {
-            // no pull took the head cell — clear it (no updates: the head's removal hook would
-            // otherwise destroy the extended base behind the first rod)
-            level.setBlock(headPos, Blocks.AIR.defaultBlockState(), 276);
-        } else if (!headIsBlock) {
-            // head was broken mid-chain: just consume the last rod, no animation possible
-            level.removeBlock(rodPos, false);
-            if (level instanceof ServerLevel serverLevel) {
-                serverLevel.scheduleTick(pos, this, 3);
-            }
-            return;
         }
 
         // The head slides back onto the rod. A non-source moving piston still renders the head
@@ -196,8 +225,46 @@ public class RecursivePistonBlock extends ModPistonBaseBlock {
         level.setBlockEntity(retractBe);
         level.updateNeighborsAt(rodPos, movingState.getBlock());
 
+        this.scheduleNext(level, pos, 3);
+    }
+
+    /**
+     * The chain runs on scheduled ticks, which never reach the client — without this the arm would
+     * snap back cell by cell instead of sliding. The client mirrors each step of the same chain.
+     */
+    @Override
+    protected void animateRetractOnClient(Level level, BlockPos pos, Direction direction, BlockState state) {
+        int rods = this.countRods(level, pos, direction);
+        if (rods > 0 && !this.isRetractInFlight(level, pos, direction, rods)) {
+            this.retractOneStep(level, pos, direction, state, rods);
+        }
+    }
+
+    /** Same for the extend chain: each telescoping step is a scheduled tick, mirrored here. */
+    @Override
+    protected void animateExtendOnClient(Level level, BlockPos pos, Direction direction, BlockState state) {
+        int rods = this.countRods(level, pos, direction);
+        BlockPos headPos = pos.relative(direction, rods + 1);
+        if (level.getBlockState(headPos).getBlock() != this.headBlock()) {
+            return;
+        }
+        ModPistonStructureResolver resolver = new ModPistonStructureResolver(
+            level, headPos.relative(direction), direction, headPos, true
+        );
+        if (!resolver.resolve() || rods + 1 + resolver.totalWeight() > PUSH_LIMIT) {
+            return;
+        }
+        this.moveBlocksResolved(level, headPos, direction, true, resolver, level.getBlockState(pos));
+        BlockState rodState = ModBlocks.RECURSIVE_PISTON_ROD.defaultBlockState()
+            .setValue(RecursivePistonRodBlock.FACING, direction);
+        level.setBlock(headPos, rodState, 276);
+        level.updateNeighborsAt(headPos, rodState.getBlock());
+    }
+
+    /** Schedules the next chain step; a no-op on the client, which never drives the chain. */
+    private void scheduleNext(Level level, BlockPos pos, int delay) {
         if (level instanceof ServerLevel serverLevel) {
-            serverLevel.scheduleTick(pos, this, 3);
+            serverLevel.scheduleTick(pos, this, delay);
         }
     }
 

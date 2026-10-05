@@ -43,7 +43,18 @@ public class PotatoPistonBlock extends ModPistonBaseBlock {
     @Override
     protected boolean handleExtend(Level level, BlockPos pos, Direction direction, BlockState state) {
         if (level.isClientSide()) {
-            return false;
+            // Mirror the decision so the client slides the head out instead of animating a vanilla
+            // forward push the server never performs: clear the cells the server carries away and
+            // place the same source moving piston for the head.
+            PotatoStructureResolver clientResolver =
+                new PotatoStructureResolver(level, pos, direction, PdGamerules.POTATO_PUSH_LIMIT_DEFAULT);
+            BlockPos frontPos = pos.relative(direction);
+            if (clientResolver.resolve(frontPos)) {
+                PotatoPushLogic.clearStructure(level, frontPos, direction, clientResolver);
+                this.placeHead(level, pos, direction);
+                level.setBlock(pos, state.setValue(EXTENDED, true), 67);
+            }
+            return true;
         }
         ServerLevel serverLevel = (ServerLevel) level;
         PotatoStructureResolver resolver = this.selectStructure(serverLevel, pos, direction);
@@ -56,7 +67,9 @@ public class PotatoPistonBlock extends ModPistonBaseBlock {
         // clear the head cell (the head slides out into it), then move the structure as our own
         // moving pistons with the record riding on the leading cell
         level.setBlock(frontPos, Blocks.AIR.defaultBlockState(), 82);
-        PotatoPushLogic.executePush(serverLevel, members, resolver.getToDestroy(), direction, record);
+        if (!PotatoPushLogic.executePush(serverLevel, members, resolver.getToDestroy(), direction, record)) {
+            return true; // 推不动就不动 — the structure could not move a full cell
+        }
         this.placeHead(serverLevel, pos, direction);
         level.setBlock(pos, state.setValue(EXTENDED, true), 67);
         if (!this.isSilent()) {
@@ -82,7 +95,7 @@ public class PotatoPistonBlock extends ModPistonBaseBlock {
     }
 
     /** Sliding the (bent-free) head out as a source moving piston, like the vanilla move does. */
-    private void placeHead(ServerLevel level, BlockPos pos, Direction direction) {
+    private void placeHead(Level level, BlockPos pos, Direction direction) {
         BlockPos frontPos = pos.relative(direction);
         BlockState headState = ModBlocks.POTATO_PISTON_HEAD
             .defaultBlockState()

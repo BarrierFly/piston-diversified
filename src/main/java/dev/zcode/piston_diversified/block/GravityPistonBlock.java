@@ -75,19 +75,40 @@ public class GravityPistonBlock extends ModPistonBaseBlock {
             level.scheduleTick(pos, this, 1);
             return;
         }
+        // broadcast before stepping: the client mirrors the step the server is about to take
+        this.sendAnimateEvent(level, pos, Direction.DOWN, false);
         this.retractOneStep(level, pos, rods);
+    }
+
+    /** The client-side mirror of one downward telescoping step. */
+    @Override
+    protected void animateExtendOnClient(Level level, BlockPos pos, Direction direction, BlockState state) {
+        if (direction == Direction.DOWN) {
+            this.tryDownwardExtend(level, pos);
+        }
+    }
+
+    @Override
+    protected void animateRetractOnClient(Level level, BlockPos pos, Direction direction, BlockState state) {
+        if (direction != Direction.DOWN) {
+            return;
+        }
+        int rods = RecursivePistonBlock.countRods(level, pos, Direction.DOWN);
+        if (rods > 0 && !this.isRetractInFlight(level, pos, rods)) {
+            this.retractOneStep(level, pos, rods);
+        }
     }
 
     /**
      * One downward step: air or destroyable in front of the head → the head telescopes one more
      * cell (a rod is left behind, like the 递推活塞); any real block in front stops the chain.
      */
-    private void tryDownwardExtend(ServerLevel level, BlockPos pos) {
+    private void tryDownwardExtend(Level level, BlockPos pos) {
         int rods = RecursivePistonBlock.countRods(level, pos, Direction.DOWN);
         BlockPos headPos = pos.relative(Direction.DOWN, rods + 1);
         BlockState headState = level.getBlockState(headPos);
         if (headState.is(Blocks.MOVING_PISTON)) {
-            level.scheduleTick(pos, this, 1); // head still flying
+            this.scheduleNext(level, pos, 1); // head still flying
             return;
         }
         if (headState.getBlock() != this.headBlock()) {
@@ -107,13 +128,21 @@ public class GravityPistonBlock extends ModPistonBaseBlock {
         if (rods + 1 + resolver.totalWeight() > PUSH_LIMIT) {
             return; // telescoped out fully
         }
+        this.sendAnimateEvent(level, pos, Direction.DOWN, true);
         if (this.moveBlocksResolved(level, headPos, Direction.DOWN, true, resolver, level.getBlockState(pos))) {
             BlockState rodState = ModBlocks.RECURSIVE_PISTON_ROD.defaultBlockState()
                 .setValue(RecursivePistonRodBlock.FACING, Direction.DOWN);
             // flag 276: replacing the head must not run its removal hooks against the base
             level.setBlock(headPos, rodState, 276);
             level.updateNeighborsAt(headPos, rodState.getBlock());
-            level.scheduleTick(pos, this, 2);
+            this.scheduleNext(level, pos, 2);
+        }
+    }
+
+    /** Schedules the next chain step; a no-op on the client, which never drives the chain. */
+    private void scheduleNext(Level level, BlockPos pos, int delay) {
+        if (level instanceof ServerLevel serverLevel) {
+            serverLevel.scheduleTick(pos, this, delay);
         }
     }
 
@@ -135,11 +164,11 @@ public class GravityPistonBlock extends ModPistonBaseBlock {
 
     @Override
     protected void executeRetract(Level level, BlockPos pos, Direction direction, BlockState state, int id) {
-        if (direction == Direction.DOWN && level instanceof ServerLevel serverLevel) {
+        if (direction == Direction.DOWN) {
             int rods = RecursivePistonBlock.countRods(level, pos, Direction.DOWN);
             if (rods > 0) {
                 if (!this.isRetractInFlight(level, pos, rods)) {
-                    this.retractOneStep(serverLevel, pos, rods);
+                    this.retractOneStep(level, pos, rods);
                 }
                 // otherwise a step is animating; its scheduled tick continues the chain
                 return;
@@ -154,7 +183,7 @@ public class GravityPistonBlock extends ModPistonBaseBlock {
     }
 
     /** Non-sticky mirror of the 递推 retract: the head slides onto the last rod, rod consumed. */
-    private void retractOneStep(net.minecraft.server.level.ServerLevel level, BlockPos pos, int rods) {
+    private void retractOneStep(Level level, BlockPos pos, int rods) {
         Direction direction = Direction.DOWN;
         BlockPos headPos = pos.relative(direction, rods + 1);
         BlockPos rodPos = headPos.above();
@@ -162,7 +191,7 @@ public class GravityPistonBlock extends ModPistonBaseBlock {
         if (headState.getBlock() != this.headBlock()) {
             // head gone: consume the last rod without animation
             level.removeBlock(rodPos, false);
-            level.scheduleTick(pos, this, 3);
+            this.scheduleNext(level, pos, 3);
             return;
         }
 
@@ -177,6 +206,6 @@ public class GravityPistonBlock extends ModPistonBaseBlock {
             MovingPistonBlock.newMovingBlockEntity(rodPos, movingState, headState, direction, false, false);
         level.setBlockEntity(retractBe);
         level.updateNeighborsAt(rodPos, movingState.getBlock());
-        level.scheduleTick(pos, this, 3);
+        this.scheduleNext(level, pos, 3);
     }
 }
