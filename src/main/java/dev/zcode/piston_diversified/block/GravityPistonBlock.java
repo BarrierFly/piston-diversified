@@ -75,6 +75,7 @@ public class GravityPistonBlock extends ModPistonBaseBlock {
             level.scheduleTick(pos, this, 1);
             return;
         }
+        this.sendMirrorEvent(level, pos, Direction.DOWN, false);
         this.retractOneStep(level, pos, rods);
     }
 
@@ -107,6 +108,7 @@ public class GravityPistonBlock extends ModPistonBaseBlock {
         if (rods + 1 + resolver.totalWeight() > PUSH_LIMIT) {
             return; // telescoped out fully
         }
+        this.sendMirrorEvent(level, pos, Direction.DOWN, true);
         if (this.moveBlocksResolved(level, headPos, Direction.DOWN, true, resolver, level.getBlockState(pos))) {
             BlockState rodState = ModBlocks.RECURSIVE_PISTON_ROD.defaultBlockState()
                 .setValue(RecursivePistonRodBlock.FACING, Direction.DOWN);
@@ -121,6 +123,25 @@ public class GravityPistonBlock extends ModPistonBaseBlock {
     private void scheduleNext(Level level, BlockPos pos, int delay) {
         if (level instanceof ServerLevel serverLevel) {
             serverLevel.scheduleTick(pos, this, delay);
+        }
+    }
+
+    /** The client replays the same downward telescoping step. */
+    @Override
+    protected void mirrorExtendOnClient(Level level, BlockPos pos, Direction direction, BlockState state) {
+        if (direction == Direction.DOWN) {
+            this.tryDownwardExtend(level, pos);
+        }
+    }
+
+    @Override
+    protected void mirrorRetractOnClient(Level level, BlockPos pos, Direction direction, BlockState state) {
+        if (direction != Direction.DOWN) {
+            return;
+        }
+        int rods = RecursivePistonBlock.countRods(level, pos, Direction.DOWN);
+        if (rods > 0 && !this.isRetractInFlight(level, pos, rods)) {
+            this.retractOneStep(level, pos, rods);
         }
     }
 

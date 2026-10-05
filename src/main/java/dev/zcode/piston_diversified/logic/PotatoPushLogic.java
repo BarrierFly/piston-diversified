@@ -215,9 +215,20 @@ public final class PotatoPushLogic {
         BlockPos frontPos = frontMost.relative(direction);
         BlockState frontState = level.getBlockState(frontPos);
         if (!frontState.isAir() && !frontState.canBeReplaced() && !recorded.contains(frontPos)) {
-            // 前端可能有推动行为非可破坏的方块挡住 → 无法推出，一切结束
+            // A destroy-on-push block directly in front joins the structure and flies with it —
+            // the same rule the seed push uses. Anything else blocking the front ends the flight.
             if (!frontState.hasBlockEntity() && frontState.getPistonPushReaction() == PushReaction.DESTROY) {
-                destroy.add(frontPos);
+                boolean joined = false;
+                for (Member member : resolver.getMembers()) {
+                    if (member.pos().equals(frontPos)) {
+                        intersection.add(member);
+                        joined = true;
+                        break;
+                    }
+                }
+                if (!joined) {
+                    return false; // the resolver did not actually claim the front block
+                }
             } else {
                 return false;
             }

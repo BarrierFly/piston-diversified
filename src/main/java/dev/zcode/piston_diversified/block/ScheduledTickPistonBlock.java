@@ -44,10 +44,13 @@ public class ScheduledTickPistonBlock extends ModPistonBaseBlock {
         if (bl && !state.getValue(EXTENDED)) {
             // mirror the vanilla extend event's pre-resolve, re-read at execution time
             if (this.resolveExtend(level, pos, direction) || this.extendEventWithoutResolve(level, pos, direction)) {
+                // the decision channel is a tick, so the client gets its own replay event
+                this.sendMirrorEvent(level, pos, direction, true);
                 this.executeExtend(level, pos, direction, state);
             }
         } else if (!bl && state.getValue(EXTENDED)) {
             int type = this.retractType(level, pos, direction, state);
+            this.sendMirrorEvent(level, pos, direction, false);
             this.executeRetract(level, pos, direction, state, type);
         }
         // bl && EXTENDED: a stale retract tick simply re-arms, like cancelRetractIfPowered
@@ -55,6 +58,10 @@ public class ScheduledTickPistonBlock extends ModPistonBaseBlock {
 
     @Override
     public boolean triggerEvent(BlockState state, Level level, BlockPos pos, int id, int param) {
-        return true; // no decision events are used by this variant
+        // no decision events are used by this variant, but the client mirror must still land
+        if (id == MIRROR_EXTEND || id == MIRROR_RETRACT) {
+            return super.triggerEvent(state, level, pos, id, param);
+        }
+        return true;
     }
 }

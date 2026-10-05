@@ -83,6 +83,17 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
     /** Same for the retract animation and for rods/heads placed by a tick chain. */
     public static final int SYNC_RETRACT = 276 | Block.UPDATE_CLIENTS;
 
+    /**
+     * Block-event id for the client mirror of a move the server drove outside the block-event
+     * channel (a scheduled tick, a tick chain). Vanilla never needs it because its pistons always
+     * send a block event and the client replays the move locally — which is what gives the moving
+     * pistons their progress-0 start and therefore their full slide. Without the replay the
+     * client only learns about a finished piston from the block-entity packet and the pushed
+     * blocks read as snapping into place.
+     */
+    public static final int MIRROR_EXTEND = 10;
+    public static final int MIRROR_RETRACT = 11;
+
     protected final boolean sticky;
 
     protected ModPistonBaseBlock(boolean sticky, Properties properties) {
@@ -198,6 +209,27 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
     /** How a retract decision reaches execution (see {@link #sendExtendEvent}). */
     protected void sendRetractEvent(Level level, BlockPos pos, Direction direction, int type) {
         level.blockEvent(pos, this, type, direction.get3DDataValue());
+    }
+
+    /**
+     * Ask the client to replay a move the server just made outside the block-event channel.
+     * Send it BEFORE the server's own block writes so the client builds its moving pistons
+     * first; the server's updates then confirm them, exactly as a vanilla piston does.
+     */
+    protected void sendMirrorEvent(Level level, BlockPos pos, Direction direction, boolean extending) {
+        if (!level.isClientSide()) {
+            level.blockEvent(pos, this, extending ? MIRROR_EXTEND : MIRROR_RETRACT, direction.get3DDataValue());
+        }
+    }
+
+    /** Client replay of a server-driven extend. Overridden by variants with a custom move. */
+    protected void mirrorExtendOnClient(Level level, BlockPos pos, Direction direction, BlockState state) {
+        this.executeExtend(level, pos, direction, state);
+    }
+
+    /** Client replay of a server-driven retract. Overridden by variants with a custom move. */
+    protected void mirrorRetractOnClient(Level level, BlockPos pos, Direction direction, BlockState state) {
+        this.executeRetract(level, pos, direction, state, 1);
     }
 
     protected void afterExtendExecuted(ServerLevel level, BlockPos pos, Direction direction) {
@@ -318,6 +350,18 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
     public boolean triggerEvent(BlockState state, Level level, BlockPos pos, int id, int param) {
         Direction direction = state.getValue(FACING);
         BlockState extendedState = state.setValue(EXTENDED, true);
+        if (id == MIRROR_EXTEND || id == MIRROR_RETRACT) {
+            // Only the client acts on this: the server has already made the move and must not
+            // repeat it. Replaying it here is what gives the client progress-0 moving pistons.
+            if (level.isClientSide()) {
+                if (id == MIRROR_EXTEND) {
+                    this.mirrorExtendOnClient(level, pos, direction, state);
+                } else {
+                    this.mirrorRetractOnClient(level, pos, direction, state);
+                }
+            }
+            return true;
+        }
         if (!level.isClientSide()) {
             boolean bl = this.hasPowerSignal(level, pos, direction);
             if (bl && (id == 1 || id == 2) && this.cancelRetractIfPowered()) {
@@ -530,9 +574,15 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
             BlockState pushedState = level.getBlockState(pushedPos);
             BlockPos targetPos = pushedPos.relative(moveDirection);
             map.remove(targetPos);
-            BlockState movingState = Blocks.MOVING_PISTON.defaultBlockState().setValue(MovingPistonBlock.FACING, facing);
+            // The moving piston carries the axis it actually travels along, which for a retract is
+            // the resolver's push direction — 拐推's sticky pull runs along the bend, not the
+            // piston axis. The block used to land in the right cell but animate as if sliding in
+            // along the piston face. For every other piston moveDirection.getOpposite() == facing,
+            // so this is vanilla's behaviour unchanged.
+            Direction beDirection = extending ? facing : moveDirection.getOpposite();
+            BlockState movingState = Blocks.MOVING_PISTON.defaultBlockState().setValue(MovingPistonBlock.FACING, beDirection);
             level.setBlock(targetPos, movingState, SYNC_MOVING_PISTON);
-            BlockEntity movingBe = MovingPistonBlock.newMovingBlockEntity(targetPos, movingState, oldStates.get(k), facing, extending, false);
+            BlockEntity movingBe = MovingPistonBlock.newMovingBlockEntity(targetPos, movingState, oldStates.get(k), beDirection, extending, false);
             this.markFast(movingBe);
             level.setBlockEntity(movingBe);
             destroyedStates[i++] = pushedState;

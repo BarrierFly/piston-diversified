@@ -692,22 +692,30 @@ def clear_rig(rcon):
     rcon.cmd("fill %s %s air" % (_pos(CLEAR_FROM), _pos(CLEAR_TO)))
 
 
-@register_v2("potato piston: pops destroy-on-push blocks with their drop")
-def potato_pops_destroy_blocks(rcon):
-    # A front torch is destroy-on-push: it must pop and drop an item, not vanish. The front cell
-    # used to be cleared before the push ran, which deleted it outright with no drop at all.
+@register_v2("potato piston: carries destroy-on-push blocks with the structure")
+def potato_carries_destroy_blocks(rcon):
+    # A torch is destroy-on-push. It used to be popped out of the structure, and before that
+    # deleted outright with no drop. It now travels with the rest — the block it stands on joins
+    # the structure by rule 2, so the torch keeps its support the whole way.
     clear_rig(rcon)
     rcon.cmd("setblock %s piston_diversified:potato_piston[facing=east,extended=false]" % _pos(BASE))
     rcon.cmd("setblock %s minecraft:torch" % _pos(FRONT))
+    rcon.cmd("setblock 1 99 0 minecraft:dirt")
     rcon.cmd("setblock %s redstone_block" % _pos(POWER))
-    time.sleep(2.0)
-    gone = not rcon.has_block(FRONT, "minecraft:torch")
-    # the item entity is what proves it dropped rather than being deleted
-    dropped = "Test passed" in rcon.cmd(
-        "execute if entity @e[type=minecraft:item,distance=..10]")
+    # a chest stops the flight so the block comes to rest somewhere findable
+    rcon.cmd("setblock %s minecraft:chest" % _pos((6, 100, 0)))
+    carried = False
+    for _ in range(120):
+        for x in (2, 3, 4, 5):
+            if rcon.has_block((x, 100, 0), "minecraft:torch"):
+                carried = True
+                break
+        if carried:
+            break
+        time.sleep(0.1)
     results = [
-        ("front destroy-on-push block popped (not carried)", gone),
-        ("the popped block dropped an item", dropped),
+        ("destroy-on-push block travelled with the structure (not popped)", carried),
+        ("it was not left behind or destroyed", carried),
     ]
     rcon.cmd("setblock %s air" % _pos(POWER))
     time.sleep(0.5)

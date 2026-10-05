@@ -95,6 +95,7 @@ public class RecursivePistonBlock extends ModPistonBaseBlock {
             if (rods + 1 + resolver.totalWeight() > PUSH_LIMIT) {
                 return; // telescoped out fully
             }
+            this.sendMirrorEvent(level, pos, direction, true);
             if (this.moveBlocksResolved(level, headPos, direction, true, resolver, level.getBlockState(pos))) {
                 BlockState rodState = ModBlocks.RECURSIVE_PISTON_ROD.defaultBlockState()
                     .setValue(RecursivePistonRodBlock.FACING, direction);
@@ -155,6 +156,7 @@ public class RecursivePistonBlock extends ModPistonBaseBlock {
                 }
                 return;
             }
+            this.sendMirrorEvent(level, pos, direction, false);
             this.retractOneStep(level, pos, direction, level.getBlockState(pos), rods);
         } else {
             // Wait for the last step's pull to land before handing over to the vanilla retract.
@@ -219,6 +221,34 @@ public class RecursivePistonBlock extends ModPistonBaseBlock {
         level.updateNeighborsAt(rodPos, movingState.getBlock());
 
         this.scheduleNext(level, pos, 3);
+    }
+
+    /** The client replays the same chain step so its moving pistons start at progress 0. */
+    @Override
+    protected void mirrorExtendOnClient(Level level, BlockPos pos, Direction direction, BlockState state) {
+        int rods = this.countRods(level, pos, direction);
+        BlockPos headPos = pos.relative(direction, rods + 1);
+        if (level.getBlockState(headPos).getBlock() != this.headBlock()) {
+            return;
+        }
+        ModPistonStructureResolver resolver = new ModPistonStructureResolver(
+            level, headPos.relative(direction), direction, headPos, true);
+        if (!resolver.resolve() || rods + 1 + resolver.totalWeight() > PUSH_LIMIT) {
+            return;
+        }
+        this.moveBlocksResolved(level, headPos, direction, true, resolver, level.getBlockState(pos));
+        BlockState rodState = ModBlocks.RECURSIVE_PISTON_ROD.defaultBlockState()
+            .setValue(RecursivePistonRodBlock.FACING, direction);
+        level.setBlock(headPos, rodState, ModPistonBaseBlock.SYNC_RETRACT);
+        level.updateNeighborsAt(headPos, rodState.getBlock());
+    }
+
+    @Override
+    protected void mirrorRetractOnClient(Level level, BlockPos pos, Direction direction, BlockState state) {
+        int rods = this.countRods(level, pos, direction);
+        if (rods > 0 && !this.isRetractInFlight(level, pos, direction, rods)) {
+            this.retractOneStep(level, pos, direction, state, rods);
+        }
     }
 
     /** Schedules the next chain step; a no-op on the client, which never drives the chain. */

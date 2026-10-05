@@ -102,15 +102,14 @@ public final class PotatoStructureResolver {
             MemberKind kind;
             if (this.canReplace(state)) {
                 kind = MemberKind.FLUID; // fluid cell pulled in by rule 3
-            } else if (state.getPistonPushReaction() == PushReaction.DESTROY) {
-                this.toDestroy.add(pos);
-                continue; // popped in place, never carried
             } else if (state.hasProperty(BlockStateProperties.WATERLOGGED)
                 && state.getValue(BlockStateProperties.WATERLOGGED)) {
                 kind = MemberKind.WATERLOGGED; // travels waterless, leaves water behind
             } else {
                 // rule 1 carries unpushable blocks too (obsidian, bedrock, ...) — an
-                // irreplaceable block in front of a pushed block simply joins the structure
+                // irreplaceable block in front of a pushed block simply joins the structure.
+                // Destroy-on-push blocks join the same way: the structure is carried whole, so a
+                // torch in front travels with the rest instead of being popped out of it.
                 kind = MemberKind.NORMAL;
             }
 

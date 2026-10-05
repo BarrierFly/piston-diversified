@@ -176,8 +176,13 @@ def _draw_bend_arrow(img, bend):
 
     The icon is authored pointing north and rotated from there, so every direction is the same
     shape — the earlier branch drew east/west sideways marks for the up/down faces.
+
+    The extra half turn is not cosmetic: the plate's face UVs mirror the texture horizontally
+    when it is drawn, so an arrow aimed at the bend came out pointing the opposite way. The base
+    plate faces the push axis, so the arrow can only ever read left/right — it is the side the
+    structure bends towards.
     """
-    turns = {"north": 0, "east": 1, "south": 2, "west": 3, "up": 3, "down": 1}[bend]
+    turns = {"north": 2, "east": 3, "south": 0, "west": 1, "up": 1, "down": 3}[bend]
     arrow = _rotate(ARROW_ICON, turns)
     h = len(arrow)
     w = len(arrow[0])
@@ -1018,10 +1023,12 @@ def bent_head_model(vid, plate_dir, base_sticky, short, sticky_plate=False):
         "parent": "block/block",
         "textures": {
             "particle": side,
-            # Arrow plate, so the bend stays readable on the extended arm. Only the sticky variant
-            # ships a `_top_sticky_<lb>` set, so the middle segment is the discriminator.
-            "platform": (f"{NS}:block/{vid}_top_sticky_{plate_dir}" if sticky_plate
-                         else f"{NS}:block/{vid}_top_{plate_dir}"),
+            # The head's plate faces the BEND, so an arrow "pointing at the bend" would have to
+            # point out of its own face — unreadable, and it is what made the head plate look
+            # wrong. The head's bent silhouette carries that information instead, so the plate
+            # gets the plain piston top.
+            "platform": (f"{NS}:block/{vid}_top_sticky" if sticky_plate
+                         else f"{NS}:block/{vid}_top"),
             "side": side,
         },
         "elements": [plate, rod],
