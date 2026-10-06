@@ -951,15 +951,22 @@ def _opp(d):
 # The rotation doubles as the mirroring, so opposite rims differ by 180 and neighbours by 90.
 # Vanilla's own assignment for the north/south plate is kept verbatim — down 180, up 0,
 # west 270, east 90 — so a straight 拐推 head matches a vanilla piston head pixel for pixel.
+# Rim rotations for the baked plate, derived mechanically, not by hand: take vanilla's north
+# plate rim faces (uv [0,0,16,4] plus the rotation below) and re-express them on the plate
+# after the blockstate rotation that aims the plate at ``plate_dir`` (y90 = east, y180 =
+# south, y270 = west, x90 = down, x270 = up), using BlockElement#uvsByFace's per-face u/v
+# axes and BlockFaceUV's clockwise rotation semantics. The north row comes out vanilla
+# verbatim, which double-checks the transform. Every rim samples the same [0,0,16,4] band;
+# only the rotation differs. The hand-reasoned "thickness axis ⇒ transpose" table this
+# replaces had 10 of its 20 entries wrong — mirrored or upside-down grain on every bent
+# plate, which is what the rims still looked like in game.
 _RIM_ROTATION = {
     "north": {"down": 180, "up": 0, "west": 270, "east": 90},
-    "south": {"down": 180, "up": 0, "west": 270, "east": 90},
-    # plate thickness on X: every rim is 4 wide and 16 tall, so every band turns vertical
-    "east": {"down": 90, "up": 270, "north": 90, "south": 270},
-    "west": {"down": 90, "up": 270, "north": 90, "south": 270},
-    # plate thickness on Y: every rim is 16 wide and 4 tall, so no band turns
-    "up": {"north": 0, "south": 180, "west": 0, "east": 180},
-    "down": {"north": 0, "south": 180, "west": 0, "east": 180},
+    "south": {"down": 0, "up": 180, "west": 90, "east": 270},
+    "east": {"down": 90, "up": 90, "north": 270, "south": 90},
+    "west": {"down": 270, "up": 270, "north": 90, "south": 270},
+    "up": {"north": 0, "south": 0, "west": 0, "east": 0},
+    "down": {"north": 180, "south": 180, "west": 180, "east": 180},
 }
 
 
@@ -1033,6 +1040,18 @@ def bent_head_model(vid, plate_dir, base_sticky, short, sticky_plate=False):
         "west": {"uv": [16, 4, 4 if short else 0, 0], "texture": side},
         "east": {"uv": list(strip), "texture": side},
     }
+    # The rod face lying flat against the plate's inner face is coplanar with it — drawing
+    # both makes the junction z-fight, and vanilla never has the problem because its rod
+    # ends are open. Omit it, exactly like vanilla omits the rod's north face against the
+    # plate; the plate's inner face covers the junction.
+    if plate_dir == "east":
+        del rod["faces"]["east"]
+    elif plate_dir == "west":
+        del rod["faces"]["west"]
+    elif plate_dir == "up":
+        del rod["faces"]["up"]
+    elif plate_dir == "down":
+        del rod["faces"]["down"]
     if plate_dir != "north":
         # Only a north plate sits in front of the arm's near end (z=4); every other plate is
         # beside it, so that end is open air inside the cell and would be a hole in the model.

@@ -47,7 +47,7 @@
           ],
           "texture": "piston_diversified:block/turn_push_piston_side",
           "cullface": "down",
-          "rotation": 90
+          "rotation": 270
         },
         "up": {
           "uv": [
@@ -115,15 +115,6 @@
           ],
           "texture": "piston_diversified:block/turn_push_piston_side",
           "rotation": 270
-        },
-        "west": {
-          "uv": [
-            16,
-            4,
-            4,
-            0
-          ],
-          "texture": "piston_diversified:block/turn_push_piston_side"
         },
         "east": {
           "uv": [

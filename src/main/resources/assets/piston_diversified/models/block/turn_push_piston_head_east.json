@@ -58,7 +58,7 @@
           ],
           "texture": "piston_diversified:block/turn_push_piston_side",
           "cullface": "up",
-          "rotation": 270
+          "rotation": 90
         },
         "north": {
           "uv": [
@@ -69,7 +69,7 @@
           ],
           "texture": "piston_diversified:block/turn_push_piston_side",
           "cullface": "north",
-          "rotation": 90
+          "rotation": 270
         },
         "south": {
           "uv": [
@@ -80,7 +80,7 @@
           ],
           "texture": "piston_diversified:block/turn_push_piston_side",
           "cullface": "south",
-          "rotation": 270
+          "rotation": 90
         }
       }
     },
@@ -122,15 +122,6 @@
             4,
             0,
             0
-          ],
-          "texture": "piston_diversified:block/turn_push_piston_side"
-        },
-        "east": {
-          "uv": [
-            0,
-            0,
-            16,
-            4
           ],
           "texture": "piston_diversified:block/turn_push_piston_side"
         },

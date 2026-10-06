@@ -46,7 +46,8 @@
             4
           ],
           "texture": "piston_diversified:block/turn_push_sticky_piston_side",
-          "cullface": "north"
+          "cullface": "north",
+          "rotation": 180
         },
         "south": {
           "uv": [
@@ -67,7 +68,8 @@
             4
           ],
           "texture": "piston_diversified:block/turn_push_sticky_piston_side",
-          "cullface": "west"
+          "cullface": "west",
+          "rotation": 180
         },
         "east": {
           "uv": [
@@ -94,16 +96,6 @@
         20
       ],
       "faces": {
-        "down": {
-          "uv": [
-            0,
-            0,
-            16,
-            4
-          ],
-          "texture": "piston_diversified:block/turn_push_sticky_piston_side",
-          "rotation": 90
-        },
         "up": {
           "uv": [
             0,
