@@ -1010,7 +1010,7 @@ def bent_head_model(vid, plate_dir, base_sticky, short, sticky_plate=False):
         if rim in (plate_dir, inner):
             continue
         rot = _RIM_ROTATION[plate_dir][rim]
-        face = {"uv": [0, 0, 16, 4], "texture": side, "cullface": rim}
+        face = {"uv": [0, 0, 16, 4], "texture": "#side", "cullface": rim}
         if rot:
             face["rotation"] = rot
         faces[rim] = face
@@ -1034,11 +1034,11 @@ def bent_head_model(vid, plate_dir, base_sticky, short, sticky_plate=False):
     strip = [4, 0, 16, 4] if short else [0, 0, 16, 4]
     rod["faces"] = {
         # the arm is 4 across and 16 along, so the wood band turns on every face
-        "down": {"uv": list(strip), "texture": side, "rotation": 90},
-        "up": {"uv": list(strip), "texture": side, "rotation": 270},
+        "down": {"uv": list(strip), "texture": "#side", "rotation": 90},
+        "up": {"uv": list(strip), "texture": "#side", "rotation": 270},
         # vanilla's reversed strip, so the casing grain does not mirror on the left face
-        "west": {"uv": [16, 4, 4 if short else 0, 0], "texture": side},
-        "east": {"uv": list(strip), "texture": side},
+        "west": {"uv": [16, 4, 4 if short else 0, 0], "texture": "#side"},
+        "east": {"uv": list(strip), "texture": "#side"},
     }
     # The rod face lying flat against the plate's inner face is coplanar with it — drawing
     # both makes the junction z-fight, and vanilla never has the problem because its rod
@@ -1056,7 +1056,7 @@ def bent_head_model(vid, plate_dir, base_sticky, short, sticky_plate=False):
         # Only a north plate sits in front of the arm's near end (z=4); every other plate is
         # beside it, so that end is open air inside the cell and would be a hole in the model.
         # Cap it with a 4x4 piece of the same wood band, rotated the way its neighbours are.
-        rod["faces"]["north"] = {"uv": [4, 0, 8, 4], "texture": side}
+        rod["faces"]["north"] = {"uv": [4, 0, 8, 4], "texture": "#side"}
 
     return {
         "parent": "block/block",
@@ -1136,7 +1136,7 @@ def gen_shared_assets(textures):
             # at the model-local bend direction
             for extended in (False, True):
                 for facing, rot in FACING_ROT.items():
-                    for bend in ("north", "south", "west", "east"):
+                    for bend in ("north", "south", "west", "east", "up", "down"):
                         key = f"extended={str(extended).lower()},facing={facing},bend={bend}"
                         lb = local_bend(facing, bend)
                         # both states need the per-bend model: the arrow is the only bend cue
@@ -1308,15 +1308,22 @@ def gen_shared_assets(textures):
         # The TYPE property still has a sticky value for every head block; alias it to the
         # normal models so no reachable state is left without a model.
         if not sticky:
+            # Alias type=sticky onto the normal models. The key must mirror each kind's
+            # emission order exactly (bend=/tool= in the emitted position), or the lookup
+            # silently misses and every sticky state is left without a model.
             for short in (False, True):
                 for powered in ((False, True) if head_kind == "skull" else (False,)):
                     for facing in FACING_ROT:
-                        for extra in (["north", "south", "west", "east"] if head_kind == "bent" else
+                        for extra in (["north", "south", "west", "east", "up", "down"] if head_kind == "bent" else
                                       list(PICKAXE_TINTS) if head_kind == "pickaxe" else [None]):
                             powered_part = f"powered={str(powered).lower()}," if head_kind == "skull" else ""
-                            extra_part = f"{extra}," if extra else ""
-                            normal_key = f"{extra_part}facing={facing},{powered_part}short={str(short).lower()},type=normal"
-                            sticky_key = f"{extra_part}facing={facing},{powered_part}short={str(short).lower()},type=sticky"
+                            if head_kind == "bent":
+                                normal_key = f"bend={extra},facing={facing},{powered_part}short={str(short).lower()},type=normal"
+                            elif head_kind == "pickaxe":
+                                normal_key = f"facing={facing},{powered_part}short={str(short).lower()},tool={extra},type=normal"
+                            else:
+                                normal_key = f"facing={facing},{powered_part}short={str(short).lower()},type=normal"
+                            sticky_key = normal_key.replace("type=normal", "type=sticky")
                             if normal_key in head_variants:
                                 head_variants[sticky_key] = dict(head_variants[normal_key])
         write_json(os.path.join(bs_dir, hid + ".json"), {"variants": head_variants})

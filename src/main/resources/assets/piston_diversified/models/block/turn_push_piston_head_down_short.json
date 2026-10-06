@@ -45,7 +45,7 @@
             16,
             4
           ],
-          "texture": "piston_diversified:block/turn_push_piston_side",
+          "texture": "#side",
           "cullface": "north",
           "rotation": 180
         },
@@ -56,7 +56,7 @@
             16,
             4
           ],
-          "texture": "piston_diversified:block/turn_push_piston_side",
+          "texture": "#side",
           "cullface": "south",
           "rotation": 180
         },
@@ -67,7 +67,7 @@
             16,
             4
           ],
-          "texture": "piston_diversified:block/turn_push_piston_side",
+          "texture": "#side",
           "cullface": "west",
           "rotation": 180
         },
@@ -78,7 +78,7 @@
             16,
             4
           ],
-          "texture": "piston_diversified:block/turn_push_piston_side",
+          "texture": "#side",
           "cullface": "east",
           "rotation": 180
         }
@@ -103,7 +103,7 @@
             16,
             4
           ],
-          "texture": "piston_diversified:block/turn_push_piston_side",
+          "texture": "#side",
           "rotation": 270
         },
         "west": {
@@ -113,7 +113,7 @@
             4,
             0
           ],
-          "texture": "piston_diversified:block/turn_push_piston_side"
+          "texture": "#side"
         },
         "east": {
           "uv": [
@@ -122,7 +122,7 @@
             16,
             4
           ],
-          "texture": "piston_diversified:block/turn_push_piston_side"
+          "texture": "#side"
         },
         "north": {
           "uv": [
@@ -131,7 +131,7 @@
             8,
             4
           ],
-          "texture": "piston_diversified:block/turn_push_piston_side"
+          "texture": "#side"
         }
       }
     }

@@ -45,7 +45,7 @@
             16,
             4
           ],
-          "texture": "piston_diversified:block/turn_push_sticky_piston_side",
+          "texture": "#side",
           "cullface": "down"
         },
         "up": {
@@ -55,7 +55,7 @@
             16,
             4
           ],
-          "texture": "piston_diversified:block/turn_push_sticky_piston_side",
+          "texture": "#side",
           "cullface": "up",
           "rotation": 180
         },
@@ -66,7 +66,7 @@
             16,
             4
           ],
-          "texture": "piston_diversified:block/turn_push_sticky_piston_side",
+          "texture": "#side",
           "cullface": "west",
           "rotation": 90
         },
@@ -77,7 +77,7 @@
             16,
             4
           ],
-          "texture": "piston_diversified:block/turn_push_sticky_piston_side",
+          "texture": "#side",
           "cullface": "east",
           "rotation": 270
         }
@@ -102,7 +102,7 @@
             16,
             4
           ],
-          "texture": "piston_diversified:block/turn_push_sticky_piston_side",
+          "texture": "#side",
           "rotation": 90
         },
         "up": {
@@ -112,7 +112,7 @@
             16,
             4
           ],
-          "texture": "piston_diversified:block/turn_push_sticky_piston_side",
+          "texture": "#side",
           "rotation": 270
         },
         "west": {
@@ -122,7 +122,7 @@
             0,
             0
           ],
-          "texture": "piston_diversified:block/turn_push_sticky_piston_side"
+          "texture": "#side"
         },
         "east": {
           "uv": [
@@ -131,7 +131,7 @@
             16,
             4
           ],
-          "texture": "piston_diversified:block/turn_push_sticky_piston_side"
+          "texture": "#side"
         },
         "north": {
           "uv": [
@@ -140,7 +140,7 @@
             8,
             4
           ],
-          "texture": "piston_diversified:block/turn_push_sticky_piston_side"
+          "texture": "#side"
         }
       }
     }
