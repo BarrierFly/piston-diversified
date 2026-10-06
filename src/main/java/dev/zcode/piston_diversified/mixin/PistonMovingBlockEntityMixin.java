@@ -123,7 +123,12 @@ public class PistonMovingBlockEntityMixin implements PistonDuck {
     // (the block-state validation the vanilla entity type performs lives on BlockEntity; nothing
     //  here needs widening — see BlockEntityMixin for the one thing BlockEntity does need)
 
-    @Inject(method = "tick", at = @At("TAIL"))
+    // RETURN, deliberately not TAIL: the compiled tick body exits the landing branch through a
+    // different return opcode than the advance branch, and TAIL binds to the advance branch's —
+    // so a TAIL hook fires on the two slide ticks but is physically absent from the landing tick.
+    // That artifact is the entire origin of the old "the server never reaches vanilla's third
+    // moving-piston tick" folklore the early landing was built on; the tick always ran.
+    @Inject(method = "tick", at = @At("RETURN"))
     private static void pistonDiversified$afterTick(Level level, BlockPos pos, BlockState state, PistonMovingBlockEntity be, CallbackInfo ci) {
         PistonDuck duck = (PistonDuck) be;
         if (duck.pistonDiversified$isFast() && !level.isClientSide()) {
@@ -142,10 +147,7 @@ public class PistonMovingBlockEntityMixin implements PistonDuck {
         // block or a sibling piston at progress 1.0 (final position, live shape). Landing any
         // earlier puts the landing inside the window where siblings are mid-flight — a blob can
         // carry a block resting on another member, and asking then reads a piston parked half a
-        // cell away, which drops the rider. (The old "deterministic early landing" was built on
-        // the belief that the server never reaches vanilla's third moving-piston tick; the hook it
-        // replaced gated on !be.isRemoved() at TAIL, which vanilla's own landing sets mid-tick —
-        // the tick arrived fine, the gate was blind to it.) By this TAIL hook vanilla has already
+        // cell away, which drops the rider. By the time this hook runs, vanilla has already
         // landed the cell, so only mod bookkeeping is left: restore waterlogging and queue the
         // next flight step from the leading cell.
         if (duck.pistonDiversified$getFlight().length > 0
