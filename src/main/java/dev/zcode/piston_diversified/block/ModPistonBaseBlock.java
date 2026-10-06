@@ -2,6 +2,7 @@ package dev.zcode.piston_diversified.block;
 
 import com.google.common.collect.Lists;
 import dev.zcode.piston_diversified.PdHelpers;
+import dev.zcode.piston_diversified.duck.PistonDuck;
 import dev.zcode.piston_diversified.logic.PdResolver;
 import com.google.common.collect.Maps;
 import java.util.List;
@@ -90,22 +91,6 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
     public static final int SYNC_MOVING_PISTON = 324 | Block.UPDATE_CLIENTS;
     /** Same for the retract animation and for rods/heads placed by a tick chain. */
     public static final int SYNC_RETRACT = 276 | Block.UPDATE_CLIENTS;
-
-    /**
-     * Vacating a cell without letting anything react to it: the client still gets the block, but no
-     * neighbour update, no shape update and no {@code onPlace} run. Raw 786 = 2 (UPDATE_CLIENTS) |
-     * 16 (UPDATE_KNOWN_SHAPE) | 256 (SKIP_BLOCK_ENTITY_SIDEEFFECTS) | 512 (SKIP_ON_PLACE); the last
-     * one is unnamed in 1.19.4's mappings but has meant "skip onPlace" there too.
-     *
-     * <p>Vanilla empties the vacated cells with flag 82, which is safe there only because a piston
-     * structure is a straight line — no vacated cell is ever the support of another block that is
-     * still standing. The 马铃薯活塞's structure is a blob, so it can be: {@code BaseTorchBlock}
-     * (and every other "rests on the block below" block) drops to air from a shape update, and
-     * since the originals are all still in place while the cells are emptied, a torch riding a
-     * block was destroyed by the very first push. Callers that clear a whole structure at once
-     * must use this and run their own shape updates once every cell has been replaced.</p>
-     */
-    public static final int SILENT_CLEAR = 786;
 
     /**
      * Block-event id for the client mirror of a move the server drove outside the block-event
@@ -523,7 +508,7 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
     }
 
     private void markFast(BlockEntity be) {
-        if (this.marksMovingPistonsFast() && be instanceof dev.zcode.piston_diversified.duck.PistonDuck duck) {
+        if (this.marksMovingPistonsFast() && be instanceof PistonDuck duck) {
             duck.pistonDiversified$setFast(true);
         }
     }
@@ -536,7 +521,7 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
      * blocks over there. See {@code BlockEntityMixin}.
      */
     public static void markClientSync(BlockEntity be) {
-        if (be instanceof dev.zcode.piston_diversified.duck.PistonDuck duck) {
+        if (be instanceof PistonDuck duck) {
             duck.pistonDiversified$setNeedsClientSync(true);
         }
     }

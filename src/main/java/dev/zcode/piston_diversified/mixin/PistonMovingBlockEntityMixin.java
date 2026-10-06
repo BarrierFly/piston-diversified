@@ -135,20 +135,25 @@ public class PistonMovingBlockEntityMixin implements PistonDuck {
             }
         }
 
-        // 马铃薯活塞: the pushed cell lands deterministically the moment its progress reaches 1.0
-        // (same mechanism as the fast piston — the vanilla tick lands a tick later, which the
-        // server does not reliably reach), then waterlogging is restored on every pushed cell
-        // and the leading cell queues the next flight step.
-        if (duck.pistonDiversified$getFlight().length > 0 && be.isExtending() && !level.isClientSide()) {
-            if (level.getBlockState(pos).is(Blocks.MOVING_PISTON)) {
-                if (((PistonMovingBlockEntityAccessor) be).pistonDiversified$getProgress() >= 1.0F) {
-                    pistonDiversified$placeFinal(level, pos, be);
-                    pistonDiversified$landPotato(level, pos, be, duck);
-                }
-            } else {
-                // already finalised by someone else (e.g. a forced finalTick) — just land
-                pistonDiversified$landPotato(level, pos, be, duck);
-            }
+        // 马铃薯活塞: the pushed cell lands on vanilla's own schedule. Vanilla's tick body resolves
+        // the block from progressO >= 1.0 — one tick AFTER progress reaches 1.0 — and that tick is
+        // what makes landing order-safe: by then every sibling of the same flight step has finished
+        // its slide, so whichever cell lands first, its support reads either an already-landed
+        // block or a sibling piston at progress 1.0 (final position, live shape). Landing any
+        // earlier puts the landing inside the window where siblings are mid-flight — a blob can
+        // carry a block resting on another member, and asking then reads a piston parked half a
+        // cell away, which drops the rider. (The old "deterministic early landing" was built on
+        // the belief that the server never reaches vanilla's third moving-piston tick; the hook it
+        // replaced gated on !be.isRemoved() at TAIL, which vanilla's own landing sets mid-tick —
+        // the tick arrived fine, the gate was blind to it.) By this TAIL hook vanilla has already
+        // landed the cell, so only mod bookkeeping is left: restore waterlogging and queue the
+        // next flight step from the leading cell.
+        if (duck.pistonDiversified$getFlight().length > 0
+            && be.isExtending()
+            && !level.isClientSide()
+            && ((PistonMovingBlockEntityAccessor) be).pistonDiversified$getProgressO() >= 1.0F
+            && !level.getBlockState(pos).is(Blocks.MOVING_PISTON)) {
+            pistonDiversified$landPotato(level, pos, be, duck);
         }
     }
 
@@ -172,43 +177,42 @@ public class PistonMovingBlockEntityMixin implements PistonDuck {
         }
     }
 
+    /**
+     * The fast piston's early conversion: the tick its progress reaches 1.0 the flying cell becomes
+     * the carried block, one tick earlier than vanilla's own landing (which resolves from
+     * progressO). That head start is the whole point of the fast piston — a vanilla-schedule
+     * landing would put its blocks down a tick late. Everything else here is vanilla's own landing
+     * sequence verbatim: resolve the carried state against the neighbours up front (a block they
+     * reject is destroyed with its drops instead of vanishing), strip waterlogging (vanilla never
+     * lands a waterlogged state; the potato restores its own afterwards), then the neighbour
+     * notification. The potato does NOT come through here anymore — it lands on vanilla's schedule
+     * and vanilla's tick body does the landing; see {@code afterTick}.
+     */
     @Unique
     private static void pistonDiversified$placeFinal(Level level, BlockPos pos, PistonMovingBlockEntity be) {
-        if (!level.getBlockState(pos).is(Blocks.MOVING_PISTON)) {
-            level.removeBlockEntity(pos);
-            be.setRemoved();
-            return;
-        }
-        BlockState moved = be.getMovedState();
-        if (moved.hasProperty(BlockStateProperties.WATERLOGGED) && moved.getValue(BlockStateProperties.WATERLOGGED)) {
-            moved = moved.setValue(BlockStateProperties.WATERLOGGED, false);
-        }
-        // Land by placing the carried state and letting the ordinary neighbour update decide
-        // whether it can stay — deliberately NOT the way vanilla's tick does it. Vanilla resolves
-        // the shape up front, but it does so from progressO >= 1.0, a tick after the block settled;
-        // the potato lands the moment progress reaches 1.0, while the cells around it are still in
-        // the same moving-piston tick and their entities are about to be torn down. Asking a torch
-        // "is your support still there?" at that moment reads the support's entity a moment too
-        // late, resolves the torch to air and loses it — a torch riding a block through the flight
-        // never arrived. Placing it instead runs the same shape update inside Level#setBlock, so an
-        // unsupported block still goes in the same tick; it just cannot be dropped by asking early.
         level.removeBlockEntity(pos);
         be.setRemoved();
-        level.setBlock(pos, moved, 67);
-        if (level.getBlockState(pos).isAir()) {
-            // the shape update rejected it after all — restore and destroy so it drops instead of
-            // being swallowed
-            level.setBlock(pos, moved, 340);
-            Block.updateOrDestroy(moved, Blocks.AIR.defaultBlockState(), level, pos, 3);
-            return;
+        if (level.getBlockState(pos).is(Blocks.MOVING_PISTON)) {
+            BlockState moved = be.getMovedState();
+            BlockState finalState = Block.updateFromNeighbourShapes(moved, level, pos);
+            if (finalState.isAir()) {
+                level.setBlock(pos, moved, 340);
+                Block.updateOrDestroy(moved, finalState, level, pos, 3);
+            } else {
+                if (finalState.hasProperty(BlockStateProperties.WATERLOGGED) && finalState.getValue(BlockStateProperties.WATERLOGGED)) {
+                    finalState = finalState.setValue(BlockStateProperties.WATERLOGGED, false);
+                }
+
+                level.setBlock(pos, finalState, 67);
+                //? if >=1.21.2 {
+                level.neighborChanged(
+                    pos, finalState.getBlock(), ExperimentalRedstoneUtils.initialOrientation(level, be.getPushDirection(), null)
+                );
+                //?} else {
+                level.neighborChanged(pos, finalState.getBlock(), pos);
+                //?}
+            }
         }
-        //? if >=1.21.2 {
-        level.neighborChanged(
-            pos, moved.getBlock(), ExperimentalRedstoneUtils.initialOrientation(level, be.getPushDirection(), null)
-        );
-        //?} else {
-        level.neighborChanged(pos, moved.getBlock(), pos);
-        //?}
     }
 
     //? if >=1.21.2 {

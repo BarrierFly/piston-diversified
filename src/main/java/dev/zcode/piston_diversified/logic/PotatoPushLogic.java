@@ -115,14 +115,13 @@ public final class PotatoPushLogic {
             if (kinds.get(sourcePos) == MemberKind.WATERLOGGED) {
                 continue; // 原位残留的水保留
             }
-            // Silent on purpose. The structure is a blob, not vanilla's straight line, so a cell
-            // can be the support of another member — and the originals are all still standing
-            // while this loop runs. Clearing the support first (flag 82, as vanilla does) tells
-            // the block above that it lost its footing and it comes off before its own moving
-            // piston ever lands: a torch riding a block was destroyed by the very first push.
-            // The shape updates the next loop would fire are deferred until every cell has been
-            // replaced, at which point the members live in their moving pistons.
-            level.setBlock(sourcePos, air, ModPistonBaseBlock.SILENT_CLEAR);
+            // Vanilla's vacate flag 82: client update only — bit 16 suppresses the shape updates
+            // and there is no bit 1, so the clear itself tells nobody anything (it does not "warn
+            // the block above"; flag bits that would do that are simply not set). The neighbour
+            // notifications are the two loops below, run after every cell has been replaced and
+            // the members live in their moving pistons — which ignore shape updates and offer a
+            // live support shape, exactly vanilla's ordering in PistonBaseBlock#moveBlocks.
+            level.setBlock(sourcePos, air, 82);
         }
 
         for (BlockPos sourcePos : sourceCells) {

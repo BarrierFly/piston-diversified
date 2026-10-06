@@ -942,11 +942,6 @@ def _opp(d):
             "up": "down", "down": "up"}[d]
 
 
-def _opp(d):
-    return {"north": "south", "south": "north", "east": "west", "west": "east",
-            "up": "down", "down": "up"}[d]
-
-
 # A rim is 16 long along one axis and 4 along the plate axis, and the wood band in the side
 # texture is 16 wide x 4 tall — so every rim face must sample the [0,0,16,4] strip, rotated
 # only when the rim's long direction is vertical. Getting this wrong is what smeared the
