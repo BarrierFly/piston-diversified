@@ -27,14 +27,15 @@ import net.minecraft.world.phys.shapes.VoxelShape;
  *   <li>blocks whose interaction shapes touch are pushed — piston bases only connect through
  *       their plate face, the other five faces never join this way;</li>
  *   <li>blocks glued through a sticky face are pushed: sticky-piston plate faces, slime and
- *       honey on all faces (honey pistons count as honey); air and fluids included.</li>
+ *       honey on all faces (honey pistons count as honey); replaceable blocks (草/雪片) and
+ *       fluids included — replaceables travel as themselves, fluids travel as fluid.</li>
  * </ol>
  * Mod rules on top: air never joins and stops propagation; the initiating potato piston is
- * invisible to the scan; block entities never join through rules 2/3 (rule 1 destroys popped
- * ones and fails on the rest); slime×honey contact of different kinds disconnects rules 2/3;
- * rule 3 may pull fluids along. Unpushable members (obsidian…) fail the push (推不动就不动).
- * Hard cap 1024 cells; the push budget (potatoPushLimit gamerule, default 32) counts non-fluid
- * cells.
+ * invisible to the scan; block entities never join (rule 1 and the seed cell destroy popped ones
+ * and fail on the rest, rules 2/3 ignore them); slime×honey contact of different kinds disconnects
+ * rules 2/3; rule 3 may pull fluids and glued replaceables along. Unpushable members (obsidian…)
+ * fail the push (推不动就不动). Hard cap 1024 cells; the push budget (potato_push_limit gamerule,
+ * default 32) counts non-fluid cells.
  */
 public final class PotatoStructureResolver {
     private static final int HARD_CELL_CAP = 1024;
@@ -84,6 +85,18 @@ public final class PotatoStructureResolver {
         if (startPos.equals(this.initiator) || this.canReplace(startState)) {
             return true; // empty structure: plain empty push
         }
+        if (startState.hasBlockEntity()) {
+            // The seed cell is rule-1 territory and rule 1's verdict applies verbatim: the only
+            // block entities any piston may remove are destroy-on-push ones (popped with their
+            // drops, same as connects()), every other one stops the push. Without this the seed
+            // bypassed connects() entirely, so a chest (or a passing moving piston, also a BE)
+            // right in front of the piston was carried off as a NORMAL member.
+            if (startState.getPistonPushReaction() == PushReaction.DESTROY) {
+                this.toDestroy.add(startPos);
+                return true; // popped, not carried
+            }
+            return this.fail("block entity blocks the structure front: " + startState.getBlock());
+        }
 
         int usedBudget = 0;
         List<BlockPos> queue = new ArrayList<>();
@@ -100,16 +113,18 @@ public final class PotatoStructureResolver {
             }
 
             MemberKind kind;
-            if (this.canReplace(state)) {
-                kind = MemberKind.FLUID; // fluid cell pulled in by rule 3
-            } else if (state.hasProperty(BlockStateProperties.WATERLOGGED)
+            if (state.hasProperty(BlockStateProperties.WATERLOGGED)
                 && state.getValue(BlockStateProperties.WATERLOGGED)) {
                 kind = MemberKind.WATERLOGGED; // travels waterless, leaves water behind
+            } else if (!state.getFluidState().isEmpty()) {
+                kind = MemberKind.FLUID; // a fluid cell pulled in by rule 3
             } else {
                 // rule 1 carries unpushable blocks too (obsidian, bedrock, ...) — an
                 // irreplaceable block in front of a pushed block simply joins the structure.
                 // Destroy-on-push blocks join the same way: the structure is carried whole, so a
                 // torch in front travels with the rest instead of being popped out of it.
+                // Replaceable blocks (草/雪片) that joined through rules 2/3 also travel as
+                // themselves — real cargo, not air that vanishes on landing.
                 kind = MemberKind.NORMAL;
             }
 
@@ -178,7 +193,7 @@ public final class PotatoStructureResolver {
         boolean mixedSlimeHoney = this.slimeHoneyClash(state, side, neighborState);
 
         if (stickyGlued && !mixedSlimeHoney) {
-            // rule 3: sticky faces glue anything, air and fluids included
+            // rule 3: sticky faces glue anything, replaceable blocks and fluids included
             if (this.outOfWorld(neighborPos)) {
                 return false;
             }
@@ -338,17 +353,23 @@ public final class PotatoStructureResolver {
         return record;
     }
 
+    /**
+     * Axis offsets are packed 21-bit signed each (bias 2^20, so ±1048575 — far beyond build
+     * limits), three axes filling one long. The old 10-bit-per-axis packing overflowed at
+     * {@code potato_push_limit} > 511 on a straight structure: the last member's offset wrapped
+     * and the flight's intersection check went wrong (worst case the flight stopped early).
+     */
     public static long packRelative(BlockPos origin, BlockPos pos) {
-        int x = pos.getX() - origin.getX() + 512;
-        int y = pos.getY() - origin.getY() + 512;
-        int z = pos.getZ() - origin.getZ() + 512;
-        return ((long) x << 22) | ((long) y << 12) | ((long) z << 2);
+        long x = pos.getX() - origin.getX() + (1 << 20);
+        long y = pos.getY() - origin.getY() + (1 << 20);
+        long z = pos.getZ() - origin.getZ() + (1 << 20);
+        return (x << 42) | (y << 21) | z;
     }
 
     public static BlockPos unpackRelative(BlockPos origin, long packed) {
-        int x = ((int) (packed >> 22) & 0x3FF) - 512;
-        int y = ((int) (packed >> 12) & 0x3FF) - 512;
-        int z = ((int) (packed >> 2) & 0x3FF) - 512;
+        int x = ((int) (packed >> 42) & 0x1FFFFF) - (1 << 20);
+        int y = ((int) (packed >> 21) & 0x1FFFFF) - (1 << 20);
+        int z = ((int) packed & 0x1FFFFF) - (1 << 20);
         return origin.offset(x, y, z);
     }
 }

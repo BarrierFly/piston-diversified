@@ -43,11 +43,6 @@ public class TurnPushPistonHeadBlock extends ModPistonHeadBlock {
         return Shapes.or(PdShapes.arm(facing, bend, 4.0, armTo), PdShapes.slab(bend, 0, 4));
     }
 
-    @Override
-    public VoxelShape getCollisionShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
-        return this.getShape(state, level, pos, context);
-    }
-
     /** The plate's sticky face points along the bend. */
     public Direction plateFace(BlockState state) {
         return state.getValue(BEND);

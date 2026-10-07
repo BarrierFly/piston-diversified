@@ -112,7 +112,7 @@ public class GravityPistonBlock extends ModPistonBaseBlock {
         if (this.moveBlocksResolved(level, headPos, Direction.DOWN, true, resolver, level.getBlockState(pos))) {
             BlockState rodState = ModBlocks.RECURSIVE_PISTON_ROD.defaultBlockState()
                 .setValue(RecursivePistonRodBlock.FACING, Direction.DOWN);
-            // flag 276: replacing the head must not run its removal hooks against the base
+            // SYNC_RETRACT: replacing the head must not run its removal hooks against the base
             level.setBlock(headPos, rodState, ModPistonBaseBlock.SYNC_RETRACT);
             level.updateNeighborsAt(headPos, rodState.getBlock());
             this.scheduleNext(level, pos, 2);
@@ -194,7 +194,7 @@ public class GravityPistonBlock extends ModPistonBaseBlock {
             return;
         }
 
-        level.setBlock(headPos, Blocks.AIR.defaultBlockState(), 276);
+        level.setBlock(headPos, Blocks.AIR.defaultBlockState(), ModPistonBaseBlock.SYNC_RETRACT);
         BlockState movingState = Blocks.MOVING_PISTON
             .defaultBlockState()
             .setValue(MovingPistonBlock.FACING, direction)

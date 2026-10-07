@@ -750,12 +750,14 @@ def recursive_base_model(vid, extended):
     """递推 base: thin plate at the back plus a bare rod running to the front face.
 
     At rest the plate still occupies the front 4px of this cell (the head is in the cell next
-    door); extended it is a 4px plate + rod only.
+    door) and the rod runs plate-to-plate (z 0..12); extended it is a 4px plate + rod only, and
+    the rod matches the code shape (z 4..16, reaching the back face — the head block continues
+    it in the cell next door).
 
-    Cullfaces are only put on faces that actually border a neighbouring cell. The rod runs the
-    full 16px depth, so its north face is interior and must NOT be culled — giving it a cullface
-    made the rod's north face disappear whenever a block sat in front of the piston, which is
-    exactly the "one face of the back half not showing" report.
+    Cullfaces are only put on faces that actually border a neighbouring cell. The rod's north
+    face is interior and must NOT be culled — giving it a cullface made the rod's north face
+    disappear whenever a block sat in front of the piston, which is exactly the "one face of the
+    back half not showing" report.
     """
     elements = [
         {
@@ -770,7 +772,9 @@ def recursive_base_model(vid, extended):
             },
         },
         {
-            "from": [6, 6, 0], "to": [10, 10, 12],
+            # extended: the shape's rod runs z 4..16 (plate 0..4 + rod 4..16); at rest it is
+            # 0..12 between the two plates. Same 12px length, so the UVs are identical.
+            "from": [6, 6, 4 if extended else 0], "to": [10, 10, 16 if extended else 12],
             "faces": {
                 "down": {"uv": [5, 4, 11, 12], "texture": "#side", "rotation": 90},
                 "up": {"uv": [5, 4, 11, 12], "texture": "#side", "rotation": 270},
@@ -1610,6 +1614,10 @@ def gen_version_trees():
                 #   newBlockEntity returns null, and handleBlockEntityData drops a packet for an
                 #   entity that does not exist yet
                 "MovingPistonBlockMixin",
+                # PistonBaseBlockMixin: pushability of the modded piston family (extended base
+                #   immovable, retracted pushable, heads/rods push-resistant) — vanilla hardcodes
+                #   only its own two pistons in isPushable
+                "PistonBaseBlockMixin",
                 "PistonMovingBlockEntityAccessor",
                 "PistonMovingBlockEntityMixin",
             ],

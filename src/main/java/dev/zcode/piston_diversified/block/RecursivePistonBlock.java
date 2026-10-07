@@ -54,11 +54,6 @@ public class RecursivePistonBlock extends ModPistonBaseBlock {
         return Shapes.or(PdShapes.slab(facing, 0, 4), PdShapes.rod(facing, 4, 12, 4), PdShapes.slab(facing, 12, 16));
     }
 
-    @Override
-    public VoxelShape getCollisionShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
-        return this.getShape(state, level, pos, context);
-    }
-
     // ------------------------------------------------------------- extend chain
 
     @Override
@@ -99,7 +94,7 @@ public class RecursivePistonBlock extends ModPistonBaseBlock {
             if (this.moveBlocksResolved(level, headPos, direction, true, resolver, level.getBlockState(pos))) {
                 BlockState rodState = ModBlocks.RECURSIVE_PISTON_ROD.defaultBlockState()
                     .setValue(RecursivePistonRodBlock.FACING, direction);
-                // flag 276: replacing the head must not run its affectNeighborsAfterRemoval
+                // SYNC_RETRACT: replacing the head must not run its affectNeighborsAfterRemoval
                 // (a fitting extended base sits behind the first rod — the piston itself)
                 level.setBlock(headPos, rodState, ModPistonBaseBlock.SYNC_RETRACT);
                 level.updateNeighborsAt(headPos, rodState.getBlock());
@@ -190,9 +185,10 @@ public class RecursivePistonBlock extends ModPistonBaseBlock {
 
         // The head must leave before the pull can resolve. A piston head is push-resistant, so a
         // resolver that walks into it fails outright — resolving first made the sticky pull a
-        // silent no-op and the arm retracted empty. Flag 276 (no updates): the head's removal
-        // hook would otherwise destroy the extended base behind the first rod.
-        level.setBlock(headPos, Blocks.AIR.defaultBlockState(), 276);
+        // silent no-op and the arm retracted empty. SYNC_RETRACT (no neighbour updates): the
+        // head's removal hook would otherwise destroy the extended base behind the first rod,
+        // and plain 276 would never tell the client, leaving a ghost head there.
+        level.setBlock(headPos, Blocks.AIR.defaultBlockState(), ModPistonBaseBlock.SYNC_RETRACT);
 
         if (this.sticky && level instanceof ServerLevel serverLevel) {
             int budget = PUSH_LIMIT - rods;

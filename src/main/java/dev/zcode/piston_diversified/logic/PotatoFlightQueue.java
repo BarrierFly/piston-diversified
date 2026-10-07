@@ -11,7 +11,6 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 //? if >=1.21.2 {
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.saveddata.SavedDataType;
 //?}
@@ -64,10 +63,6 @@ public final class PotatoFlightQueue {
                 continue;
             }
             Event aged = event.withAge(event.age() + 1);
-            if (aged.age() < 1) {
-                remaining.add(aged);
-                continue;
-            }
             changed = true;
             PotatoPushLogic.flightPush(level, aged);
         }

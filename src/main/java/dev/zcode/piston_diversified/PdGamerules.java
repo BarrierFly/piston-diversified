@@ -3,7 +3,7 @@ package dev.zcode.piston_diversified;
 import net.minecraft.server.level.ServerLevel;
 
 /**
- * Mod gamerules. Currently only {@code potatoPushLimit} (马铃薯活塞 pushing budget, default 32).
+ * Mod gamerules. Currently only {@code potato_push_limit} (马铃薯活塞 pushing budget, default 32).
  *
  * <p>1.21.11+ exposes a public {@code GameRule} constructor and the {@code GAME_RULE} registry, so
  * the rule is registered directly. 1.19.4/1.21.10 keep {@code GameRules.register} private — the

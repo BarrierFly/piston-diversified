@@ -30,9 +30,4 @@ public class EndRodPistonBlock extends ModPistonBaseBlock {
         Direction facing = state.getValue(FACING);
         return Shapes.or(PdShapes.slab(facing, 12, 16), PdShapes.rod(facing, 0, 16, 4));
     }
-
-    @Override
-    public net.minecraft.world.phys.shapes.VoxelShape getCollisionShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
-        return this.getShape(state, level, pos, context);
-    }
 }

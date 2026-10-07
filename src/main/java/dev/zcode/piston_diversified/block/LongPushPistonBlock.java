@@ -41,11 +41,4 @@ public class LongPushPistonBlock extends ModPistonBaseBlock {
     protected boolean hasPowerSignal(Level level, BlockPos pos, Direction direction) {
         return true;
     }
-
-    @Override
-    public void setPlacedBy(Level level, BlockPos pos, BlockState state, net.minecraft.world.entity.LivingEntity placer, net.minecraft.world.item.ItemStack stack) {
-        if (!level.isClientSide() && !state.getValue(EXTENDED)) {
-            level.blockEvent(pos, this, 0, state.getValue(FACING).get3DDataValue());
-        }
-    }
 }

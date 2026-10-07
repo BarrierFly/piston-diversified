@@ -102,11 +102,7 @@ public class TurnPushPistonBlock extends ModPistonBaseBlock {
     protected boolean resolveExtend(Level level, BlockPos pos, Direction direction) {
         // the piston state is still in place during the pre-check; the sideways pre-resolve must
         // answer "can the front structure be pushed along the bend" (not forward)
-        Level stateHolder = level;
-        BlockState self = stateHolder.getBlockState(pos);
-        Direction bend = self.getBlock() instanceof TurnPushPistonBlock && self.hasProperty(BEND)
-            ? self.getValue(BEND)
-            : this.defaultBend(direction);
+        Direction bend = this.bendOf(direction, level.getBlockState(pos));
         if (bend.getAxis() == direction.getAxis()) {
             return super.resolveExtend(level, pos, direction);
         }

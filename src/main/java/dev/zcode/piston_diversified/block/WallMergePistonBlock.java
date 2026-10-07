@@ -32,10 +32,6 @@ import net.minecraft.world.level.block.state.BlockBehaviour.Properties;
 public class WallMergePistonBlock extends ModPistonBaseBlock {
     private static final int GROUP_LIMIT = 64;
 
-    /** Retracted: full base plus the wall post reaching 8px past the front face. */
-    private static final VoxelShape RETRACTED_SHAPE = Shapes.or(
-        Shapes.block(), PdShapes.rod(Direction.NORTH, -8, 0, 8));
-
     public WallMergePistonBlock(boolean sticky, Properties properties) {
         super(sticky, properties);
     }
@@ -56,11 +52,6 @@ public class WallMergePistonBlock extends ModPistonBaseBlock {
             return super.getShape(state, level, pos, context);
         }
         return retractedShape(state.getValue(FACING));
-    }
-
-    @Override
-    public VoxelShape getCollisionShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
-        return this.getShape(state, level, pos, context);
     }
 
     // ------------------------------------------------------------- group logic

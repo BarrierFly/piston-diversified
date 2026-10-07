@@ -31,6 +31,16 @@ public class ModPistonHeadBlock extends PistonHeadBlock {
     }
 
     /**
+     * Whether another piston may push or pull this head. Heads are push-resistant by default —
+     * vanilla treats every head that way and our properties carry the BLOCK reaction, so a head in
+     * the way always fails resolvers and sticky pulls. The gravity head opts in
+     * ({@code GravityPistonHeadBlock}: it is meant to be moved around; detached heads fall).
+     */
+    public boolean pdIsPushable() {
+        return false;
+    }
+
+    /**
      * Called by the piston when it deletes this head through a no-update path. The vanilla
      * retract clears the head with {@code setBlock(air, 276)} (no neighbour updates), so a
      * signal-emitting head would otherwise lose its power silently. Plain geometric heads do

@@ -37,7 +37,13 @@ public class PistonDiversified implements ModInitializer {
         // finally reaches the client already carries progress 0.5 and the glide snaps instead of
         // sliding. Run before the levels tick, the update goes out in the same tick with
         // progress 0 — see PistonMovingBlockEntityMixin#getUpdatePacket.
-        ServerTickEvents.START_SERVER_TICK.register(server -> PotatoFlightQueue.tick(server.overworld()));
+        // Every dimension is ticked: the queue's SavedData is per-dimension, and ticking only the
+        // overworld froze any structure that started flying in the nether/end forever.
+        ServerTickEvents.START_SERVER_TICK.register(server -> {
+            for (net.minecraft.server.level.ServerLevel level : server.getAllLevels()) {
+                PotatoFlightQueue.tick(level);
+            }
+        });
         LOGGER.info("Piston Diversified loaded: {} piston variants", ModBlocks.variantCount());
     }
 }

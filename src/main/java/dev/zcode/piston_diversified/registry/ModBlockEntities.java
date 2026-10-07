@@ -11,9 +11,10 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 
 /**
- * Mod block entity types: the 镐 piston's carried pickaxe and the 马铃薯 piston's own moving
- * piston (carrying the flight structure record). Each is bound to exactly its own block so the
- * save/load round-trip keeps the modded subclass.
+ * Mod block entity types: the 镐 piston's carried pickaxe. (The 马铃薯 flight record rides on the
+ * vanilla moving-piston block entity through the {@code PistonDuck} duck interface, so it needs no
+ * type of its own.) The pickaxe type is bound to exactly its own block so the save/load round-trip
+ * keeps the modded subclass.
  */
 public final class ModBlockEntities {
     public static final BlockEntityType<PickaxePistonBlockEntity> PICKAXE_PISTON = register(

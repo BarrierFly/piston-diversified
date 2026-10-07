@@ -21,9 +21,4 @@ public class WeakPistonHeadBlock extends ModPistonHeadBlock {
         VoxelShape arm = state.getValue(SHORT) ? PdShapes.rod(facing, 4, 16, 2) : PdShapes.rod(facing, 4, 20, 2);
         return Shapes.or(plate, arm);
     }
-
-    @Override
-    public VoxelShape getCollisionShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
-        return this.getShape(state, level, pos, context);
-    }
 }

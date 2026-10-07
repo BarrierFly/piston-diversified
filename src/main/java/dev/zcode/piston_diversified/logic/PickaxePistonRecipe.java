@@ -24,9 +24,11 @@ public class PickaxePistonRecipe extends CustomRecipe {
     //? if >=26.1 {
     /**
      * 26.x dropped the registry-access parameter from {@code assemble}, so {@code matches} —
-     * which always runs first on the same server thread — stashes the level for it.
+     * which always runs first on the same server thread — stashes the level for it. A recipe
+     * instance is a registry singleton, so the stash is per-thread (and cleared on read) instead
+     * of a field: a future cross-thread recipe preview would otherwise read the wrong level.
      */
-    private Level levelForAssemble;
+    private static final ThreadLocal<Level> LEVEL_FOR_ASSEMBLE = new ThreadLocal<>();
     //?}
 
     //? if <1.21.2 {
@@ -110,16 +112,18 @@ public class PickaxePistonRecipe extends CustomRecipe {
     //?} else {
     @Override
     public boolean matches(net.minecraft.world.item.crafting.CraftingInput input, Level level) {
-        this.levelForAssemble = level;
+        LEVEL_FOR_ASSEMBLE.set(level);
         return this.matches(input.items());
     }
 
     @Override
     public ItemStack assemble(net.minecraft.world.item.crafting.CraftingInput input) {
-        if (this.levelForAssemble == null) {
+        Level level = LEVEL_FOR_ASSEMBLE.get();
+        LEVEL_FOR_ASSEMBLE.remove();
+        if (level == null) {
             return ItemStack.EMPTY;
         }
-        return this.assemble(input.items(), this.levelForAssemble.registryAccess());
+        return this.assemble(input.items(), level.registryAccess());
     }
 
     @Override

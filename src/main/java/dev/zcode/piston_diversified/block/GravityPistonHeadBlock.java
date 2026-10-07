@@ -32,6 +32,16 @@ public class GravityPistonHeadBlock extends ModPistonHeadBlock {
         return true;
     }
 
+    /**
+     * Movable by other pistons: pushable and pullable like a plain block (the NORMAL push
+     * reaction comes from {@code pushableHeadProperties}). A detached head falls like sand —
+     * pulling it one cell drops it there unless something supports it.
+     */
+    @Override
+    public boolean pdIsPushable() {
+        return true;
+    }
+
     /** 活塞头消失（下落/破坏）不得连带破坏底座 — the base just goes headless. */
     //? if >=1.20.3 {
     @Override

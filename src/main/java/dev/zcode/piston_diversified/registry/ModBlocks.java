@@ -127,7 +127,7 @@ public final class ModBlocks {
     public static final Block WALL_MERGE_STICKY_PISTON_HEAD = registerHead("wall_merge_sticky_piston_head", p -> new WallMergePistonHeadBlock(p), headProperties());
     public static final Block ST_PISTON_HEAD = registerHead("st_piston_head", p -> new ModPistonHeadBlock(p), headProperties());
     public static final Block ST_STICKY_PISTON_HEAD = registerHead("st_sticky_piston_head", p -> new ModPistonHeadBlock(p), headProperties());
-    public static final Block GRAVITY_PISTON_HEAD = registerHead("gravity_piston_head", p -> new GravityPistonHeadBlock(p), headProperties());
+    public static final Block GRAVITY_PISTON_HEAD = registerHead("gravity_piston_head", p -> new GravityPistonHeadBlock(p), pushableHeadProperties());
     public static final Block STRONG_PISTON_HEAD = registerHead("strong_piston_head", p -> new ModPistonHeadBlock(p), headProperties());
 
     private static final Block[] BASES = {
@@ -206,14 +206,15 @@ public final class ModBlocks {
         return registerBlock(name, factory, properties);
     }
 
-    /** Structural part (递推杆 / 墙并杆 / 马铃薯移塞): registered without an item. */
+    /** Structural part (递推杆): registered without an item. */
     private static Block registerPart(String name, java.util.function.Function<BlockBehaviour.Properties, Block> factory) {
         return registerBlock(name, factory, movingPistonProperties());
     }
 
-    /** The potato moving piston mirrors the vanilla one's properties (unbreakable, immovable). */
+    /** Properties of the recursive rod (unbreakable, immovable — mirrors the vanilla moving piston). */
     private static BlockBehaviour.Properties movingPistonProperties() {
         //? if <1.20 {
+        // Material.PISTON already carries the BLOCK push reaction on this version
         return BlockBehaviour.Properties.of(net.minecraft.world.level.material.Material.PISTON)
             .strength(-1.0F)
             .dynamicShape()
@@ -251,7 +252,10 @@ public final class ModBlocks {
     private static BlockBehaviour.Properties baseProperties() {
         //? if <1.20 {
         return BlockBehaviour.Properties.of(net.minecraft.world.level.material.Material.PISTON)
-            .strength(1.5F);
+            .strength(1.5F)
+            .isRedstoneConductor((state, level, pos) -> false)
+            .isSuffocating((state, level, pos) -> !state.getValue(ModPistonBaseBlock.EXTENDED))
+            .isViewBlocking((state, level, pos) -> !state.getValue(ModPistonBaseBlock.EXTENDED));
         //?} else {
         return BlockBehaviour.Properties.of()
             .mapColor(net.minecraft.world.level.material.MapColor.STONE)
@@ -270,9 +274,12 @@ public final class ModBlocks {
     private static BlockBehaviour.Properties headProperties(int light) {
         BlockBehaviour.Properties props;
         //? if <1.20 {
+        // noOcclusion matches the vanilla head; Material.PISTON already carries the BLOCK push
+        // reaction on this version (Properties#pushReaction only exists from 1.20 on)
         props = BlockBehaviour.Properties.of(net.minecraft.world.level.material.Material.PISTON)
             .strength(1.5F)
-            .noLootTable();
+            .noLootTable()
+            .noOcclusion();
         //?} else {
         props = BlockBehaviour.Properties.of()
             .mapColor(net.minecraft.world.level.material.MapColor.STONE)
@@ -286,6 +293,34 @@ public final class ModBlocks {
         return props;
     }
 
+    /**
+     * Head properties for the gravity head: pushable AND pullable like a plain block — the head
+     * is meant to be moved around by other pistons (detached heads fall, see
+     * {@code GravityPistonHeadBlock}). The {@code pushReaction(BLOCK)} the other heads carry would
+     * defeat both, and the {@code StateBase} push-reaction cache ignores block-level overrides.
+     */
+    private static BlockBehaviour.Properties pushableHeadProperties() {
+        //? if <1.20 {
+        // Material.PISTON is notPushable on this version; STONE carries the default NORMAL reaction
+        return BlockBehaviour.Properties.of(net.minecraft.world.level.material.Material.STONE)
+            .strength(1.5F)
+            .noLootTable()
+            .noOcclusion();
+        //?} else {
+        return BlockBehaviour.Properties.of()
+            .mapColor(net.minecraft.world.level.material.MapColor.STONE)
+            .strength(1.5F)
+            .noLootTable()
+            .noOcclusion();
+        //?}
+    }
+
+    /**
+     * 缩回基座亮、伸出灭 (the arm carries the light). Known cosmetic quirk: during the 2gt
+     * animation the base cell is a moving piston (no settable light level) while the head has not
+     * landed yet, so every extend/retract blinks the light once. Fixing it costs more than it is
+     * worth — a moving piston has no light property to set.
+     */
     private static BlockBehaviour.Properties endRodProperties(int light) {
         BlockBehaviour.Properties props = baseProperties().lightLevel(state -> state.getValue(ModPistonBaseBlock.EXTENDED) ? 0 : light);
         return props;

@@ -1,8 +1,8 @@
 # Piston Diversified / 活塞多样化
 
-A Fabric mod that adds piston variants. **Mod v2** completes the plan: all 33 pistons ship, in two batches (v1 = 19, v2 = 14).
+A Fabric mod that adds piston variants. **Mod v2** completes the plan: all 33 pistons ship, in two batches (v1 = 19, v2 = 14). Current release: **0.2.1** (1.19.4 / 1.21.10 / 1.21.11 / 26.2).
 
-一个添加活塞变种的 Fabric 模组。**mod v2** 完成规划：33 种活塞全部实装，分两批（v1 = 19 种，v2 = 14 种）。
+一个添加活塞变种的 Fabric 模组。**mod v2** 完成规划：33 种活塞全部实装，分两批（v1 = 19 种，v2 = 14 种）。当前版本：**0.2.1**（1.19.4 / 1.21.10 / 1.21.11 / 26.2）。
 
 ## Piston list / 活塞列表 (v1)
 
@@ -28,13 +28,13 @@ A Fabric mod that adds piston variants. **Mod v2** completes the plan: all 33 pi
 
 | Piston | 活塞 | Notes / 说明 |
 | --- | --- | --- |
-| Potato Piston | 马铃薯活塞 | Floatater-style structure selection (3 connection rules, `potato_push_limit` gamerule, default 32); the pushed structure keeps gliding through the air after the piston is gone (递归飞行). A structure that cannot move a full cell stops in place instead of overwriting whatever it would land on, destroy-on-push blocks travel with the structure rather than being popped. 结构选取采用三条连接规则，飞行结构递归推进；推不动就原地停住不会覆盖方块，POP 类方块随结构一起被推走。 |
+| Potato Piston | 马铃薯活塞 | Floatater-style structure selection (3 connection rules, `potato_push_limit` gamerule, default 32); the pushed structure keeps gliding through the air after the piston is gone (递归飞行). Destroy-on-push blocks and glued replaceables (grass, snow) travel with the structure; waterlogged blocks travel waterless and leave water behind; block entities are never carried — a chest in front stops the push, and so does the world border (推不动就不动). 结构选取采用三条连接规则，飞行结构递归推进；POP 类方块与黏到的可替换方块（草、雪片）随结构一起被完整带走，含水方块脱水飞行、原地留水；方块实体不会被带走——正前方的箱子会挡停推动，推到世界边界同样停住而不是丢方块。 |
 | Pickaxe Piston | 镐活塞 | Mines the front block with its carried pickaxe instead of pushing it (silky touch / fortune apply, no durability); the tool rides on the block and the item. Blocks vanilla cannot push (obsidian and friends) are mined too when the pickaxe can harvest them. 用携带的镐瞬间挖掘前方方块（黑曜石等原版推不动的方块在下界合金镐下也可挖），镐随方块与物品无损往返。 |
 | Recursive Piston / Sticky | 递推活塞/黏塞 | Telescoping arm: while powered the head pushes out one cell at a time (head + rods against the 12 push budget). 通电时逐格伸出，头与杆计入推动上限。 |
 | Turn Push Piston / Sticky | 拐推活塞/黏塞 | Pushes the front structure sideways (placement-time bend direction) and ends in a bent head; the arrow on the retracted plate shows which way it bends (the bent head keeps the plain piston top — an arrow on that face would have to point out of itself). The sticky version pulls the block glued to the bent plate back to the head cell. 推出方向为放置时选定的拐弯方向，活塞盖上的箭头指示拐弯方向（仅收回状态可见，推出后弯头盖沿用普通活塞盖贴图）；黏性版沿拐弯方向把方块拉回头所在格。 |
 | Wall Merge Piston / Sticky | 墙并活塞/黏塞 | Wall-post rods connect side-by-side pistons; the group holds out while any base is powered and retracts together (sticky groups share the summed pull budget). 杆部连成墙，任一底座有信号则整组不收回。 |
 | 0-Tick Piston / Sticky | 0t计划刻活塞/黏塞 | Block events replaced by 0gt scheduled ticks; the extend/retract decision is re-derived from live signals when the tick runs. 以0gt计划刻代替方块事件。 |
-| Gravity Piston | 重力活塞 | Up = normal push; sideways = the head becomes a falling block; down = telescopes through air until it meets a block; a headless base cannot retract. 侧推头变重力方块，下推逐格伸出，无头底座不可收回。 |
+| Gravity Piston | 重力活塞 | Up = normal push; sideways = the head becomes a falling block; down = telescopes through air until it meets a block; a headless base cannot retract. Unlike every other head, the gravity head can be pushed and pulled by other pistons — a detached head falls like sand. 侧推头变重力方块，下推逐格伸出，无头底座不可收回；与其他活塞头不同，重力头可被其他活塞推拉，脱离的头像沙子一样下落。 |
 | Strong Piston I / II / III | 强力活塞一/二/三档 | Counts unpushable blocks (obsidian, bedrock, …) as 6 / 3 / 2 pushable blocks against the 12 budget, so they really move (1.21.4+; the blocks still exist on 1.19.4). 不可推动方块按 6/3/2 折算计入推动上限并真实移动。 |
 
 ## Crafting / 合成
@@ -109,6 +109,25 @@ python tools/piston_testbed.py --start --version 1.21.11
 All textures are derived from the vanilla jar by `tools/gen_assets.py` (also generates blockstates, models, recipes, loot tables, lang, icon). Re-run after editing the table.
 
 所有贴图由 `tools/gen_assets.py` 从原版 jar 派生生成，同脚本生成模型/配方/战利品表/语言/图标。
+
+## Changelog / 更新日志
+
+### 0.2.1
+
+- Fixed / 修复：含水方块被马铃薯活塞复制（源格改为置水，脱水副本飞行）。
+- Fixed：后坐活塞底座回移动画对客户端不可见（~2gt 闪现）。
+- Fixed：马铃薯飞行链在下界/末地永久冻结（飞行队列现按维度推进）。
+- Fixed：马铃薯结构顶到世界边界时最前排方块丢失（出界即整体停住）。
+- Fixed：递推活塞伸出态基座模型杆短 4px（与碰撞箱不符）。
+- Fixed：缩回的自制活塞永远推不动（现与原版缩回活塞一致可推可拉）；伸出的自制活塞按原版语义不可推；1.19.4 缩回基座不再导红。
+- Fixed：1.19.4 风弹回退现会引爆 TNT 且作用半径与原版一致。
+- Change：马铃薯活塞把黏到的可替换方块（草、雪片）作为真实成员完整带走，含水方块脱水飞行、原地留水，正前方的方块实体挡停推动（不会被带走）。
+- Change：重力活塞头可被其他活塞推拉（其余活塞头维持不可推拉）。
+- Change：自制活塞基座/头/递推杆挖掘速度与原版活塞一致（补 mineable/pickaxe 标签）。
+
+### 0.2.0
+
+- mod v2: potato, pickaxe, recursive (×2), turn push (×2), wall merge (×2), 0-tick (×2), gravity, strong (I–III). 马铃薯、镐、递推×2、拐推×2、墙并×2、0t 计划刻×2、重力、强力三档。
 
 ## License / 授权
 

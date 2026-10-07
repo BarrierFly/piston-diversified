@@ -1,6 +1,7 @@
 package dev.zcode.piston_diversified.logic;
 
 import dev.zcode.piston_diversified.PdGamerules;
+import dev.zcode.piston_diversified.PdHelpers;
 import dev.zcode.piston_diversified.block.ModPistonBaseBlock;
 import dev.zcode.piston_diversified.duck.PistonDuck;
 import dev.zcode.piston_diversified.logic.PotatoStructureResolver.Member;
@@ -113,7 +114,10 @@ public final class PotatoPushLogic {
         BlockState air = Blocks.AIR.defaultBlockState();
         for (BlockPos sourcePos : sourceCells) {
             if (kinds.get(sourcePos) == MemberKind.WATERLOGGED) {
-                continue; // 原位残留的水保留
+                // 原位残留的水保留: the vacated cell becomes water — skipping the clear entirely
+                // left the whole waterlogged block behind while its dewatered copy flew off (复制).
+                level.setBlock(sourcePos, Blocks.WATER.defaultBlockState(), 82);
+                continue;
             }
             // Vanilla's vacate flag 82: client update only — bit 16 suppresses the shape updates
             // and there is no bit 1, so the clear itself tells nobody anything (it does not "warn
@@ -144,6 +148,10 @@ public final class PotatoPushLogic {
      * vacating it in the same step. Cells listed in {@code toDestroy} are cleared first, so they
      * count as free. A destination holding anything else means the structure as selected cannot
      * actually move one cell — refuse rather than overwrite.
+     *
+     * <p>Out-of-world destinations refuse the push as well: {@code setBlock} silently fails there
+     * while the vacated source cells are still cleared, so the front blocks would vanish mid-air
+     * at the world border (same rule as {@code PotatoStructureResolver#outOfWorld}).</p>
      */
     private static boolean canMove(Level level, List<Member> members, List<BlockPos> toDestroy,
                                    Direction pushDirection) {
@@ -154,6 +162,10 @@ public final class PotatoPushLogic {
         vacated.addAll(toDestroy);
         for (Member member : members) {
             BlockPos target = member.pos().relative(pushDirection);
+            if (target.getY() < PdHelpers.minBuildHeight(level) || target.getY() > PdHelpers.maxBuildHeight(level)
+                || !level.getWorldBorder().isWithinBounds(target)) {
+                return false; // 推不动就不动 — refuse rather than lose the leading blocks
+            }
             if (vacated.contains(target)) {
                 continue;
             }

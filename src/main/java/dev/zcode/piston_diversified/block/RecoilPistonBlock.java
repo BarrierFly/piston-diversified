@@ -113,6 +113,10 @@ public class RecoilPistonBlock extends ModPistonBaseBlock {
             .setValue(MovingPistonBlock.TYPE, PistonType.DEFAULT);
         level.setBlock(newBasePos, movingState, ModPistonBaseBlock.SYNC_MOVING_PISTON);
         BlockEntity movingBe = MovingPistonBlock.newMovingBlockEntity(newBasePos, movingState, baseState, direction, false, false);
+        // The recoil runs outside the block-event replay (the client branch of handleExtend returns
+        // early), so this moving piston exists only if the server sends its block entity — without
+        // the flag the recoiling base is a ~2gt invisible block that then snaps into place.
+        ModPistonBaseBlock.markClientSync(movingBe);
         level.setBlockEntity(movingBe);
     }
 }

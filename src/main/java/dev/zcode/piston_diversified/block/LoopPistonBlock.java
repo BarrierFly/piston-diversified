@@ -54,6 +54,9 @@ public class LoopPistonBlock extends ModPistonBaseBlock {
                 level.scheduleTick(pos, this, 2);
             }
         } else if (this.hasPowerSignal(level, pos, direction)) {
+            // Known behaviour: this re-extend event is sent without a pre-resolve. If the front
+            // structure cannot actually be pushed, the event no-ops, no follow-up tick is
+            // scheduled, and the loop stays suspended until the next block update wakes it.
             level.blockEvent(pos, this, 0, direction.get3DDataValue());
         }
     }

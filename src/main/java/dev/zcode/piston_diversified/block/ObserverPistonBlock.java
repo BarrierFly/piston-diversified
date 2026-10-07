@@ -158,7 +158,7 @@ public class ObserverPistonBlock extends ModPistonBaseBlock {
 
     private void markSelfWrite(ServerLevel level, BlockPos pos) {
         Map<BlockPos, Long> byPos = SELF_WRITES.computeIfAbsent(level.dimension(), key -> new HashMap<>());
-        if (byPos.size() > 4096) {
+        if (byPos.size() > 1024) {
             long now = level.getGameTime();
             byPos.values().removeIf(time -> now - time > 200);
         }

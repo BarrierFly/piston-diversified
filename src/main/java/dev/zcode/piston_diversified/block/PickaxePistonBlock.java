@@ -17,11 +17,10 @@ import net.minecraft.world.level.block.state.properties.EnumProperty;
 import net.minecraft.world.level.material.PushReaction;
 //? if <1.20.5 {
 import net.minecraft.world.level.storage.loot.LootContext;
-import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 //?} else {
 import net.minecraft.world.level.storage.loot.LootParams;
-import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 //?}
+import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockBehaviour.Properties;
 
@@ -106,13 +105,10 @@ public class PickaxePistonBlock extends ModPistonBaseBlock implements EntityBloc
      * pre-check for exactly the fronts this piston can actually mine — anything else must stay a
  * *failed* resolve, or the piston would extend with a move that cannot clear its own front cell.
  */
-@Override
+    @Override
     protected boolean extendEventWithoutResolve(Level level, BlockPos pos, Direction direction) {
         BlockPos frontPos = pos.relative(direction);
         BlockState frontState = level.getBlockState(frontPos);
-        if (frontState.isAir() || !frontState.getFluidState().isEmpty()) {
-            return true; // the vanilla resolve already handles these; nothing extra needed
-        }
         ItemStack pickaxe = level.getBlockEntity(pos) instanceof PickaxePistonBlockEntity be
             ? be.getPickaxe()
             : ItemStack.EMPTY;

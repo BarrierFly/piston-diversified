@@ -25,6 +25,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * <p>Returning an instance closes both halves. Until the server's update tag arrives it is inert
  * (no moved state, ticking suppressed — see {@code PistonMovingBlockEntityMixin}), which is exactly
  * what an absent entity used to be, so nothing else observes the difference.</p>
+ *
+ * <p>The injection also runs on the server: any {@code getBlockEntity(IMMEDIATE)} probe of a
+ * moving-piston cell with no entity gets a placeholder there too. That is expected — every mod
+ * write to such a cell is immediately followed by the real {@code setBlockEntity}, so the
+ * placeholder is always overwritten before anything reads it.</p>
  */
 @Mixin(MovingPistonBlock.class)
 public class MovingPistonBlockMixin {

@@ -40,11 +40,6 @@ public class RecursivePistonRodBlock extends Block {
     }
 
     @Override
-    public VoxelShape getCollisionShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
-        return this.getShape(state, level, pos, context);
-    }
-
-    @Override
     public boolean canSurvive(BlockState state, LevelReader level, BlockPos pos) {
         Direction facing = state.getValue(FACING);
         BlockState behind = level.getBlockState(pos.relative(facing.getOpposite()));

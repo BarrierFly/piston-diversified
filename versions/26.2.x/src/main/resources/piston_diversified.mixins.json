@@ -8,6 +8,7 @@
     "BootstrapMixin",
     "FallingBlockEntityAccessor",
     "MovingPistonBlockMixin",
+    "PistonBaseBlockMixin",
     "PistonMovingBlockEntityAccessor",
     "PistonMovingBlockEntityMixin"
   ],

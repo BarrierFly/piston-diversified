@@ -21,9 +21,4 @@ public class RecoilPistonHeadBlock extends ModPistonHeadBlock {
         VoxelShape arm = state.getValue(SHORT) ? PdShapes.rod(facing, 8, 16, 4) : PdShapes.rod(facing, 8, 20, 4);
         return Shapes.or(plate, arm);
     }
-
-    @Override
-    public VoxelShape getCollisionShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
-        return this.getShape(state, level, pos, context);
-    }
 }

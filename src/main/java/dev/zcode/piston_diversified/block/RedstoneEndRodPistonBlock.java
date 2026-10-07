@@ -41,11 +41,6 @@ public class RedstoneEndRodPistonBlock extends ModPistonBaseBlock {
     }
 
     @Override
-    public VoxelShape getCollisionShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
-        return this.getShape(state, level, pos, context);
-    }
-
-    @Override
     public void animateTick(BlockState state, Level level, BlockPos pos, RandomSource random) {
         if (random.nextFloat() < 0.25F) {
             double x = pos.getX() + random.nextDouble();

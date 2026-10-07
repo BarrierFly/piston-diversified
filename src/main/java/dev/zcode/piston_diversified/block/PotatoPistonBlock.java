@@ -50,6 +50,9 @@ public class PotatoPistonBlock extends ModPistonBaseBlock {
             // pistons with progress 0 — the difference between watching the structure slide and
             // seeing it snap into place. Re-resolving the structure here is enough: the server's
             // updates arrive right after and overwrite whatever this guessed.
+            // The push limit is the DEFAULT, not the gamerule: custom gamerules are not guaranteed
+            // to reach the client, and the worst case is a 1-2gt replay mismatch that the server's
+            // block updates immediately correct.
             PotatoStructureResolver clientResolver =
                 new PotatoStructureResolver(level, pos, direction, PdGamerules.POTATO_PUSH_LIMIT_DEFAULT);
             BlockPos frontPos = pos.relative(direction);

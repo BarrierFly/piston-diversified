@@ -37,7 +37,9 @@ public final class WindChargeEffect {
     //? if <1.20.5 {
     /** 1.19.4 fallback: mirror the vanilla onExplosionHit set (button/lever/door/trapdoor/gate/bell/candle/TNT). */
     private static void triggerManually(ServerLevel level, BlockPos center) {
-        int r = 2;
+        // r=1: matches the reach of the vanilla TRIGGER explosion at strength 1.2; a radius-2 box
+        // tripped switches a whole block further out than any wind charge ever does
+        int r = 1;
         for (BlockPos pos : BlockPos.betweenClosed(center.offset(-r, -r, -r), center.offset(r, r, r))) {
             BlockState state = level.getBlockState(pos);
             Block block = state.getBlock();
@@ -69,6 +71,11 @@ public final class WindChargeEffect {
                 if (state.getValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.LIT)) {
                     net.minecraft.world.level.block.AbstractCandleBlock.extinguish(null, state, level, pos);
                 }
+            } else if (block instanceof net.minecraft.world.level.block.TntBlock) {
+                // vanilla primes the TNT (a PrimedTnt entity) instead of exploding in place; the
+                // caller removes the block itself — same split as TntBlock#onProjectileHit
+                net.minecraft.world.level.block.TntBlock.explode(level, pos);
+                level.removeBlock(pos, false);
             }
         }
     }
