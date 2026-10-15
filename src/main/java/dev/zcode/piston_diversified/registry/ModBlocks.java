@@ -5,10 +5,14 @@ import dev.zcode.piston_diversified.block.ChainPistonBlock;
 import dev.zcode.piston_diversified.block.EndRodPistonBlock;
 import dev.zcode.piston_diversified.block.EndRodPistonHeadBlock;
 import dev.zcode.piston_diversified.block.FastPistonBlock;
+import dev.zcode.piston_diversified.block.DeferredPistonBlock;
 import dev.zcode.piston_diversified.block.GravityPistonBlock;
 import dev.zcode.piston_diversified.block.GravityPistonHeadBlock;
 import dev.zcode.piston_diversified.block.HoneyPistonBlock;
+import dev.zcode.piston_diversified.block.HoodedPistonBlock;
+import dev.zcode.piston_diversified.block.HoodedPistonHeadBlock;
 import dev.zcode.piston_diversified.block.LongPushPistonBlock;
+import dev.zcode.piston_diversified.block.OpposingPistonBlock;
 import dev.zcode.piston_diversified.block.LoopPistonBlock;
 import dev.zcode.piston_diversified.block.ModPistonBaseBlock;
 import dev.zcode.piston_diversified.block.ModPistonHeadBlock;
@@ -92,6 +96,13 @@ public final class ModBlocks {
     public static final Block STRONG_PISTON_1 = registerBase("strong_piston_1", p -> new StrongPistonBlock(1, p), baseProperties());
     public static final Block STRONG_PISTON_2 = registerBase("strong_piston_2", p -> new StrongPistonBlock(2, p), baseProperties());
     public static final Block STRONG_PISTON_3 = registerBase("strong_piston_3", p -> new StrongPistonBlock(3, p), baseProperties());
+
+    // ---- v3 bases ----
+    public static final Block HOODED_PISTON = registerBase("hooded_piston", p -> new HoodedPistonBlock(false, p), baseProperties());
+    public static final Block HOODED_STICKY_PISTON = registerBase("hooded_sticky_piston", p -> new HoodedPistonBlock(true, p), baseProperties());
+    public static final Block DEFERRED_PISTON = registerBase("deferred_piston", p -> new DeferredPistonBlock(false, p), baseProperties());
+    public static final Block DEFERRED_STICKY_PISTON = registerBase("deferred_sticky_piston", p -> new DeferredPistonBlock(true, p), baseProperties());
+    public static final Block OPPOSING_PISTON = registerBase("opposing_piston", p -> new OpposingPistonBlock(p), baseProperties());
     // structural parts (递推杆 / 墙并杆) — registered without an item
     public static final Block RECURSIVE_PISTON_ROD = registerPart("recursive_piston_rod", p -> new RecursivePistonRodBlock(p));
 
@@ -130,6 +141,13 @@ public final class ModBlocks {
     public static final Block GRAVITY_PISTON_HEAD = registerHead("gravity_piston_head", p -> new GravityPistonHeadBlock(p), pushableHeadProperties());
     public static final Block STRONG_PISTON_HEAD = registerHead("strong_piston_head", p -> new ModPistonHeadBlock(p), headProperties());
 
+    // ---- v3 heads ----
+    public static final Block HOODED_PISTON_HEAD = registerHead("hooded_piston_head", p -> new HoodedPistonHeadBlock(false, p), headProperties());
+    public static final Block HOODED_STICKY_PISTON_HEAD = registerHead("hooded_sticky_piston_head", p -> new HoodedPistonHeadBlock(true, p), headProperties());
+    public static final Block DEFERRED_PISTON_HEAD = registerHead("deferred_piston_head", p -> new ModPistonHeadBlock(p), headProperties());
+    public static final Block DEFERRED_STICKY_PISTON_HEAD = registerHead("deferred_sticky_piston_head", p -> new ModPistonHeadBlock(p), headProperties());
+    public static final Block OPPOSING_PISTON_HEAD = registerHead("opposing_piston_head", p -> new ModPistonHeadBlock(p), headProperties());
+
     private static final Block[] BASES = {
         HONEY_PISTON, PROJECTILE_PISTON, CHAIN_PISTON, CHAIN_STICKY_PISTON, LOOP_PISTON,
         WIND_CHARGE_PISTON, SILENT_PISTON, RECOIL_PISTON, END_ROD_PISTON, SKULL_PISTON,
@@ -138,7 +156,8 @@ public final class ModBlocks {
         POTATO_PISTON, PICKAXE_PISTON, RECURSIVE_PISTON, RECURSIVE_STICKY_PISTON,
         TURN_PUSH_PISTON, TURN_PUSH_STICKY_PISTON, WALL_MERGE_PISTON, WALL_MERGE_STICKY_PISTON,
         ST_PISTON, ST_STICKY_PISTON, GRAVITY_PISTON,
-        STRONG_PISTON_1, STRONG_PISTON_2, STRONG_PISTON_3
+        STRONG_PISTON_1, STRONG_PISTON_2, STRONG_PISTON_3,
+        HOODED_PISTON, HOODED_STICKY_PISTON, DEFERRED_PISTON, DEFERRED_STICKY_PISTON, OPPOSING_PISTON
     };
 
     private ModBlocks() {

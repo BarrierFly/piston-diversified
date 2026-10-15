@@ -126,6 +126,15 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
         return this.sticky;
     }
 
+    /**
+     * Whether other pistons may push/pull this base. The vanilla rule (extended = immovable,
+     * retracted = movable) is applied on top; 对推活塞 overrides this to be immovable in every
+     * state (自身不可推动). Read by {@code PistonBaseBlockMixin#isPushable}.
+     */
+    public boolean pdIsMovableByOthers() {
+        return true;
+    }
+
     protected boolean isSilent() {
         return false;
     }
@@ -297,7 +306,7 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
         }
     }
 
-    private void checkIfExtend(Level level, BlockPos pos, BlockState state) {
+    protected void checkIfExtend(Level level, BlockPos pos, BlockState state) {
         Direction direction = state.getValue(FACING);
         boolean bl = this.hasPowerSignal(level, pos, direction);
         if (bl && !state.getValue(EXTENDED)) {

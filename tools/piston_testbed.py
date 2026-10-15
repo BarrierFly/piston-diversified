@@ -551,6 +551,128 @@ def potato_carries_dependent_block(rcon):
     return results
 
 
+@register_v2("hooded piston: extends; the non-sticky hood does not drag the sides")
+def hooded_piston_no_drag(rcon):
+    clear_rig(rcon)
+    rcon.cmd("setblock %s piston_diversified:hooded_piston[facing=east,extended=false]" % _pos(BASE))
+    rcon.cmd("setblock %s minecraft:dirt" % _pos((0, 100, 1)))
+    rcon.cmd("setblock %s redstone_block" % _pos(POWER))
+    extended = False
+    for _ in range(40):
+        if rcon.has_block(FRONT, "piston_diversified:hooded_piston_head"):
+            extended = True
+            break
+        time.sleep(0.1)
+    results = [
+        ("hooded piston extended (head in front)", extended),
+        ("non-sticky hood left the side block in place", rcon.has_block((0, 100, 1), "minecraft:dirt")),
+    ]
+    rcon.cmd("setblock %s air" % _pos(POWER))
+    time.sleep(0.5)
+    clear_rig(rcon)
+    return results
+
+
+@register_v2("hooded sticky: five faces travel out and back")
+def hooded_sticky_five_faces(rcon):
+    clear_rig(rcon)
+    rcon.cmd("setblock %s piston_diversified:hooded_sticky_piston[facing=east,extended=false]" % _pos(BASE))
+    rcon.cmd("setblock %s minecraft:dirt" % _pos(FRONT))
+    for side in ((0, 100, 1), (0, 100, -1), (0, 99, 0)):
+        rcon.cmd("setblock %d %d %d minecraft:dirt" % side)
+    # power from behind (the hood's back is open): a redstone block on a hood face would be part
+    # of the travelling structure and oscillate the piston
+    rcon.cmd("setblock -1 100 0 redstone_block")
+    travelled = False
+    for _ in range(60):
+        front = rcon.has_block((2, 100, 0), "minecraft:dirt")
+        sides = (rcon.has_block((1, 100, 1), "minecraft:dirt")
+                 and rcon.has_block((1, 100, -1), "minecraft:dirt")
+                 and rcon.has_block((1, 99, 0), "minecraft:dirt"))
+        if front and sides:
+            travelled = True
+            break
+        time.sleep(0.1)
+    results = [("front + hood side neighbours all moved one cell out", travelled)]
+    rcon.cmd("setblock -1 100 0 air")
+    pulled_front = False
+    for _ in range(80):
+        if rcon.has_block(FRONT, "minecraft:dirt"):
+            pulled_front = True
+            break
+        time.sleep(0.1)
+    results.append(("front block pulled back to the head cell", pulled_front))
+    results.append(("hood side neighbour pulled back to the base side",
+                    rcon.has_block((0, 100, 1), "minecraft:dirt")))
+    results.append(("hood side neighbour pulled back below the base",
+                    rcon.has_block((0, 99, 0), "minecraft:dirt")))
+    clear_rig(rcon)
+    return results
+
+
+@register_v2("deferred piston: extends and retracts normally")
+def deferred_piston_cycle(rcon):
+    clear_rig(rcon)
+    piston = "piston_diversified:deferred_piston"
+    rcon.cmd("setblock %s %s[facing=east,extended=false]" % (_pos(BASE), piston))
+    rcon.cmd("setblock %s redstone_block" % _pos(POWER))
+    pushed = False
+    for _ in range(40):
+        if rcon.has_block(FRONT, "piston_diversified:deferred_piston_head"):
+            pushed = True
+            break
+        time.sleep(0.1)
+    rcon.cmd("setblock %s air" % _pos(POWER))
+    retracted = False
+    for _ in range(40):
+        if rcon.has_block(BASE, piston + "[extended=false]"):
+            retracted = True
+            break
+        time.sleep(0.1)
+    results = [("deferred piston extends", pushed), ("deferred piston retracts", retracted)]
+    clear_rig(rcon)
+    return results
+
+
+@register_v2("opposing piston: inert without an opponent")
+def opposing_piston_inert(rcon):
+    clear_rig(rcon)
+    piston = "piston_diversified:opposing_piston"
+    rcon.cmd("setblock %s %s[facing=east,extended=false]" % (_pos(BASE), piston))
+    rcon.cmd("setblock %s redstone_block" % _pos(POWER))
+    time.sleep(1.5)
+    results = [("lone opposing piston ignored the signal (stayed retracted)",
+                rcon.has_block(BASE, piston + "[extended=false]"))]
+    rcon.cmd("setblock %s air" % _pos(POWER))
+    clear_rig(rcon)
+    return results
+
+
+@register_v2("opposing piston: extends toward an unpowered opponent")
+def opposing_piston_pair(rcon):
+    clear_rig(rcon)
+    piston = "piston_diversified:opposing_piston"
+    rcon.cmd("setblock %s %s[facing=east,extended=false]" % (_pos(BASE), piston))
+    rcon.cmd("setblock 5 100 0 %s[facing=west,extended=false]" % piston)
+    rcon.cmd("setblock %s redstone_block" % _pos(POWER))
+    extended = False
+    for _ in range(40):
+        if rcon.has_block(FRONT, "piston_diversified:opposing_piston_head"):
+            extended = True
+            break
+        time.sleep(0.1)
+    results = [
+        ("the powered side extended with an opponent found", extended),
+        ("the unpowered opponent stayed retracted",
+         rcon.has_block((5, 100, 0), piston + "[extended=false]")),
+    ]
+    rcon.cmd("setblock %s air" % _pos(POWER))
+    time.sleep(0.5)
+    rcon.cmd("setblock 5 100 0 air")
+    clear_rig(rcon)
+    return results
+
+
 # --------------------------------------------------------------------------- RCON
 
 

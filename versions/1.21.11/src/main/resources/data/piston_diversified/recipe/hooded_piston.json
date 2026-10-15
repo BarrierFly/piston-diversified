@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "redstone",
+  "key": {
+    "T": "#minecraft:planks",
+    "P": "#minecraft:planks",
+    "#": "minecraft:cobblestone",
+    "R": "minecraft:redstone"
+  },
+  "pattern": [
+    "TTT",
+    "PPP",
+    "#R#"
+  ],
+  "result": {
+    "count": 1,
+    "id": "piston_diversified:hooded_piston"
+  }
+}

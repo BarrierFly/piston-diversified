@@ -1,8 +1,8 @@
 # Piston Diversified / 活塞多样化
 
-A Fabric mod that adds piston variants. **Mod v2** completes the plan: all 33 pistons ship, in two batches (v1 = 19, v2 = 14). Current release: **0.2.1** (1.19.4 / 1.21.10 / 1.21.11 / 26.2).
+A Fabric mod that adds piston variants. **Mod v3** ship 5 more pistons (hooded ×2, deferred ×2, opposing) on top of the 33 of v1/v2. Current release: **0.3.0** (1.19.4 / 1.21.10 / 1.21.11 / 26.2).
 
-一个添加活塞变种的 Fabric 模组。**mod v2** 完成规划：33 种活塞全部实装，分两批（v1 = 19 种，v2 = 14 种）。当前版本：**0.2.1**（1.19.4 / 1.21.10 / 1.21.11 / 26.2）。
+一个添加活塞变种的 Fabric 模组。**mod v3** 在 v1/v2 的 33 种之上再实装 5 种（带罩×2、全更新置后×2、对推）。当前版本：**0.3.0**（1.19.4 / 1.21.10 / 1.21.11 / 26.2）。
 
 ## Piston list / 活塞列表 (v1)
 
@@ -37,6 +37,16 @@ A Fabric mod that adds piston variants. **Mod v2** completes the plan: all 33 pi
 | Gravity Piston | 重力活塞 | Up = normal push; sideways = the head becomes a falling block; down = telescopes through air until it meets a block; a headless base cannot retract. Unlike every other head, the gravity head can be pushed and pulled by other pistons — a detached head falls like sand. 侧推头变重力方块，下推逐格伸出，无头底座不可收回；与其他活塞头不同，重力头可被其他活塞推拉，脱离的头像沙子一样下落。 |
 | Strong Piston I / II / III | 强力活塞一/二/三档 | Counts unpushable blocks (obsidian, bedrock, …) as 6 / 3 / 2 pushable blocks against the 12 budget, so they really move (1.21.4+; the blocks still exist on 1.19.4). 不可推动方块按 6/3/2 折算计入推动上限并真实移动。 |
 
+## Piston list / 活塞列表 (v3)
+
+| Piston | 活塞 | Notes / 说明 |
+| --- | --- | --- |
+| Hooded Piston | 带罩活塞 | Wears a five-plate hood: the head cell is a full shell, the extended base is the bare 8×8×12 core. The hood faces never stick — slime/honey against the hood is neither dragged in nor glued out (双向隔断). 五块盖板拼成的整格罩；罩面一律不参与黏结（双向隔断）。 |
+| Hooded Sticky Piston | 带罩黏塞 | Same hood, but its five outer faces are sticky in both states: the four side neighbours of the hood cell travel with every extend/retract (the structure may be discontinuous). 罩的五面在伸出/收回两态均黏，罩格四侧方块随行（结构可不连续）。 |
+| Deferred Piston | 全更新置后活塞 | A normal piston whose move defers every update (NC, PP, and the 1.21+ extra update) into one FIFO batch replayed after the last write of the stage. 推出/收回两阶段内的全部更新延后到阶段末统一回放。 |
+| Deferred Sticky Piston | 全更新置后黏塞 | The sticky version; the sticky-pull path defers its updates the same way. 黏性版，黏拉路径的更新同样入批延后。 |
+| Opposing Piston | 对推活塞 | Immovable, and inert unless a reverse-facing opposing piston sits within 41 cells in front; a pair hands its extend/retract over to each other. 自身不可推动；前方 41 格内有反向对推活塞才响应信号，成对互推/互收。 |
+
 ## Crafting / 合成
 
 All recipes are shapeless unless a 3-row grid is shown; in grids `T`/`P` = any planks, `#` = cobblestone, `R` = redstone. Recipes live in `data/piston_diversified/recipes` (`recipe` in 1.21+).
@@ -68,6 +78,11 @@ All recipes are shapeless unless a 3-row grid is shown; in grids `T`/`P` = any p
 | 0-Tick Piston / Sticky | 0t计划刻活塞/黏塞 | Piston + String / 活塞 + 线; sticky: + Slime Ball / 黏性版 = 0t活塞 + 黏液球 |
 | Gravity Piston | 重力活塞 | Grid `TTT` / `#G#` / `#R#`, `G` = Gravel / 排布中 `G` = 砂砾 |
 | Strong Piston I / II / III | 强力活塞一/二/三档 | Vanilla piston grid with 1 / 2 / 3 of the top planks replaced by Creaking Hearts (`H`) / 原版活塞配方上排改 1/2/3 个嘎枝之心 `H`（1.21.4+） |
+| Hooded Piston | 带罩活塞 | Grid `TTT` / `PPP` / `#R#` (the whole middle row of cobblestone replaced by planks) / 排布：中层整行换木板 |
+| Hooded Sticky Piston | 带罩黏塞 | Hooded Piston + Slime Ball / 带罩活塞 + 黏液球 |
+| Deferred Piston | 全更新置后活塞 | Vanilla piston grid with the bottom redstone replaced by Nether Quartz (`Q`) / 原版活塞配方下排红石换下界石英 `Q` |
+| Deferred Sticky Piston | 全更新置后黏塞 | Deferred Piston + Slime Ball / 全更新置后活塞 + 黏液球 |
+| Opposing Piston | 对推活塞 | Piston + Tripwire Hook / 活塞 + 绊线钩 |
 
 ## Building / 构建
 
@@ -90,13 +105,13 @@ Gamerule / 规则：`potato_push_limit` (default 32) caps the potato piston's st
 
 ## Testing / 测试
 
-`tools/piston_testbed.py` boots a headless dev server over RCON and asserts piston behaviour (data-file parse check plus 22 cases) on all four version nodes.
+`tools/piston_testbed.py` boots a headless dev server over RCON and asserts piston behaviour (data-file parse check plus 28 cases) on all four version nodes.
 
 ```bash
 python tools/piston_testbed.py --start --version 1.21.11
 ```
 
-`tools/piston_testbed.py` 启动无头开发服并通过 RCON 断言活塞行为（数据文件解析检查 + 22 项用例），四个版本节点均已跑通。
+`tools/piston_testbed.py` 启动无头开发服并通过 RCON 断言活塞行为（数据文件解析检查 + 28 项用例），四个版本节点均已跑通。
 
 ## Conversions / 转换
 
@@ -111,6 +126,13 @@ All textures are derived from the vanilla jar by `tools/gen_assets.py` (also gen
 所有贴图由 `tools/gen_assets.py` 从原版 jar 派生生成，同脚本生成模型/配方/战利品表/语言/图标。
 
 ## Changelog / 更新日志
+
+### 0.3.0
+
+- mod v3: hooded piston / hooded sticky, deferred piston / deferred sticky, opposing piston. 带罩/带罩黏塞、全更新置后/黏塞、对推活塞。
+- The hood is a five-plate whole-cell shell (models + collision boxes match); 带罩黏塞's five outer faces are sticky in both states, while any hood face is a sticky barrier (罩面隔断). 罩=五块盖板整格壳；带罩黏塞五面黏、其余罩面隔断。
+- 全更新置后(黏)活塞 defers every move update (NC / PP / extra) into one FIFO batch replayed at the stage tail; mixins on `ServerLevel`, `BlockStateBase` and the vanilla resolver collect them. 全更新置后(黏)活塞把全部更新入批延后到阶段末回放。
+- Version-specific engine differences for the deferred batch live in the interception layer; on 1.19.4 the batch carries only NC/PP (no extra update). 版本差异收在拦截层：1.19.4 无额外更新。
 
 ### 0.2.1
 

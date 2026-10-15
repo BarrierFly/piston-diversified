@@ -31,5 +31,10 @@
   "block.piston_diversified.gravity_piston": "Gravity Piston",
   "block.piston_diversified.strong_piston_1": "Strong Piston I",
   "block.piston_diversified.strong_piston_2": "Strong Piston II",
-  "block.piston_diversified.strong_piston_3": "Strong Piston III"
+  "block.piston_diversified.strong_piston_3": "Strong Piston III",
+  "block.piston_diversified.hooded_piston": "Hooded Piston",
+  "block.piston_diversified.hooded_sticky_piston": "Hooded Sticky Piston",
+  "block.piston_diversified.deferred_piston": "Deferred Piston",
+  "block.piston_diversified.deferred_sticky_piston": "Deferred Sticky Piston",
+  "block.piston_diversified.opposing_piston": "Opposing Piston"
 }

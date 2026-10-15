@@ -34,8 +34,9 @@ public class PistonBaseBlockMixin {
                                                       Direction movementDirection, boolean allowDestroy,
                                                       Direction pistonFacing,
                                                       CallbackInfoReturnable<Boolean> cir) {
-        if (state.getBlock() instanceof ModPistonBaseBlock) {
-            cir.setReturnValue(!state.getValue(ModPistonBaseBlock.EXTENDED));
+        if (state.getBlock() instanceof ModPistonBaseBlock base) {
+            // 对推活塞 opts out entirely (自身不可推动); every other variant keeps the vanilla rule
+            cir.setReturnValue(base.pdIsMovableByOthers() && !state.getValue(ModPistonBaseBlock.EXTENDED));
         } else if (state.getBlock() instanceof ModPistonHeadBlock head && !head.pdIsPushable()) {
             cir.setReturnValue(false);
         } else if (state.getBlock() instanceof RecursivePistonRodBlock) {

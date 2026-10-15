@@ -41,6 +41,13 @@ public class ModPistonStructureResolver implements PdResolver {
     private final boolean destroyTnt;
     /** 强力活塞 tier: 0 = conversion off, 1..3 = an unpushable block counts as 6/3/2. */
     private final int convertTier;
+    /**
+     * 带罩黏塞 五面黏: the hood cell (piston + 1 along the facing) is treated as an always-sticky
+     * cell, so its four side neighbours travel with the move even though the block occupying it is
+     * not itself sticky (on an extend the head does not exist yet; on a retract the head was
+     * cleared before the resolve).
+     */
+    private final boolean fiveFaceHood;
     private final List<BlockPos> toPush = Lists.newArrayList();
     private final List<BlockPos> toDestroy = Lists.newArrayList();
     /** Running push budget: normal blocks cost 1, converted blocks cost their tier weight. */
@@ -53,6 +60,12 @@ public class ModPistonStructureResolver implements PdResolver {
 
     public ModPistonStructureResolver(Level level, BlockPos pistonPos, Direction pistonDirection, boolean extending,
                                       boolean allowStickiness, boolean destroyFragile, boolean destroyTnt, int convertTier) {
+        this(level, pistonPos, pistonDirection, extending, allowStickiness, destroyFragile, destroyTnt, convertTier, false);
+    }
+
+    public ModPistonStructureResolver(Level level, BlockPos pistonPos, Direction pistonDirection, boolean extending,
+                                      boolean allowStickiness, boolean destroyFragile, boolean destroyTnt, int convertTier,
+                                      boolean fiveFaceHood) {
         this.level = level;
         this.pistonPos = pistonPos;
         this.pistonDirection = pistonDirection;
@@ -61,6 +74,7 @@ public class ModPistonStructureResolver implements PdResolver {
         this.destroyFragile = destroyFragile;
         this.destroyTnt = destroyTnt;
         this.convertTier = convertTier;
+        this.fiveFaceHood = fiveFaceHood;
         if (extending) {
             this.pushDirection = pistonDirection;
             this.startPos = pistonPos.relative(pistonDirection);
@@ -86,6 +100,7 @@ public class ModPistonStructureResolver implements PdResolver {
         this.destroyFragile = false;
         this.destroyTnt = false;
         this.convertTier = 0;
+        this.fiveFaceHood = false;
     }
 
     public boolean resolve() {
@@ -116,6 +131,28 @@ public class ModPistonStructureResolver implements PdResolver {
             }
         }
 
+        if (this.fiveFaceHood && !this.addForcedHoodBranches()) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * 五面黏: pulls the four side neighbours of the cell the hood currently occupies as if that
+     * cell were a slime block, regardless of what actually occupies it. While retracted the hood
+     * sits on the base (so an extend carries the base's side neighbours); while extended it sits
+     * on the head (so a retract carries the head's side neighbours).
+     */
+    private boolean addForcedHoodBranches() {
+        BlockPos hoodCell = this.extending ? this.pistonPos : this.pistonPos.relative(this.pistonDirection);
+        for (Direction direction : Direction.values()) {
+            if (direction.getAxis() != this.pushDirection.getAxis()) {
+                if (!this.addBlockLine(hoodCell.relative(direction), direction)) {
+                    return false;
+                }
+            }
+        }
         return true;
     }
 
@@ -196,16 +233,11 @@ public class ModPistonStructureResolver implements PdResolver {
         if (!this.allowStickiness) {
             return false;
         }
-        return state.is(net.minecraft.world.level.block.Blocks.SLIME_BLOCK) || state.is(net.minecraft.world.level.block.Blocks.HONEY_BLOCK);
+        return HoodStickiness.isSticky(state);
     }
 
     private boolean canStickToEachOther(BlockState state1, BlockState state2) {
-        if (state1.is(net.minecraft.world.level.block.Blocks.HONEY_BLOCK) && state2.is(net.minecraft.world.level.block.Blocks.SLIME_BLOCK)) {
-            return false;
-        }
-        return state1.is(net.minecraft.world.level.block.Blocks.SLIME_BLOCK) && state2.is(net.minecraft.world.level.block.Blocks.HONEY_BLOCK)
-            ? false
-            : isSticky(state1) || isSticky(state2);
+        return HoodStickiness.canStickToEachOther(state1, state2);
     }
 
     private boolean addBlockLine(BlockPos originPos, Direction direction) {

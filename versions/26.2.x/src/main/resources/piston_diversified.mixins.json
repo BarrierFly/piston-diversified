@@ -5,12 +5,15 @@
   "compatibilityLevel": "JAVA_17",
   "mixins": [
     "BlockEntityMixin",
+    "BlockStateBaseMixin",
     "BootstrapMixin",
     "FallingBlockEntityAccessor",
     "MovingPistonBlockMixin",
     "PistonBaseBlockMixin",
+    "PistonStructureResolverMixin",
     "PistonMovingBlockEntityAccessor",
-    "PistonMovingBlockEntityMixin"
+    "PistonMovingBlockEntityMixin",
+    "ServerLevelMixin"
   ],
   "client": [],
   "injectors": {

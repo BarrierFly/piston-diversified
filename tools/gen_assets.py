@@ -203,6 +203,27 @@ def _draw_creaking_heart(img, origin, tint=(196, 62, 74)):
     _blit(img, icon, origin[0], origin[1], (*tint, 255))
 
 
+def _draw_hourglass(img, color=(226, 196, 118, 255), outline=(120, 92, 40, 255)):
+    """A small hourglass icon for the 全更新置后 piston plate (delayed updates = sand)."""
+    d = ImageDraw.Draw(img)
+    # upper and lower bulbs meeting at the waist
+    d.polygon([(5, 3), (10, 3), (7, 7), (10, 11), (5, 11), (8, 7)], fill=color)
+    # frame
+    d.rectangle([4, 3, 11, 4], outline=outline)
+    d.rectangle([4, 10, 11, 11], outline=outline)
+
+
+def _draw_tripwire_hook(img, color=(150, 146, 140, 255), outline=(70, 68, 64, 255)):
+    """A tripwire-hook icon for the 对推活塞 plate."""
+    d = ImageDraw.Draw(img)
+    d.line([(7, 3), (7, 10)], fill=outline, width=3)
+    d.line([(7, 3), (7, 10)], fill=color, width=1)
+    d.line([(7, 10), (11, 10)], fill=outline, width=3)
+    d.line([(7, 10), (11, 10)], fill=color, width=1)
+    d.line([(11, 10), (11, 8)], fill=outline, width=3)
+    d.line([(11, 10), (11, 8)], fill=color, width=1)
+
+
 def draw_text(img, text, ox, oy, scale, color=(255, 255, 255, 255), shadow=(20, 20, 20, 255)):
     d = ImageDraw.Draw(img)
     cx = ox
@@ -420,6 +441,26 @@ def build_textures(v: Vanilla):
             _draw_creaking_heart(hearts, (3 + i * 5, 4))
         emit(f"strong_piston_{tier}", **{**vanilla_set, "top": hearts})
 
+    # ---- v3 variants ----
+
+    # 带罩活塞 / 带罩黏塞: vanilla base textures; the hood itself reuses the plate/side textures
+    # (front wall = plate, side walls = side) in the custom head model.
+    emit("hooded_piston", **vanilla_set)
+    emit("hooded_sticky_piston", **vanilla_set, sticky=src["sticky"])
+
+    # 全更新置后活塞 / 黏塞: hourglass on the plate.
+    hourglass_top = src["top"].copy()
+    _draw_hourglass(hourglass_top)
+    hourglass_sticky = src["sticky"].copy()
+    _draw_hourglass(hourglass_sticky)
+    emit("deferred_piston", **{**vanilla_set, "top": hourglass_top})
+    emit("deferred_sticky_piston", **vanilla_set, sticky=hourglass_sticky)
+
+    # 对推活塞: tripwire-hook pattern on the plate.
+    hook_top = src["top"].copy()
+    _draw_tripwire_hook(hook_top)
+    emit("opposing_piston", **{**vanilla_set, "top": hook_top})
+
     return out
 
 # ---------------------------------------------------------------- variants metadata
@@ -462,6 +503,12 @@ VARIANTS = [
     ("strong_piston_1", False, False, "none"),
     ("strong_piston_2", False, False, "none"),
     ("strong_piston_3", False, False, "none"),
+    # ---- v3 ----
+    ("hooded_piston", False, True, "hooded"),
+    ("hooded_sticky_piston", True, True, "hooded"),
+    ("deferred_piston", False, False, "plate"),
+    ("deferred_sticky_piston", True, False, "plate"),
+    ("opposing_piston", False, False, "plate"),
 ]
 
 LANG_EN = {
@@ -498,6 +545,11 @@ LANG_EN = {
     "strong_piston_1": "Strong Piston I",
     "strong_piston_2": "Strong Piston II",
     "strong_piston_3": "Strong Piston III",
+    "hooded_piston": "Hooded Piston",
+    "hooded_sticky_piston": "Hooded Sticky Piston",
+    "deferred_piston": "Deferred Piston",
+    "deferred_sticky_piston": "Deferred Sticky Piston",
+    "opposing_piston": "Opposing Piston",
 }
 
 LANG_ZH = {
@@ -534,6 +586,11 @@ LANG_ZH = {
     "strong_piston_1": "强力活塞一档",
     "strong_piston_2": "强力活塞二档",
     "strong_piston_3": "强力活塞三档",
+    "hooded_piston": "带罩活塞",
+    "hooded_sticky_piston": "带罩黏塞",
+    "deferred_piston": "全更新置后活塞",
+    "deferred_sticky_piston": "全更新置后黏塞",
+    "opposing_piston": "对推活塞",
 }
 
 FACING_ROT = {
@@ -604,6 +661,118 @@ def head_model_plate_short(vid, sticky):
             "unsticky": f"{NS}:block/{vid}_top",
         },
     }
+
+def hooded_extended_model(vid):
+    """伸出态带罩活塞底座 = 芯柱 (core column 8×8×12): front 4px cut, four side rails cut.
+
+    Coordinates are model-local with the facing plate at z=0, so the core spans z 4..16 and the
+    cross-section 4..12. The front face (toward the head) shows the inner texture; the back is the
+    piston bottom. Only faces that actually border a neighbouring cell carry a cullface.
+    """
+    return {
+        "parent": "block/block",
+        "textures": {
+            "particle": f"{NS}:block/{vid}_side",
+            "side": f"{NS}:block/{vid}_side",
+            "bottom": f"{NS}:block/{vid}_bottom",
+            "inner": f"{NS}:block/{vid}_inner",
+        },
+        "elements": [{
+            "from": [4, 4, 4], "to": [12, 12, 16],
+            "faces": {
+                "north": {"uv": [0, 0, 16, 16], "texture": "#inner"},
+                "south": {"uv": [0, 0, 16, 16], "texture": "#bottom", "cullface": "south"},
+                "up": {"uv": [0, 0, 16, 16], "texture": "#side"},
+                "down": {"uv": [0, 0, 16, 16], "texture": "#side"},
+                "west": {"uv": [0, 0, 16, 16], "texture": "#side"},
+                "east": {"uv": [0, 0, 16, 16], "texture": "#side"},
+            },
+        }],
+    }
+
+
+def hooded_head_model(vid, sticky, short):
+    """头 = 罩外壳 (five-plate shell: platform front wall + four side rails) with the rod inside.
+
+    The front wall is the 16×16×4 plate; the four side rails are 4px thick, 12px long, running from
+    z=4 to the back of the cell; the cavity is 8×8×12 and the back is open (a south face is only
+    added on the rail end, not across the opening). The rod reaches z=20 when extended so it meets
+    the base core, and stops at z=16 when short. Faces on the cell boundary are culled; cavity
+    faces are not, and coincident interior faces are omitted to avoid z-fighting.
+    """
+    platform = f"{NS}:block/{vid}_top_sticky" if sticky else f"{NS}:block/{vid}_top"
+    side = f"{NS}:block/{vid}_side"
+    rod_end = 16 if short else 20
+    uv = [0, 0, 16, 16]
+
+    def face(texture, cull=None):
+        f = {"uv": uv, "texture": texture}
+        if cull:
+            f["cullface"] = cull
+        return f
+
+    elements = [
+        {  # front wall
+            "from": [0, 0, 0], "to": [16, 16, 4],
+            "faces": {
+                "north": face("#platform", "north"),
+                "south": face("#inner"),
+                "up": face("#side", "up"),
+                "down": face("#side", "down"),
+                "west": face("#side", "west"),
+                "east": face("#side", "east"),
+            },
+        },
+        {  # west rail
+            "from": [0, 0, 4], "to": [4, 16, 16],
+            "faces": {
+                "west": face("#side", "west"),
+                "east": face("#inner"),
+                "up": face("#side", "up"),
+                "down": face("#side", "down"),
+                "south": face("#side", "south"),
+            },
+        },
+        {  # east rail
+            "from": [12, 0, 4], "to": [16, 16, 16],
+            "faces": {
+                "east": face("#side", "east"),
+                "west": face("#inner"),
+                "up": face("#side", "up"),
+                "down": face("#side", "down"),
+                "south": face("#side", "south"),
+            },
+        },
+        {  # top rail
+            "from": [4, 12, 4], "to": [12, 16, 16],
+            "faces": {
+                "up": face("#side", "up"),
+                "down": face("#inner"),
+                "south": face("#side", "south"),
+            },
+        },
+        {  # bottom rail
+            "from": [4, 0, 4], "to": [12, 4, 16],
+            "faces": {
+                "down": face("#side", "down"),
+                "up": face("#inner"),
+                "south": face("#side", "south"),
+            },
+        },
+        {  # rod (inside the cavity; reaches into the base cell when extended)
+            "from": [6, 6, 4], "to": [10, 10, rod_end],
+            "faces": {
+                "north": face("#side"),
+                "south": face("#side"),
+                "up": face("#side"),
+                "down": face("#side"),
+                "west": face("#side"),
+                "east": face("#side"),
+            },
+        },
+    ]
+    return {"parent": "block/block", "textures": {"particle": side, "platform": platform, "side": side, "inner": f"{NS}:block/{vid}_inner"}, "elements": elements}
+
 
 def end_rod_base_model(vid):
     rod = f"{NS}:block/{vid}_rod"
@@ -1181,6 +1350,10 @@ def gen_shared_assets(textures):
             # 墙并: retracted base with the wall post poking 8px past the front face
             write_json(os.path.join(model_dir, vid + ".json"), wall_merge_retracted_model(vid, sticky))
             write_json(os.path.join(model_dir, vid + "_extended.json"), base_model_extended(vid))
+        elif head_kind == "hooded":
+            # 带罩: retracted base is a full block (core + hood); extended leaves the bare core
+            write_json(os.path.join(model_dir, vid + ".json"), base_model_retracted(vid, sticky))
+            write_json(os.path.join(model_dir, vid + "_extended.json"), hooded_extended_model(vid))
         elif head_kind == "bent":
             # 拐推: retracted base per local bend (arrow plate). An extended base has no plate,
             # so its arrow is drawn on the inner (top) face instead — the bend stays readable
@@ -1284,6 +1457,13 @@ def gen_shared_assets(textures):
             # the gravity head falls as a vanilla moving block, so it keeps the vanilla plate
             head_models[("normal", False, False, None)] = head_model_plate(vid, False)
             head_models[("normal", True, False, None)] = head_model_plate_short(vid, False)
+        elif head_kind == "hooded":
+            # 带罩: the whole head cell is the hood shell; sticky shows the slime-tinted shell
+            head_models[("normal", False, False, None)] = hooded_head_model(vid, False, False)
+            head_models[("normal", True, False, None)] = hooded_head_model(vid, False, True)
+            if sticky:
+                head_models[("sticky", False, False, None)] = hooded_head_model(vid, True, False)
+                head_models[("sticky", True, False, None)] = hooded_head_model(vid, True, True)
 
         for (ptype, short, powered, extra), model in head_models.items():
             suffix = "_powered" if powered else ""
@@ -1478,6 +1658,22 @@ RECIPES = [
     ("strong_piston_3", "shaped", None, (["HHH", "#X#", "#R#"],
                                           {"#": "minecraft:cobblestone", "H": "minecraft:creaking_heart",
                                            "X": "minecraft:iron_ingot", "R": "minecraft:redstone"})),
+
+    # ---- v3 recipes ----
+    # 带罩活塞: vanilla piston grid with the whole middle row of cobblestone replaced by planks
+    # (the 后坐活塞 already owns the middle-left/right-only layout)
+    ("hooded_piston", "shaped", None, (["TTT", "PPP", "#R#"],
+                                       {"T": "#minecraft:planks", "P": "#minecraft:planks",
+                                        "#": "minecraft:cobblestone", "R": "minecraft:redstone"})),
+    ("hooded_sticky_piston", "shapeless",
+     ["piston_diversified:hooded_piston", "minecraft:slime_ball"], None),
+    # 全更新置后活塞: vanilla piston grid with the bottom redstone replaced by nether quartz
+    ("deferred_piston", "shaped", None, (["TTT", "#X#", "#Q#"],
+                                         {"T": "#minecraft:planks", "#": "minecraft:cobblestone",
+                                          "X": "minecraft:iron_ingot", "Q": "minecraft:quartz"})),
+    ("deferred_sticky_piston", "shapeless",
+     ["piston_diversified:deferred_piston", "minecraft:slime_ball"], None),
+    ("opposing_piston", "shapeless", ["minecraft:piston", "minecraft:tripwire_hook"], None),
 ]
 
 # Recipes whose result differs from the file name (one block, several recipe files).
@@ -1580,7 +1776,7 @@ def gen_version_trees():
             "id": "${id}",
             "version": "${version}",
             "name": "${name}",
-            "description": "Adds 33 piston variants: v1 batch (honey, projectile, chain, loop, wind charge, silent, recoil, end rod, skull, directional QC, observer, redstone end rod, long push, weak, fast) and v2 batch (potato, pickaxe, recursive, turn push, wall merge, 0-tick, gravity, strong I-III).",
+            "description": "Adds 38 piston variants: v1 batch (honey, projectile, chain, loop, wind charge, silent, recoil, end rod, skull, directional QC, observer, redstone end rod, long push, weak, fast), v2 batch (potato, pickaxe, recursive, turn push, wall merge, 0-tick, gravity, strong I-III) and v3 batch (hooded, hooded sticky, deferred, deferred sticky, opposing).",
             "authors": ["ZCode"],
             "license": "WTFPL",
             "icon": f"assets/{NS}/icon.png",
@@ -1608,6 +1804,9 @@ def gen_version_trees():
                 #   (BlockEntity#getUpdatePacket returns null by default and vanilla never overrides
                 #   it, so without this every replayless push is invisible client-side)
                 "BlockEntityMixin",
+                # BlockStateBaseMixin / ServerLevelMixin: collect the shape/extra/neighbour updates
+                #   a piston's move emits into the 全更新置后 batch instead of dispatching them
+                "BlockStateBaseMixin",
                 "BootstrapMixin",
                 "FallingBlockEntityAccessor",
                 # MovingPistonBlockMixin: lets the client build that entity at all — vanilla's
@@ -1618,8 +1817,12 @@ def gen_version_trees():
                 #   immovable, retracted pushable, heads/rods push-resistant) — vanilla hardcodes
                 #   only its own two pistons in isPushable
                 "PistonBaseBlockMixin",
+                # PistonStructureResolverMixin: hood connection rules (罩面隔断/五面黏) for the
+                #   vanilla resolver, so any piston pushing a 带罩(黏)活塞 sees them too
+                "PistonStructureResolverMixin",
                 "PistonMovingBlockEntityAccessor",
                 "PistonMovingBlockEntityMixin",
+                "ServerLevelMixin",
             ],
             "client": [],
             "injectors": {"defaultRequire": 1},

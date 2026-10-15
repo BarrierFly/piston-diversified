@@ -31,5 +31,10 @@
   "block.piston_diversified.gravity_piston": "重力活塞",
   "block.piston_diversified.strong_piston_1": "强力活塞一档",
   "block.piston_diversified.strong_piston_2": "强力活塞二档",
-  "block.piston_diversified.strong_piston_3": "强力活塞三档"
+  "block.piston_diversified.strong_piston_3": "强力活塞三档",
+  "block.piston_diversified.hooded_piston": "带罩活塞",
+  "block.piston_diversified.hooded_sticky_piston": "带罩黏塞",
+  "block.piston_diversified.deferred_piston": "全更新置后活塞",
+  "block.piston_diversified.deferred_sticky_piston": "全更新置后黏塞",
+  "block.piston_diversified.opposing_piston": "对推活塞"
 }

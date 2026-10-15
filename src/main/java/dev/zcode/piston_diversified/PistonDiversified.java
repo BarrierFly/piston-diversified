@@ -12,12 +12,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * 活塞多样化 (Piston Diversified) — mod v1 + v2 batch.
+ * 活塞多样化 (Piston Diversified) — mod v1 + v2 + v3 batches.
  *
  * <p>v1: honey, projectile, chain (x2), loop, wind charge, silent, recoil, end rod, skull,
  * directional QC (x2), observer (x2), redstone end rod, long push, weak, fast (x2).</p>
  * <p>v2: potato, pickaxe, recursive (x2), turn push (x2), wall merge (x2), 0-tick (x2), gravity,
  * strong (x3 tiers).</p>
+ * <p>v3: hooded (x2), deferred (x2), opposing.</p>
  */
 public class PistonDiversified implements ModInitializer {
     public static final String MOD_ID = "piston_diversified";
