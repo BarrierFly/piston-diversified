@@ -3,7 +3,6 @@
   "textures": {
     "particle": "piston_diversified:block/hooded_sticky_piston_top",
     "platform": "piston_diversified:block/hooded_sticky_piston_top",
-    "bottom": "piston_diversified:block/hooded_sticky_piston_bottom",
     "join": "piston_diversified:block/hooded_sticky_piston_join_bottom"
   },
   "elements": [
@@ -26,7 +25,7 @@
             16,
             16
           ],
-          "texture": "#join",
+          "texture": "#platform",
           "rotation": 180,
           "cullface": "down"
         },
@@ -57,7 +56,7 @@
             16,
             16
           ],
-          "texture": "#bottom",
+          "texture": "#join",
           "cullface": "south"
         },
         "west": {

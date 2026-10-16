@@ -724,13 +724,15 @@ def head_model_plate_short(vid, sticky):
     }
 
 def hooded_base_retracted_model(vid):
-    """收回态带罩活塞 = 整块戴着罩的方块, 底面再补上罩口与底座的拼合。
+    """收回态带罩活塞 = 整块戴着罩的方块, 罩口那一面再补上与底座的拼合。
 
-    罩包住朝向面(up/north)与四个侧面(west/east), 这五面都是带暗边的盖板。罩够不到的只有底面:
-    从下往上看是罩口的边框绕一圈、中间露出裸底座, 所以 down 单独绑一张 `_join_bottom`;
-    背面(永远是缩回去那面)保持裸底座的 piston_bottom。几何、UV、旋转、cullface 全部照抄
-    `minecraft:block/template_piston`, 只有 down 的贴图不同 —— 但要拆开 down 就没法再当模板的
-    子模型 (模板把 down 和 up/west/east 绑在同一个 #side 上), 所以元素写全。
+    罩包住朝向面(north)与四个侧面(up/down/west/east), 这五面都是带暗边的盖板。罩够不到的只有
+    背面(south) —— 也就是活塞自己的底面(piston_bottom): 从罩口看进去, 罩沿绕一圈, 正中露出底座
+    本体, 所以 south 单独绑一张 `_join_bottom`。注意这一面是"罩口", 不是世界的下方: 模型整体跟着
+    朝向一起转(blockstate 里 up/down 朝向用 x:270 / x:90), 所以横放活塞的罩口在背面, 朝上活塞的
+    罩口才落在物理底面。几何、UV、旋转、cullface 全部照抄 `minecraft:block/template_piston`,
+    只有 south 的贴图不同 —— 但要拆开 south 就没法再当模板的子模型 (模板把 south 绑在 #bottom 上),
+    所以元素写全。
     """
     hood = f"{NS}:block/{vid}_top"
     return {
@@ -738,16 +740,15 @@ def hooded_base_retracted_model(vid):
         "textures": {
             "particle": hood,
             "platform": hood,
-            "bottom": f"{NS}:block/{vid}_bottom",
             "join": f"{NS}:block/{vid}_join_bottom",
         },
         "elements": [{
             "from": [0, 0, 0], "to": [16, 16, 16],
             "faces": {
-                "down": {"uv": [0, 0, 16, 16], "texture": "#join", "rotation": 180, "cullface": "down"},
+                "down": {"uv": [0, 0, 16, 16], "texture": "#platform", "rotation": 180, "cullface": "down"},
                 "up": {"uv": [0, 0, 16, 16], "texture": "#platform", "cullface": "up"},
                 "north": {"uv": [0, 0, 16, 16], "texture": "#platform", "cullface": "north"},
-                "south": {"uv": [0, 0, 16, 16], "texture": "#bottom", "cullface": "south"},
+                "south": {"uv": [0, 0, 16, 16], "texture": "#join", "cullface": "south"},
                 "west": {"uv": [0, 0, 16, 16], "texture": "#platform", "rotation": 270, "cullface": "west"},
                 "east": {"uv": [0, 0, 16, 16], "texture": "#platform", "rotation": 90, "cullface": "east"},
             },
