@@ -54,4 +54,13 @@ public class HoodedPistonBlock extends ModPistonBaseBlock {
         // fiveFaceHood only for the sticky variant: its hood pulls its side neighbours as well
         return new ModPistonStructureResolver(level, pos, direction, extending, true, false, false, 0, this.sticky);
     }
+
+    /**
+     * 带罩黏塞: the hood keeps pulling its side neighbours even when the front cell cannot be
+     * pulled (obsidian in front, or nothing at all) — the five hood faces are sticky by themselves.
+     */
+    @Override
+    protected boolean pullsWithoutPullableSource() {
+        return this.sticky;
+    }
 }

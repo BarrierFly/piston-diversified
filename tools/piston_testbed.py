@@ -610,6 +610,46 @@ def hooded_sticky_five_faces(rcon):
     return results
 
 
+@register_v2("hooded sticky: pulls the sides even when the front cannot be pulled")
+def hooded_sticky_blocked_front(rcon):
+    """正面拉不动也要黏动侧面.
+
+    Obsidian in front of the head is unpullable, so vanilla's sticky retract would just drop the
+    head. The hood's five faces are sticky in their own right, so the neighbours of the hood cell
+    must still travel in (and the obsidian must stay put — the pull may not drag it along).
+    """
+    clear_rig(rcon)
+    rcon.cmd("setblock %s piston_diversified:hooded_sticky_piston[facing=east,extended=false]" % _pos(BASE))
+    # power from behind (the hood's back is open): a redstone block on a hood face would be part
+    # of the travelling structure and oscillate the piston
+    rcon.cmd("setblock -1 100 0 redstone_block")
+    extended = False
+    for _ in range(60):
+        if rcon.has_block(FRONT, "piston_diversified:hooded_sticky_piston_head"):
+            extended = True
+            break
+        time.sleep(0.1)
+    # now block the pull source (the cell in front of the head) with something unpullable and glue
+    # neighbours to the hood's side faces
+    rcon.cmd("setblock %s minecraft:obsidian" % _pos((2, 100, 0)))
+    for side in ((1, 100, 1), (1, 100, -1), (1, 99, 0)):
+        rcon.cmd("setblock %d %d %d minecraft:dirt" % side)
+    rcon.cmd("setblock -1 100 0 air")
+    pulled = False
+    for _ in range(80):
+        if rcon.has_block((0, 100, 1), "minecraft:dirt") and rcon.has_block((0, 99, 0), "minecraft:dirt"):
+            pulled = True
+            break
+        time.sleep(0.1)
+    results = [
+        ("piston extended (head out, empty front)", extended),
+        ("hood side neighbours were pulled back to the base despite the blocked front", pulled),
+        ("the unpullable front block stayed put", rcon.has_block((2, 100, 0), "minecraft:obsidian")),
+    ]
+    clear_rig(rcon)
+    return results
+
+
 @register_v2("deferred piston: extends and retracts normally")
 def deferred_piston_cycle(rcon):
     clear_rig(rcon)

@@ -2,7 +2,7 @@
   "parent": "minecraft:block/cube_bottom_top",
   "textures": {
     "bottom": "piston_diversified:block/hooded_piston_bottom",
-    "side": "piston_diversified:block/hooded_piston_side",
+    "side": "piston_diversified:block/hooded_piston_top",
     "top": "piston_diversified:block/hooded_piston_top"
   }
 }

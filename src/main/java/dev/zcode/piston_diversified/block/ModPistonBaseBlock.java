@@ -223,6 +223,16 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
     }
 
     /**
+     * Whether the sticky retract runs its pull move even when the pull source cell holds nothing
+     * pullable (or is empty). Vanilla answers no: an unpullable second cell means the head is just
+     * removed. 带罩黏塞 answers yes — its hood's five faces are sticky in their own right, so the
+     * neighbours of the hood cell still travel even when the front cannot be pulled.
+     */
+    protected boolean pullsWithoutPullableSource() {
+        return false;
+    }
+
+    /**
      * How an extend decision reaches execution. Vanilla sends a block event; the 0t计划刻 piston
      * schedules a 0gt tick instead (the decision itself is re-derived from live signals later).
      */
@@ -487,11 +497,12 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
                     mayPull = pullOverride; // coordinated retract: the group already decided
                 } else {
                     mayPull = id == 1
-                        && !secondState.isAir()
-                        && isPushable(secondState, level, secondPos, direction.getOpposite(), false, direction)
-                        && (secondState.getPistonPushReaction() == PushReaction.NORMAL
-                            || secondState.is(Blocks.PISTON)
-                            || secondState.is(Blocks.STICKY_PISTON));
+                        && ((!secondState.isAir()
+                            && isPushable(secondState, level, secondPos, direction.getOpposite(), false, direction)
+                            && (secondState.getPistonPushReaction() == PushReaction.NORMAL
+                                || secondState.is(Blocks.PISTON)
+                                || secondState.is(Blocks.STICKY_PISTON)))
+                            || this.pullsWithoutPullableSource());
                 }
                 if (id != 1 && this.pullOnInstantRetract()) {
                     // 蜂蜜活塞: vanilla would drop the block here (type 2) — pull instead; if the

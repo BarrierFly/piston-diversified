@@ -224,6 +224,44 @@ def _draw_tripwire_hook(img, color=(150, 146, 140, 255), outline=(70, 68, 64, 25
     d.line([(11, 10), (11, 8)], fill=color, width=1)
 
 
+HOOD_RIM = (52, 52, 56, 255)
+HOOD_RIM_STICKY = (88, 152, 64, 255)
+
+
+def _mix(colour, target, amount):
+    r, g, b, a = colour
+    tr, tg, tb, _ = target
+    return (int(r + (tr - r) * amount), int(g + (tg - g) * amount),
+            int(b + (tb - b) * amount), a)
+
+
+def _ring_coords(inset):
+    edge, far = inset, 15 - inset
+    coords = []
+    for i in range(inset, 16 - inset):
+        coords.append((i, edge))
+        coords.append((i, far))
+        coords.append((edge, i))
+        coords.append((far, i))
+    return coords
+
+
+def hood_plate(base, rim):
+    """罩的外表面: the piston cover plate set inside a dark 1px rim.
+
+    The hood is five cover plates, so every hood face is plate material; the rim is what makes the
+    shell read as a shell (each hood face is visibly framed, and the frames line up across the
+    five faces into one silhouette around the piston).
+    """
+    img = base.copy()
+    px = img.load()
+    for x, y in _ring_coords(0):
+        px[x, y] = rim
+    for x, y in _ring_coords(1):
+        px[x, y] = _mix(px[x, y], rim, 0.45)
+    return img
+
+
 def draw_text(img, text, ox, oy, scale, color=(255, 255, 255, 255), shadow=(20, 20, 20, 255)):
     d = ImageDraw.Draw(img)
     cx = ox
@@ -443,10 +481,15 @@ def build_textures(v: Vanilla):
 
     # ---- v3 variants ----
 
-    # 带罩活塞 / 带罩黏塞: vanilla base textures; the hood itself reuses the plate/side textures
-    # (front wall = plate, side walls = side) in the custom head model.
-    emit("hooded_piston", **vanilla_set)
-    emit("hooded_sticky_piston", **vanilla_set, sticky=src["sticky"])
+    # 带罩活塞 / 带罩黏塞: 罩 = 五块活塞盖板, so every hood face is the framed cover plate; the bare
+    # core column and the rod inside the cavity keep the plain piston side.
+    emit("hooded_piston", side=hood_plate(src["top"], HOOD_RIM), top=hood_plate(src["top"], HOOD_RIM),
+         bottom=src["bottom"], inner=src["inner"],
+         extra={"hooded_piston_core": src["side"]})
+    emit("hooded_sticky_piston", side=hood_plate(src["sticky"], HOOD_RIM_STICKY),
+         top=hood_plate(src["sticky"], HOOD_RIM_STICKY),
+         bottom=src["bottom"], inner=src["inner"],
+         extra={"hooded_sticky_piston_core": src["side"]})
 
     # 全更新置后活塞 / 黏塞: hourglass on the plate.
     hourglass_top = src["top"].copy()
@@ -662,46 +705,76 @@ def head_model_plate_short(vid, sticky):
         },
     }
 
+def hooded_base_retracted_model(vid):
+    """收回态带罩活塞 = a full block whose five visible faces are hood (framed cover plate).
+
+    The hood covers the facing face and all four side faces; only the back stays open, so it keeps
+    the plain piston bottom. `template_piston` already has the right cube geometry and cullfaces.
+    """
+    hood = f"{NS}:block/{vid}_top"
+    return {
+        "parent": "minecraft:block/template_piston",
+        "textures": {
+            "bottom": f"{NS}:block/{vid}_bottom",
+            "platform": hood,
+            "side": hood,
+        },
+    }
+
+
+def hooded_inventory_model(vid):
+    hood = f"{NS}:block/{vid}_top"
+    return {
+        "parent": "minecraft:block/cube_bottom_top",
+        "textures": {
+            "bottom": f"{NS}:block/{vid}_bottom",
+            "side": hood,
+            "top": hood,
+        },
+    }
+
+
 def hooded_extended_model(vid):
     """伸出态带罩活塞底座 = 芯柱 (core column 8×8×12): front 4px cut, four side rails cut.
 
     Coordinates are model-local with the facing plate at z=0, so the core spans z 4..16 and the
-    cross-section 4..12. The front face (toward the head) shows the inner texture; the back is the
-    piston bottom. Only faces that actually border a neighbouring cell carry a cullface.
+    cross-section 4..12. The core is the bare piston body (plain side texture, inner on the hole,
+    bottom on the back) — the hood has moved onto the head, which is why it carries no rim here.
     """
+    core = f"{NS}:block/{vid}_core"
     return {
         "parent": "block/block",
         "textures": {
-            "particle": f"{NS}:block/{vid}_side",
-            "side": f"{NS}:block/{vid}_side",
-            "bottom": f"{NS}:block/{vid}_bottom",
+            "particle": core,
+            "core": core,
             "inner": f"{NS}:block/{vid}_inner",
+            "bottom": f"{NS}:block/{vid}_bottom",
         },
         "elements": [{
             "from": [4, 4, 4], "to": [12, 12, 16],
             "faces": {
                 "north": {"uv": [0, 0, 16, 16], "texture": "#inner"},
                 "south": {"uv": [0, 0, 16, 16], "texture": "#bottom", "cullface": "south"},
-                "up": {"uv": [0, 0, 16, 16], "texture": "#side"},
-                "down": {"uv": [0, 0, 16, 16], "texture": "#side"},
-                "west": {"uv": [0, 0, 16, 16], "texture": "#side"},
-                "east": {"uv": [0, 0, 16, 16], "texture": "#side"},
+                "up": {"uv": [4, 0, 12, 12], "texture": "#core"},
+                "down": {"uv": [4, 0, 12, 12], "texture": "#core"},
+                "west": {"uv": [4, 0, 12, 12], "texture": "#core"},
+                "east": {"uv": [4, 0, 12, 12], "texture": "#core"},
             },
         }],
     }
 
 
-def hooded_head_model(vid, sticky, short):
-    """头 = 罩外壳 (five-plate shell: platform front wall + four side rails) with the rod inside.
+def hooded_head_model(vid, short):
+    """头 = 罩外壳 (five-plate shell) with the rod inside the cavity.
 
-    The front wall is the 16×16×4 plate; the four side rails are 4px thick, 12px long, running from
-    z=4 to the back of the cell; the cavity is 8×8×12 and the back is open (a south face is only
-    added on the rail end, not across the opening). The rod reaches z=20 when extended so it meets
-    the base core, and stops at z=16 when short. Faces on the cell boundary are culled; cavity
-    faces are not, and coincident interior faces are omitted to avoid z-fighting.
+    Outer faces (front wall face, the four rails, and the front wall's 4px edges) are the framed
+    hood plate; the cavity-facing surfaces are the piston inner texture; the rod is the plain
+    piston side, exactly as the vanilla head's arm is. The rod reaches z=20 when extended so it
+    meets the base core, and stops at z=16 when short. Faces on the cell boundary are culled,
+    cavity faces are not, and coincident interior faces are omitted to avoid z-fighting.
     """
-    platform = f"{NS}:block/{vid}_top_sticky" if sticky else f"{NS}:block/{vid}_top"
-    side = f"{NS}:block/{vid}_side"
+    platform = f"{NS}:block/{vid}_top"
+    core = f"{NS}:block/{vid}_core"
     rod_end = 16 if short else 20
     uv = [0, 0, 16, 16]
 
@@ -712,66 +785,75 @@ def hooded_head_model(vid, sticky, short):
         return f
 
     elements = [
-        {  # front wall
+        {  # front wall (the cover plate)
             "from": [0, 0, 0], "to": [16, 16, 4],
             "faces": {
                 "north": face("#platform", "north"),
                 "south": face("#inner"),
-                "up": face("#side", "up"),
-                "down": face("#side", "down"),
-                "west": face("#side", "west"),
-                "east": face("#side", "east"),
+                "up": face("#platform", "up"),
+                "down": face("#platform", "down"),
+                "west": face("#platform", "west"),
+                "east": face("#platform", "east"),
             },
         },
         {  # west rail
             "from": [0, 0, 4], "to": [4, 16, 16],
             "faces": {
-                "west": face("#side", "west"),
+                "west": face("#platform", "west"),
                 "east": face("#inner"),
-                "up": face("#side", "up"),
-                "down": face("#side", "down"),
-                "south": face("#side", "south"),
+                "up": face("#platform", "up"),
+                "down": face("#platform", "down"),
+                "south": face("#platform", "south"),
             },
         },
         {  # east rail
             "from": [12, 0, 4], "to": [16, 16, 16],
             "faces": {
-                "east": face("#side", "east"),
+                "east": face("#platform", "east"),
                 "west": face("#inner"),
-                "up": face("#side", "up"),
-                "down": face("#side", "down"),
-                "south": face("#side", "south"),
+                "up": face("#platform", "up"),
+                "down": face("#platform", "down"),
+                "south": face("#platform", "south"),
             },
         },
         {  # top rail
             "from": [4, 12, 4], "to": [12, 16, 16],
             "faces": {
-                "up": face("#side", "up"),
+                "up": face("#platform", "up"),
                 "down": face("#inner"),
-                "south": face("#side", "south"),
+                "south": face("#platform", "south"),
             },
         },
         {  # bottom rail
             "from": [4, 0, 4], "to": [12, 4, 16],
             "faces": {
-                "down": face("#side", "down"),
+                "down": face("#platform", "down"),
                 "up": face("#inner"),
-                "south": face("#side", "south"),
+                "south": face("#platform", "south"),
             },
         },
         {  # rod (inside the cavity; reaches into the base cell when extended)
             "from": [6, 6, 4], "to": [10, 10, rod_end],
             "faces": {
-                "north": face("#side"),
-                "south": face("#side"),
-                "up": face("#side"),
-                "down": face("#side"),
-                "west": face("#side"),
-                "east": face("#side"),
+                "north": face("#core"),
+                "south": face("#core"),
+                "up": face("#core"),
+                "down": face("#core"),
+                "west": face("#core"),
+                "east": face("#core"),
             },
         },
     ]
-    return {"parent": "block/block", "textures": {"particle": side, "platform": platform, "side": side, "inner": f"{NS}:block/{vid}_inner"}, "elements": elements}
+    return {
+        "parent": "block/block",
+        "textures": {
+            "particle": platform,
+            "platform": platform,
+            "core": core,
+            "inner": f"{NS}:block/{vid}_inner",
+        },
+        "elements": elements,
+    }
 
 
 def end_rod_base_model(vid):
@@ -1352,7 +1434,7 @@ def gen_shared_assets(textures):
             write_json(os.path.join(model_dir, vid + "_extended.json"), base_model_extended(vid))
         elif head_kind == "hooded":
             # 带罩: retracted base is a full block (core + hood); extended leaves the bare core
-            write_json(os.path.join(model_dir, vid + ".json"), base_model_retracted(vid, sticky))
+            write_json(os.path.join(model_dir, vid + ".json"), hooded_base_retracted_model(vid))
             write_json(os.path.join(model_dir, vid + "_extended.json"), hooded_extended_model(vid))
         elif head_kind == "bent":
             # 拐推: retracted base per local bend (arrow plate). An extended base has no plate,
@@ -1382,7 +1464,8 @@ def gen_shared_assets(textures):
             write_json(os.path.join(model_dir, vid + ".json"), base_model_retracted(vid, sticky))
             write_json(os.path.join(model_dir, vid + "_extended.json"), base_model_extended(vid))
         if head_kind != "none":
-            write_json(os.path.join(model_dir, vid + "_inventory.json"), base_model_inventory(vid, sticky))
+            write_json(os.path.join(model_dir, vid + "_inventory.json"),
+                       hooded_inventory_model(vid) if head_kind == "hooded" else base_model_inventory(vid, sticky))
 
         # --- item models (both formats; unused format is ignored by the other versions)
         write_json(os.path.join(item_def_dir, vid + ".json"),
@@ -1458,12 +1541,13 @@ def gen_shared_assets(textures):
             head_models[("normal", False, False, None)] = head_model_plate(vid, False)
             head_models[("normal", True, False, None)] = head_model_plate_short(vid, False)
         elif head_kind == "hooded":
-            # 带罩: the whole head cell is the hood shell; sticky shows the slime-tinted shell
-            head_models[("normal", False, False, None)] = hooded_head_model(vid, False, False)
-            head_models[("normal", True, False, None)] = hooded_head_model(vid, False, True)
+            # 带罩: the whole head cell is the hood shell (the sticky variant already carries the
+            # slime-tinted hood plate as its <vid>_top)
+            head_models[("normal", False, False, None)] = hooded_head_model(vid, False)
+            head_models[("normal", True, False, None)] = hooded_head_model(vid, True)
             if sticky:
-                head_models[("sticky", False, False, None)] = hooded_head_model(vid, True, False)
-                head_models[("sticky", True, False, None)] = hooded_head_model(vid, True, True)
+                head_models[("sticky", False, False, None)] = hooded_head_model(vid, False)
+                head_models[("sticky", True, False, None)] = hooded_head_model(vid, True)
 
         for (ptype, short, powered, extra), model in head_models.items():
             suffix = "_powered" if powered else ""

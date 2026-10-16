@@ -108,6 +108,21 @@ public class ModPistonStructureResolver implements PdResolver {
         this.toDestroy.clear();
         this.totalWeight = 0;
         BlockState startState = this.level.getBlockState(this.startPos);
+        boolean resolved = this.resolvePullLine(startState);
+        if (!this.fiveFaceHood) {
+            return resolved;
+        }
+        // 五面黏: the hood's faces are sticky on their own, so the hood cell's neighbours are
+        // resolved even when the pull source is empty or unpullable (正面拉不动也照样黏动侧面).
+        // A failed *extend* still fails — the front block has to move for the piston to go out.
+        if (!this.addForcedHoodBranches()) {
+            return false;
+        }
+        return this.extending ? resolved : true;
+    }
+
+    /** The vanilla pull line: the front cell (push) or the second cell (sticky pull). */
+    private boolean resolvePullLine(BlockState startState) {
         if (this.customDestroy(startState)) {
             this.toDestroy.add(this.startPos);
             return true;
@@ -129,10 +144,6 @@ public class ModPistonStructureResolver implements PdResolver {
             if (this.isSticky(this.level.getBlockState(pos)) && !this.addBranchingBlocks(pos)) {
                 return false;
             }
-        }
-
-        if (this.fiveFaceHood && !this.addForcedHoodBranches()) {
-            return false;
         }
 
         return true;

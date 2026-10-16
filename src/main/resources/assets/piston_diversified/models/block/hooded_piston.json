@@ -3,6 +3,6 @@
   "textures": {
     "bottom": "piston_diversified:block/hooded_piston_bottom",
     "platform": "piston_diversified:block/hooded_piston_top",
-    "side": "piston_diversified:block/hooded_piston_side"
+    "side": "piston_diversified:block/hooded_piston_top"
   }
 }

@@ -41,8 +41,8 @@ A Fabric mod that adds piston variants. **Mod v3** ship 5 more pistons (hooded �
 
 | Piston | 活塞 | Notes / 说明 |
 | --- | --- | --- |
-| Hooded Piston | 带罩活塞 | Wears a five-plate hood: the head cell is a full shell, the extended base is the bare 8×8×12 core. The hood faces never stick — slime/honey against the hood is neither dragged in nor glued out (双向隔断). 五块盖板拼成的整格罩；罩面一律不参与黏结（双向隔断）。 |
-| Hooded Sticky Piston | 带罩黏塞 | Same hood, but its five outer faces are sticky in both states: the four side neighbours of the hood cell travel with every extend/retract (the structure may be discontinuous). 罩的五面在伸出/收回两态均黏，罩格四侧方块随行（结构可不连续）。 |
+| Hooded Piston | 带罩活塞 | Wears a five-plate hood — every hood face is a cover plate set in a dark rim, so the shell reads as a shell; the retracted base is a full block, the extended base the bare 8×8×12 core. The hood faces never stick — slime/honey against the hood is neither dragged in nor glued out (双向隔断). 五块盖板拼成的整格罩，罩面带深色边框；罩面一律不参与黏结（双向隔断）。 |
+| Hooded Sticky Piston | 带罩黏塞 | Same hood in slime-tinted plating; its five outer faces are sticky in both states, so the four side neighbours of the hood cell travel with every extend/retract — **including when the front cell cannot be pulled at all** (the structure may be discontinuous). 罩五面黏；正面拉不动方块时侧面照样随行（结构可不连续）。 |
 | Deferred Piston | 全更新置后活塞 | A normal piston whose move defers every update (NC, PP, and the 1.21+ extra update) into one FIFO batch replayed after the last write of the stage. 推出/收回两阶段内的全部更新延后到阶段末统一回放。 |
 | Deferred Sticky Piston | 全更新置后黏塞 | The sticky version; the sticky-pull path defers its updates the same way. 黏性版，黏拉路径的更新同样入批延后。 |
 | Opposing Piston | 对推活塞 | Immovable, and inert unless a reverse-facing opposing piston sits within 41 cells in front; a pair hands its extend/retract over to each other. 自身不可推动；前方 41 格内有反向对推活塞才响应信号，成对互推/互收。 |
@@ -105,13 +105,13 @@ Gamerule / 规则：`potato_push_limit` (default 32) caps the potato piston's st
 
 ## Testing / 测试
 
-`tools/piston_testbed.py` boots a headless dev server over RCON and asserts piston behaviour (data-file parse check plus 28 cases) on all four version nodes.
+`tools/piston_testbed.py` boots a headless dev server over RCON and asserts piston behaviour (data-file parse check plus 29 cases) on all four version nodes.
 
 ```bash
 python tools/piston_testbed.py --start --version 1.21.11
 ```
 
-`tools/piston_testbed.py` 启动无头开发服并通过 RCON 断言活塞行为（数据文件解析检查 + 28 项用例），四个版本节点均已跑通。
+`tools/piston_testbed.py` 启动无头开发服并通过 RCON 断言活塞行为（数据文件解析检查 + 29 项用例），四个版本节点均已跑通。
 
 ## Conversions / 转换
 
