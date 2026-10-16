@@ -6,6 +6,7 @@ import net.minecraft.client.renderer.MultiBufferSource;
 //? } else {
 import net.minecraft.client.renderer.block.MovingBlockRenderState;
 import net.minecraft.client.renderer.blockentity.state.PistonHeadRenderState;
+import net.minecraft.client.renderer.feature.ModelFeatureRenderer;
 //? }
 import net.minecraft.client.renderer.blockentity.PistonHeadRenderer;
 //? if >=26.1 {
@@ -15,6 +16,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.piston.PistonHeadBlock;
 import net.minecraft.world.level.block.piston.PistonMovingBlockEntity;
@@ -94,7 +96,8 @@ public abstract class PistonHeadRendererMixin {
 //? if <1.21.9 {
     @Inject(method = "render(Lnet/minecraft/world/level/block/piston/PistonMovingBlockEntity;FLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;II)V",
             at = @At("HEAD"))
-    private void pistonDiversified$capture(PistonMovingBlockEntity be, float partialTick, CallbackInfo ci) {
+    private void pistonDiversified$capture(PistonMovingBlockEntity be, float partialTick, PoseStack pose,
+                                          MultiBufferSource buffer, int light, int overlay, CallbackInfo ci) {
         this.pistonDiversified$be = be;
         this.pistonDiversified$tick = partialTick;
     }
@@ -116,7 +119,8 @@ public abstract class PistonHeadRendererMixin {
     @Inject(method = "extractRenderState(Lnet/minecraft/world/level/block/piston/PistonMovingBlockEntity;Lnet/minecraft/client/renderer/blockentity/state/PistonHeadRenderState;FLnet/minecraft/world/phys/Vec3;Lnet/minecraft/client/renderer/feature/ModelFeatureRenderer$CrumblingOverlay;)V",
             at = @At("HEAD"))
     private void pistonDiversified$capture(PistonMovingBlockEntity be, PistonHeadRenderState renderState,
-                                           float partialTicks, CallbackInfo ci) {
+                                           float partialTicks, Vec3 cameraPos,
+                                           ModelFeatureRenderer.CrumblingOverlay crumbling, CallbackInfo ci) {
         this.pistonDiversified$be = be;
         this.pistonDiversified$tick = partialTicks;
     }
@@ -137,7 +141,8 @@ public abstract class PistonHeadRendererMixin {
     @Inject(method = "extractRenderState(Lnet/minecraft/world/level/block/piston/PistonMovingBlockEntity;Lnet/minecraft/client/renderer/blockentity/state/PistonHeadRenderState;FLnet/minecraft/world/phys/Vec3;Lnet/minecraft/client/renderer/feature/ModelFeatureRenderer$CrumblingOverlay;)V",
             at = @At("HEAD"))
     private void pistonDiversified$capture(PistonMovingBlockEntity be, PistonHeadRenderState renderState,
-                                           float partialTicks, CallbackInfo ci) {
+                                           float partialTicks, Vec3 cameraPos,
+                                           ModelFeatureRenderer.CrumblingOverlay crumbling, CallbackInfo ci) {
         this.pistonDiversified$be = be;
         this.pistonDiversified$tick = partialTicks;
     }
