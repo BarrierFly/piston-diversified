@@ -4,7 +4,6 @@ package dev.zcode.piston_diversified.mixin;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.renderer.MultiBufferSource;
 //? } else {
-import net.minecraft.client.renderer.block.MovingBlockRenderState;
 import net.minecraft.client.renderer.blockentity.state.PistonHeadRenderState;
 import net.minecraft.client.renderer.feature.ModelFeatureRenderer;
 //? }
@@ -13,9 +12,7 @@ import net.minecraft.client.renderer.blockentity.PistonHeadRenderer;
 import net.minecraft.client.multiplayer.ClientLevel;
 //? }
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Holder;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.piston.PistonHeadBlock;
@@ -24,11 +21,10 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.PistonType;
 import dev.zcode.piston_diversified.block.ModPistonBaseBlock;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
@@ -58,8 +54,18 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * <p>The moving piston's block state only carries {@code facing} and {@code type}, so the variant
  * cannot be smuggled in there — but the block entity does carry the modded base, and
  * {@link ModPistonBaseBlock#headBlock()} turns it back into the right head. That is all this mixin
- * does: swap the state handed to the renderer's own {@code createMovingBlock}/{@code renderBlock},
- * leaving every bit of vanilla's placement, offset and interpolation alone.
+ * does: hand the renderer its own arguments with argument 1 (the block state) swapped. Vanilla's
+ * placement, offsets and interpolation are untouched, and unlike a {@code @Redirect} there is no
+ * {@code @Shadow} of a private method to keep in sync.
+ *
+ * <p><b>Why {@code @ModifyArg} and not {@code @Redirect}:</b> MagicLib repackages MixinExtras and
+ * registers a {@code preApply} transformer that walks every {@code @Redirect} on every class it
+ * transforms, casting {@code Annotations.getValue(redirect, "at")} straight to {@code AnnotationNode}
+ * without checking the annotation's shape. On this mixin that cast throws, the whole target class
+ * fails to transform, and — because the class is first touched during the resource reload — the
+ * reload aborts, {@code GameRenderer}'s shader programs are never loaded, and the client dies with
+ * a null-shader {@code NullPointerException} the moment a world is rendered. {@code @ModifyArg} is
+ * plain Mixin and that transformer never looks at it. See {@code PistonHeadRendererMixin} history.
  *
  * <p>Heads with extra state of their own (镐's tool, 拐推's bend, 骷髅's power) come out of their
  * default state here, the same way vanilla builds its own head state: the retracted animation has
@@ -73,8 +79,9 @@ public abstract class PistonHeadRendererMixin {
     private float pistonDiversified$tick;
 
     /**
-     * The modded replacement for a hardcoded vanilla head state, or {@code head} itself when this
-     * render is not a modded piston's retract (vanilla pistons, pushed cells, the pulled block).
+     * Argument 1 of the renderer's per-block call, as the modded replacement for a hardcoded vanilla
+     * head state — or the state untouched when this is not a modded piston's retract (vanilla
+     * pistons, pushed cells, the pulled block).
      */
     @Unique
     private BlockState pistonDiversified$moddedHead(BlockState head) {
@@ -102,18 +109,11 @@ public abstract class PistonHeadRendererMixin {
         this.pistonDiversified$tick = partialTick;
     }
 
-    @Redirect(method = "render(Lnet/minecraft/world/level/block/piston/PistonMovingBlockEntity;FLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;II)V",
-            at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/blockentity/PistonHeadRenderer;renderBlock(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;Lnet/minecraft/world/level/Level;ZI)V"))
-    private void pistonDiversified$moddedHeadState(BlockPos pos, BlockState state, PoseStack pose,
-                                                  MultiBufferSource buffer, Level level, boolean extended,
-                                                  int overlay) {
-        renderBlock(pos, this.pistonDiversified$moddedHead(state), pose, buffer, level, extended, overlay);
-    }
-
-    @Shadow
-    private void renderBlock(BlockPos pos, BlockState state, PoseStack pose, MultiBufferSource buffer,
-                             Level level, boolean extended, int overlay) {
-        throw new AssertionError();
+    @ModifyArg(method = "render(Lnet/minecraft/world/level/block/piston/PistonMovingBlockEntity;FLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;II)V",
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/blockentity/PistonHeadRenderer;renderBlock(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;Lnet/minecraft/world/level/Level;ZI)V"),
+            index = 1)
+    private BlockState pistonDiversified$moddedHeadState(BlockPos pos, BlockState state) {
+        return this.pistonDiversified$moddedHead(state);
     }
 //? } else if >=26.1 {
     @Inject(method = "extractRenderState(Lnet/minecraft/world/level/block/piston/PistonMovingBlockEntity;Lnet/minecraft/client/renderer/blockentity/state/PistonHeadRenderState;FLnet/minecraft/world/phys/Vec3;Lnet/minecraft/client/renderer/feature/ModelFeatureRenderer$CrumblingOverlay;)V",
@@ -125,17 +125,11 @@ public abstract class PistonHeadRendererMixin {
         this.pistonDiversified$tick = partialTicks;
     }
 
-    @Redirect(method = "extractRenderState(Lnet/minecraft/world/level/block/piston/PistonMovingBlockEntity;Lnet/minecraft/client/renderer/blockentity/state/PistonHeadRenderState;FLnet/minecraft/world/phys/Vec3;Lnet/minecraft/client/renderer/feature/ModelFeatureRenderer$CrumblingOverlay;)V",
-            at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/blockentity/PistonHeadRenderer;createMovingBlock(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/Holder;Lnet/minecraft/client/multiplayer/ClientLevel;)Lnet/minecraft/client/renderer/block/MovingBlockRenderState;"))
-    private MovingBlockRenderState pistonDiversified$moddedHeadState(BlockPos pos, BlockState state,
-                                                                   Holder<Biome> biome, ClientLevel level) {
-        return createMovingBlock(pos, this.pistonDiversified$moddedHead(state), biome, level);
-    }
-
-    @Shadow
-    private static MovingBlockRenderState createMovingBlock(BlockPos pos, BlockState state, Holder<Biome> biome,
-                                                            ClientLevel level) {
-        throw new AssertionError();
+    @ModifyArg(method = "extractRenderState(Lnet/minecraft/world/level/block/piston/PistonMovingBlockEntity;Lnet/minecraft/client/renderer/blockentity/state/PistonHeadRenderState;FLnet/minecraft/world/phys/Vec3;Lnet/minecraft/client/renderer/feature/ModelFeatureRenderer$CrumblingOverlay;)V",
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/blockentity/PistonHeadRenderer;createMovingBlock(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/Holder;Lnet/minecraft/client/multiplayer/ClientLevel;)Lnet/minecraft/client/renderer/block/MovingBlockRenderState;"),
+            index = 1)
+    private BlockState pistonDiversified$moddedHeadState(BlockPos pos, BlockState state) {
+        return this.pistonDiversified$moddedHead(state);
     }
 //? } else {
     @Inject(method = "extractRenderState(Lnet/minecraft/world/level/block/piston/PistonMovingBlockEntity;Lnet/minecraft/client/renderer/blockentity/state/PistonHeadRenderState;FLnet/minecraft/world/phys/Vec3;Lnet/minecraft/client/renderer/feature/ModelFeatureRenderer$CrumblingOverlay;)V",
@@ -147,17 +141,11 @@ public abstract class PistonHeadRendererMixin {
         this.pistonDiversified$tick = partialTicks;
     }
 
-    @Redirect(method = "extractRenderState(Lnet/minecraft/world/level/block/piston/PistonMovingBlockEntity;Lnet/minecraft/client/renderer/blockentity/state/PistonHeadRenderState;FLnet/minecraft/world/phys/Vec3;Lnet/minecraft/client/renderer/feature/ModelFeatureRenderer$CrumblingOverlay;)V",
-            at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/blockentity/PistonHeadRenderer;createMovingBlock(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/Holder;Lnet/minecraft/world/level/Level;)Lnet/minecraft/client/renderer/block/MovingBlockRenderState;"))
-    private MovingBlockRenderState pistonDiversified$moddedHeadState(BlockPos pos, BlockState state,
-                                                                   Holder<Biome> biome, Level level) {
-        return createMovingBlock(pos, this.pistonDiversified$moddedHead(state), biome, level);
-    }
-
-    @Shadow
-    private static MovingBlockRenderState createMovingBlock(BlockPos pos, BlockState state, Holder<Biome> biome,
-                                                            Level level) {
-        throw new AssertionError();
+    @ModifyArg(method = "extractRenderState(Lnet/minecraft/world/level/block/piston/PistonMovingBlockEntity;Lnet/minecraft/client/renderer/blockentity/state/PistonHeadRenderState;FLnet/minecraft/world/phys/Vec3;Lnet/minecraft/client/renderer/feature/ModelFeatureRenderer$CrumblingOverlay;)V",
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/blockentity/PistonHeadRenderer;createMovingBlock(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/Holder;Lnet/minecraft/world/level/Level;)Lnet/minecraft/client/renderer/block/MovingBlockRenderState;"),
+            index = 1)
+    private BlockState pistonDiversified$moddedHeadState(BlockPos pos, BlockState state) {
+        return this.pistonDiversified$moddedHead(state);
     }
 //?}
 }
