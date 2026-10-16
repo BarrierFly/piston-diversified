@@ -1947,7 +1947,11 @@ def gen_version_trees():
                 "PistonMovingBlockEntityMixin",
                 "ServerLevelMixin",
             ],
-            "client": [],
+            "client": [
+                # PistonHeadRendererMixin: the retract animation's head half is hardcoded to
+                #   Blocks.PISTON_HEAD in vanilla, so every modded piston flashed a vanilla head
+                "PistonHeadRendererMixin",
+            ],
             "injectors": {"defaultRequire": 1},
         })
 

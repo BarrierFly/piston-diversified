@@ -15,7 +15,9 @@
     "PistonMovingBlockEntityMixin",
     "ServerLevelMixin"
   ],
-  "client": [],
+  "client": [
+    "PistonHeadRendererMixin"
+  ],
   "injectors": {
     "defaultRequire": 1
   }
