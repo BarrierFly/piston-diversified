@@ -65,7 +65,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * fails to transform, and — because the class is first touched during the resource reload — the
  * reload aborts, {@code GameRenderer}'s shader programs are never loaded, and the client dies with
  * a null-shader {@code NullPointerException} the moment a world is rendered. {@code @ModifyArg} is
- * plain Mixin and that transformer never looks at it. See {@code PistonHeadRendererMixin} history.
+ * plain Mixin and that transformer never looks at it. Note that Mixin only accepts an
+ * {@code @ModifyArg} handler taking <b>either</b> only the modified argument <b>or</b> every
+ * argument of the targeted call — a partial list like {@code (BlockPos, BlockState)} throws
+ * {@code InvalidInjectionException} at apply time, which fails the whole target class again
+ * (that was the second crash after the {@code @Redirect} removal). See {@code PistonHeadRendererMixin} history.
  *
  * <p>Heads with extra state of their own (镐's tool, 拐推's bend, 骷髅's power) come out of their
  * default state here, the same way vanilla builds its own head state: the retracted animation has
@@ -112,7 +116,7 @@ public abstract class PistonHeadRendererMixin {
     @ModifyArg(method = "render(Lnet/minecraft/world/level/block/piston/PistonMovingBlockEntity;FLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;II)V",
             at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/blockentity/PistonHeadRenderer;renderBlock(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;Lnet/minecraft/world/level/Level;ZI)V"),
             index = 1)
-    private BlockState pistonDiversified$moddedHeadState(BlockPos pos, BlockState state) {
+    private BlockState pistonDiversified$moddedHeadState(BlockState state) {
         return this.pistonDiversified$moddedHead(state);
     }
 //? } else if >=26.1 {
@@ -128,7 +132,7 @@ public abstract class PistonHeadRendererMixin {
     @ModifyArg(method = "extractRenderState(Lnet/minecraft/world/level/block/piston/PistonMovingBlockEntity;Lnet/minecraft/client/renderer/blockentity/state/PistonHeadRenderState;FLnet/minecraft/world/phys/Vec3;Lnet/minecraft/client/renderer/feature/ModelFeatureRenderer$CrumblingOverlay;)V",
             at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/blockentity/PistonHeadRenderer;createMovingBlock(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/Holder;Lnet/minecraft/client/multiplayer/ClientLevel;)Lnet/minecraft/client/renderer/block/MovingBlockRenderState;"),
             index = 1)
-    private BlockState pistonDiversified$moddedHeadState(BlockPos pos, BlockState state) {
+    private BlockState pistonDiversified$moddedHeadState(BlockState state) {
         return this.pistonDiversified$moddedHead(state);
     }
 //? } else {
@@ -144,7 +148,7 @@ public abstract class PistonHeadRendererMixin {
     @ModifyArg(method = "extractRenderState(Lnet/minecraft/world/level/block/piston/PistonMovingBlockEntity;Lnet/minecraft/client/renderer/blockentity/state/PistonHeadRenderState;FLnet/minecraft/world/phys/Vec3;Lnet/minecraft/client/renderer/feature/ModelFeatureRenderer$CrumblingOverlay;)V",
             at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/blockentity/PistonHeadRenderer;createMovingBlock(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/Holder;Lnet/minecraft/world/level/Level;)Lnet/minecraft/client/renderer/block/MovingBlockRenderState;"),
             index = 1)
-    private BlockState pistonDiversified$moddedHeadState(BlockPos pos, BlockState state) {
+    private BlockState pistonDiversified$moddedHeadState(BlockState state) {
         return this.pistonDiversified$moddedHead(state);
     }
 //?}
