@@ -41,7 +41,7 @@ A Fabric mod that adds piston variants. **Mod v3** ship 5 more pistons (hooded �
 
 | Piston | 活塞 | Notes / 说明 |
 | --- | --- | --- |
-| Hooded Piston | 带罩活塞 | Wears a five-plate hood — every hood face is a cover plate set in a dark rim, so the shell reads as a shell; the retracted base is a full block, the extended base the bare 8×8×12 core. The hood faces never stick — slime/honey against the hood is neither dragged in nor glued out (双向隔断). 五块盖板拼成的整格罩，罩面带深色边框；罩面一律不参与黏结（双向隔断）。 |
+| Hooded Piston | 带罩活塞 | Wears a five-plate hood — every hood face is a cover plate set in a dark rim, so the shell reads as a shell; the retracted base is a full block whose bottom face is the splice (the hood's frame running around the bare base showing through the opening), the extended base the bare 8×8×12 core. The hood faces never stick — slime/honey against the hood is neither dragged in nor glued out (双向隔断). 五块盖板拼成的整格罩，罩面带深色边框；收回态底面画出罩口边框与裸底座的拼合；罩面一律不参与黏结（双向隔断）。 |
 | Hooded Sticky Piston | 带罩黏塞 | Same hood in slime-tinted plating; its five outer faces are sticky in both states, so the four side neighbours of the hood cell travel with every extend/retract — **including when the front cell cannot be pulled at all** (the structure may be discontinuous). 罩五面黏；正面拉不动方块时侧面照样随行（结构可不连续）。 |
 | Deferred Piston | 全更新置后活塞 | A normal piston whose move defers every update (NC, PP, and the 1.21+ extra update) into one FIFO batch replayed after the last write of the stage. 推出/收回两阶段内的全部更新延后到阶段末统一回放。 |
 | Deferred Sticky Piston | 全更新置后黏塞 | The sticky version; the sticky-pull path defers its updates the same way. 黏性版，黏拉路径的更新同样入批延后。 |

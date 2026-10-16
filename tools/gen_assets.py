@@ -262,6 +262,22 @@ def hood_plate(base, rim):
     return img
 
 
+def hood_join_bottom(plate, base):
+    """收回态底面 = 罩口与底座的拼合面 (the retracted bottom face).
+
+    罩包住朝向面与四个侧面, 底面是唯一能一眼看进壳里的面: 看见的是绕着边缘跑一圈的盖板边框
+    (和四个侧面同一张带暗边的图, 于是暗边在方块棱上不断开), 以及从罩口正中露出的裸底座。
+    裸底座取 piston_side 的下 12 行 —— 也就是底座自己的石质本体, 顶上那截木头在罩口里露不出。
+    """
+    img = plate.copy()
+    px = img.load()
+    bpx = base.load()
+    for y in range(4, 12):
+        for x in range(4, 12):
+            px[x, y] = bpx[x, y]
+    return img
+
+
 def draw_text(img, text, ox, oy, scale, color=(255, 255, 255, 255), shadow=(20, 20, 20, 255)):
     d = ImageDraw.Draw(img)
     cx = ox
@@ -481,15 +497,17 @@ def build_textures(v: Vanilla):
 
     # ---- v3 variants ----
 
-    # 带罩活塞 / 带罩黏塞: 罩 = 五块活塞盖板, so every hood face is the framed cover plate; the bare
-    # core column and the rod inside the cavity keep the plain piston side.
-    emit("hooded_piston", side=hood_plate(src["top"], HOOD_RIM), top=hood_plate(src["top"], HOOD_RIM),
+    # 带罩活塞 / 带罩黏塞: 罩 = 五块活塞盖板, so every hood face is the framed cover plate. 只有收回态
+    # 底面把两种材质拼在一起 (hood_join_bottom); 活塞本体露出来的部分 (伸出态底座、罩里的杆) 一律
+    # 直接引原版 piston_side, 所以不再单独烤一份拷贝。
+    hood = hood_plate(src["top"], HOOD_RIM)
+    emit("hooded_piston", side=hood, top=hood,
          bottom=src["bottom"], inner=src["inner"],
-         extra={"hooded_piston_core": src["side"]})
-    emit("hooded_sticky_piston", side=hood_plate(src["sticky"], HOOD_RIM_STICKY),
-         top=hood_plate(src["sticky"], HOOD_RIM_STICKY),
+         extra={"hooded_piston_join_bottom": hood_join_bottom(hood, src["side"])})
+    hood_sticky = hood_plate(src["sticky"], HOOD_RIM_STICKY)
+    emit("hooded_sticky_piston", side=hood_sticky, top=hood_sticky,
          bottom=src["bottom"], inner=src["inner"],
-         extra={"hooded_sticky_piston_core": src["side"]})
+         extra={"hooded_sticky_piston_join_bottom": hood_join_bottom(hood_sticky, src["side"])})
 
     # 全更新置后活塞 / 黏塞: hourglass on the plate.
     hourglass_top = src["top"].copy()
@@ -706,19 +724,34 @@ def head_model_plate_short(vid, sticky):
     }
 
 def hooded_base_retracted_model(vid):
-    """收回态带罩活塞 = a full block whose five visible faces are hood (framed cover plate).
+    """收回态带罩活塞 = 整块戴着罩的方块, 底面再补上罩口与底座的拼合。
 
-    The hood covers the facing face and all four side faces; only the back stays open, so it keeps
-    the plain piston bottom. `template_piston` already has the right cube geometry and cullfaces.
+    罩包住朝向面(up/north)与四个侧面(west/east), 这五面都是带暗边的盖板。罩够不到的只有底面:
+    从下往上看是罩口的边框绕一圈、中间露出裸底座, 所以 down 单独绑一张 `_join_bottom`;
+    背面(永远是缩回去那面)保持裸底座的 piston_bottom。几何、UV、旋转、cullface 全部照抄
+    `minecraft:block/template_piston`, 只有 down 的贴图不同 —— 但要拆开 down 就没法再当模板的
+    子模型 (模板把 down 和 up/west/east 绑在同一个 #side 上), 所以元素写全。
     """
     hood = f"{NS}:block/{vid}_top"
     return {
-        "parent": "minecraft:block/template_piston",
+        "parent": "block/block",
         "textures": {
-            "bottom": f"{NS}:block/{vid}_bottom",
+            "particle": hood,
             "platform": hood,
-            "side": hood,
+            "bottom": f"{NS}:block/{vid}_bottom",
+            "join": f"{NS}:block/{vid}_join_bottom",
         },
+        "elements": [{
+            "from": [0, 0, 0], "to": [16, 16, 16],
+            "faces": {
+                "down": {"uv": [0, 0, 16, 16], "texture": "#join", "rotation": 180, "cullface": "down"},
+                "up": {"uv": [0, 0, 16, 16], "texture": "#platform", "cullface": "up"},
+                "north": {"uv": [0, 0, 16, 16], "texture": "#platform", "cullface": "north"},
+                "south": {"uv": [0, 0, 16, 16], "texture": "#bottom", "cullface": "south"},
+                "west": {"uv": [0, 0, 16, 16], "texture": "#platform", "rotation": 270, "cullface": "west"},
+                "east": {"uv": [0, 0, 16, 16], "texture": "#platform", "rotation": 90, "cullface": "east"},
+            },
+        }],
     }
 
 
@@ -738,15 +771,20 @@ def hooded_extended_model(vid):
     """伸出态带罩活塞底座 = 芯柱 (core column 8×8×12): front 4px cut, four side rails cut.
 
     Coordinates are model-local with the facing plate at z=0, so the core spans z 4..16 and the
-    cross-section 4..12. The core is the bare piston body (plain side texture, inner on the hole,
-    bottom on the back) — the hood has moved onto the head, which is why it carries no rim here.
+    cross-section 4..12. The hood has moved onto the head, so the core is the bare piston body and
+    its four sides carry the plain piston side — same texture vanilla's extended base uses, taken
+    straight from `minecraft:block/piston_side` rather than a baked copy.
+
+    UV and rotation follow `minecraft:block/piston_extended`, only narrowed to the 8px-wide core:
+    vanilla samples rows 4..16 across the full 16px width, the core takes the middle 8px of that
+    same span, so the grain keeps vanilla's proportions instead of being squeezed. The bore in
+    front and the bottom at the back keep piston_inner / piston_bottom as before.
     """
-    core = f"{NS}:block/{vid}_core"
     return {
         "parent": "block/block",
         "textures": {
-            "particle": core,
-            "core": core,
+            "particle": "minecraft:block/piston_side",
+            "side": "minecraft:block/piston_side",
             "inner": f"{NS}:block/{vid}_inner",
             "bottom": f"{NS}:block/{vid}_bottom",
         },
@@ -755,10 +793,10 @@ def hooded_extended_model(vid):
             "faces": {
                 "north": {"uv": [0, 0, 16, 16], "texture": "#inner"},
                 "south": {"uv": [0, 0, 16, 16], "texture": "#bottom", "cullface": "south"},
-                "up": {"uv": [4, 0, 12, 12], "texture": "#core"},
-                "down": {"uv": [4, 0, 12, 12], "texture": "#core"},
-                "west": {"uv": [4, 0, 12, 12], "texture": "#core"},
-                "east": {"uv": [4, 0, 12, 12], "texture": "#core"},
+                "up": {"uv": [4, 4, 12, 16], "texture": "#side"},
+                "down": {"uv": [4, 4, 12, 16], "texture": "#side", "rotation": 180},
+                "west": {"uv": [4, 4, 12, 16], "texture": "#side", "rotation": 270},
+                "east": {"uv": [4, 4, 12, 16], "texture": "#side", "rotation": 90},
             },
         }],
     }
@@ -768,14 +806,16 @@ def hooded_head_model(vid, short):
     """头 = 罩外壳 (five-plate shell) with the rod inside the cavity.
 
     Outer faces (front wall face, the four rails, and the front wall's 4px edges) are the framed
-    hood plate; the cavity-facing surfaces are the piston inner texture; the rod is the plain
-    piston side, exactly as the vanilla head's arm is. The rod reaches z=20 when extended so it
-    meets the base core, and stops at z=16 when short. Faces on the cell boundary are culled,
-    cavity faces are not, and coincident interior faces are omitted to avoid z-fighting.
+    hood plate; the cavity-facing surfaces are the piston inner texture. The rod is vanilla's
+    piston arm verbatim — the same [6,6,4]-[10,10,20|16] box, the same four faces, the same UVs and
+    rotations, and `minecraft:block/piston_side` — so it extends exactly like a plain piston's arm.
+    It reaches z=20 when extended so it meets the base bore, and stops at z=16 when short. Faces on
+    the cell boundary are culled, cavity faces are not, and coincident interior faces are omitted
+    to avoid z-fighting.
     """
     platform = f"{NS}:block/{vid}_top"
-    core = f"{NS}:block/{vid}_core"
     rod_end = 16 if short else 20
+    rod_uv = [4 if short else 0, 0, 16, 4]
     uv = [0, 0, 16, 16]
 
     def face(texture, cull=None):
@@ -832,15 +872,13 @@ def hooded_head_model(vid, short):
                 "south": face("#platform", "south"),
             },
         },
-        {  # rod (inside the cavity; reaches into the base cell when extended)
+        {  # rod (vanilla piston arm; reaches into the base cell when extended)
             "from": [6, 6, 4], "to": [10, 10, rod_end],
             "faces": {
-                "north": face("#core"),
-                "south": face("#core"),
-                "up": face("#core"),
-                "down": face("#core"),
-                "west": face("#core"),
-                "east": face("#core"),
+                "down": {"uv": rod_uv, "texture": "#side", "rotation": 90},
+                "up": {"uv": rod_uv, "texture": "#side", "rotation": 270},
+                "west": {"uv": [16, 4, rod_uv[0], 0], "texture": "#side"},
+                "east": {"uv": rod_uv, "texture": "#side"},
             },
         },
     ]
@@ -849,7 +887,7 @@ def hooded_head_model(vid, short):
         "textures": {
             "particle": platform,
             "platform": platform,
-            "core": core,
+            "side": "minecraft:block/piston_side",
             "inner": f"{NS}:block/{vid}_inner",
         },
         "elements": elements,

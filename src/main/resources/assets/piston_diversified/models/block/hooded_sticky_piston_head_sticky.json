@@ -3,7 +3,7 @@
   "textures": {
     "particle": "piston_diversified:block/hooded_sticky_piston_top",
     "platform": "piston_diversified:block/hooded_sticky_piston_top",
-    "core": "piston_diversified:block/hooded_sticky_piston_core",
+    "side": "minecraft:block/piston_side",
     "inner": "piston_diversified:block/hooded_sticky_piston_inner"
   },
   "elements": [
@@ -304,59 +304,43 @@
         20
       ],
       "faces": {
-        "north": {
+        "down": {
           "uv": [
             0,
             0,
             16,
-            16
+            4
           ],
-          "texture": "#core"
-        },
-        "south": {
-          "uv": [
-            0,
-            0,
-            16,
-            16
-          ],
-          "texture": "#core"
+          "texture": "#side",
+          "rotation": 90
         },
         "up": {
           "uv": [
             0,
             0,
             16,
-            16
+            4
           ],
-          "texture": "#core"
-        },
-        "down": {
-          "uv": [
-            0,
-            0,
-            16,
-            16
-          ],
-          "texture": "#core"
+          "texture": "#side",
+          "rotation": 270
         },
         "west": {
           "uv": [
-            0,
-            0,
             16,
-            16
+            4,
+            0,
+            0
           ],
-          "texture": "#core"
+          "texture": "#side"
         },
         "east": {
           "uv": [
             0,
             0,
             16,
-            16
+            4
           ],
-          "texture": "#core"
+          "texture": "#side"
         }
       }
     }
