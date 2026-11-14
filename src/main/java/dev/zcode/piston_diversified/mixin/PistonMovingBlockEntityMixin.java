@@ -1,9 +1,13 @@
 package dev.zcode.piston_diversified.mixin;
 
+import dev.zcode.piston_diversified.block.PickaxePistonBlock;
+import dev.zcode.piston_diversified.block.PickaxeTool;
 import dev.zcode.piston_diversified.duck.PistonDuck;
+import dev.zcode.piston_diversified.entity.PickaxePistonBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -41,6 +45,8 @@ public class PistonMovingBlockEntityMixin implements PistonDuck {
     private boolean pistonDiversified$flightPrimary;
     @Unique
     private boolean pistonDiversified$landsInWater;
+    @Unique
+    private ItemStack pistonDiversified$carriedPickaxe = ItemStack.EMPTY;
     @Unique
     private boolean pistonDiversified$needsClientSync;
 
@@ -84,6 +90,16 @@ public class PistonMovingBlockEntityMixin implements PistonDuck {
     @Override
     public boolean pistonDiversified$needsClientSync() {
         return this.pistonDiversified$needsClientSync;
+    }
+
+    @Override
+    public void pistonDiversified$setCarriedPickaxe(ItemStack stack) {
+        this.pistonDiversified$carriedPickaxe = stack == null ? ItemStack.EMPTY : stack;
+    }
+
+    @Override
+    public ItemStack pistonDiversified$getCarriedPickaxe() {
+        return this.pistonDiversified$carriedPickaxe;
     }
 
     /**
@@ -136,8 +152,12 @@ public class PistonMovingBlockEntityMixin implements PistonDuck {
             if (((PistonMovingBlockEntityAccessor) be).pistonDiversified$getProgressO() < 1.0F
                 && ((PistonMovingBlockEntityAccessor) be).pistonDiversified$getProgress() >= 1.0F) {
                 pistonDiversified$placeFinal(level, pos, be);
+                pistonDiversified$restoreCarriedPickaxe(level, pos, duck);
                 return;
             }
+        }
+        if (!level.isClientSide()) {
+            pistonDiversified$restoreCarriedPickaxe(level, pos, duck);
         }
 
         // 马铃薯活塞: the pushed cell lands on vanilla's own schedule. Vanilla's tick body resolves
@@ -156,6 +176,49 @@ public class PistonMovingBlockEntityMixin implements PistonDuck {
             && ((PistonMovingBlockEntityAccessor) be).pistonDiversified$getProgressO() >= 1.0F
             && !level.getBlockState(pos).is(Blocks.MOVING_PISTON)) {
             pistonDiversified$landPotato(level, pos, be, duck);
+        }
+    }
+
+    /**
+     * 镐活塞: write the carried pickaxe stack back once this cell has landed. Vanilla's landing
+     * (the tick body, the fast piston's early conversion, and the instant {@code finalTick}) drops
+     * the old block entity and lets {@code LevelChunk} build a fresh default one — without this the
+     * carried pickaxe would reset to the default netherite pickaxe on the very first move. The
+     * stack is consumed exactly once, whether or not the landed cell still is a pickaxe piston
+     * (anything else there means the block was destroyed mid-flight, vanilla-style).
+     */
+    @Unique
+    private static void pistonDiversified$restoreCarriedPickaxe(Level level, BlockPos pos, PistonDuck duck) {
+        ItemStack stack = duck.pistonDiversified$getCarriedPickaxe();
+        if (stack.isEmpty()) {
+            return;
+        }
+        BlockState landed = level.getBlockState(pos);
+        if (landed.is(Blocks.MOVING_PISTON)) {
+            return; // still animating; the landing tick calls this again
+        }
+        duck.pistonDiversified$setCarriedPickaxe(ItemStack.EMPTY);
+        if (landed.getBlock() instanceof PickaxePistonBlock
+            && level.getBlockEntity(pos) instanceof PickaxePistonBlockEntity be) {
+            be.setPickaxe(stack);
+            PickaxeTool tool = PickaxeTool.of(stack);
+            if (tool != null && landed.hasProperty(PickaxePistonBlock.TOOL) && landed.getValue(PickaxePistonBlock.TOOL) != tool) {
+                level.setBlock(pos, landed.setValue(PickaxePistonBlock.TOOL, tool), 2);
+            }
+        }
+    }
+
+    /**
+     * The instant-completion path ({@code finalTick}, used by vanilla's and the mod's retract
+     * sequences for a still-flying second cell) lands the block without going through the tick
+     * body, so it needs its own restore hook.
+     */
+    @Inject(method = "finalTick", at = @At("RETURN"))
+    private void pistonDiversified$afterFinalTick(CallbackInfo ci) {
+        // the accessors live on the BlockEntity superclass, which the mixin type does not extend
+        BlockEntity self = (BlockEntity) (Object) this;
+        if (self.getLevel() != null && !self.getLevel().isClientSide()) {
+            pistonDiversified$restoreCarriedPickaxe(self.getLevel(), self.getBlockPos(), (PistonDuck) (Object) this);
         }
     }
 
@@ -221,12 +284,16 @@ public class PistonMovingBlockEntityMixin implements PistonDuck {
     @Inject(method = "saveAdditional", at = @At("TAIL"))
     private void pistonDiversified$saveFlags(ValueOutput output, CallbackInfo ci) {
         output.putBoolean("pistonDiversifiedFast", this.pistonDiversified$fast);
+        if (!this.pistonDiversified$carriedPickaxe.isEmpty()) {
+            output.store("PdCarriedPickaxe", ItemStack.CODEC, this.pistonDiversified$carriedPickaxe);
+        }
         this.pistonDiversified$saveFlight(output);
     }
 
     @Inject(method = "loadAdditional", at = @At("TAIL"))
     private void pistonDiversified$loadFlags(ValueInput input, CallbackInfo ci) {
         this.pistonDiversified$fast = input.getBooleanOr("pistonDiversifiedFast", false);
+        this.pistonDiversified$carriedPickaxe = input.read("PdCarriedPickaxe", ItemStack.CODEC).orElse(ItemStack.EMPTY);
         this.pistonDiversified$loadFlight(input);
     }
 
@@ -255,6 +322,9 @@ public class PistonMovingBlockEntityMixin implements PistonDuck {
     @Inject(method = "saveAdditional", at = @At("TAIL"))
     private void pistonDiversified$saveFlags(CompoundTag tag, CallbackInfo ci) {
         tag.putBoolean("pistonDiversifiedFast", this.pistonDiversified$fast);
+        if (!this.pistonDiversified$carriedPickaxe.isEmpty()) {
+            tag.put("PdCarriedPickaxe", this.pistonDiversified$carriedPickaxe.save(new CompoundTag()));
+        }
         if (this.pistonDiversified$flight.length > 0) {
             tag.putLongArray("PdFlight", this.pistonDiversified$flight);
             tag.putBoolean("PdFlightPrimary", this.pistonDiversified$flightPrimary);
@@ -265,6 +335,9 @@ public class PistonMovingBlockEntityMixin implements PistonDuck {
     @Inject(method = "load", at = @At("TAIL"))
     private void pistonDiversified$loadFlags(CompoundTag tag, CallbackInfo ci) {
         this.pistonDiversified$fast = tag.getBoolean("pistonDiversifiedFast");
+        if (tag.contains("PdCarriedPickaxe", net.minecraft.nbt.Tag.TAG_COMPOUND)) {
+            this.pistonDiversified$carriedPickaxe = ItemStack.of(tag.getCompound("PdCarriedPickaxe"));
+        }
         this.pistonDiversified$flight = tag.getLongArray("PdFlight");
         this.pistonDiversified$flightPrimary = tag.getBoolean("PdFlightPrimary");
         this.pistonDiversified$landsInWater = tag.getBoolean("PdFlightWater");

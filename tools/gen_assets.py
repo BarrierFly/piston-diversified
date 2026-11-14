@@ -11,7 +11,19 @@ import json
 import os
 import sys
 import zipfile
-from PIL import Image, ImageDraw
+
+try:
+    from PIL import Image, ImageDraw
+except ImportError:  # texture work needs Pillow; the data/tag/verify paths run without it
+    Image = None
+    ImageDraw = None
+
+
+def _ensure_pillow():
+    global Image, ImageDraw
+    if Image is None:
+        from PIL import Image as _image, ImageDraw as _image_draw
+        Image, ImageDraw = _image, _image_draw
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 MOD = os.path.dirname(HERE)
@@ -316,6 +328,7 @@ def draw_rod_texture(flame=False):
 
 class Vanilla:
     def __init__(self, jar_path):
+        _ensure_pillow()
         self.z = zipfile.ZipFile(jar_path)
 
     def texture(self, name):
@@ -611,6 +624,19 @@ LANG_EN = {
     "deferred_piston": "Deferred Piston",
     "deferred_sticky_piston": "Deferred Sticky Piston",
     "opposing_piston": "Opposing Piston",
+}
+
+# The gamerule's display name. The key mirrors GameRule#getDescriptionId (gamerule.<ns>.<path>)
+# for the 1.21.11+ registry path; on 1.19.4/1.21.10 the vanilla command prints the raw rule name
+# and consumes no per-rule key, so the shared entry is simply unused there.
+LANG_GAMERULE_EN = {
+    "gamerule.piston_diversified.potato_push_limit": "Potato Push Limit",
+    "gamerule.piston_diversified.potato_push_limit.description": "How many blocks the potato piston may move per push (structure budget)",
+}
+
+LANG_GAMERULE_ZH = {
+    "gamerule.piston_diversified.potato_push_limit": "马铃薯推动上限",
+    "gamerule.piston_diversified.potato_push_limit.description": "马铃薯活塞一次推动的结构预算（方块数）",
 }
 
 LANG_ZH = {
@@ -1408,9 +1434,9 @@ def gen_shared_assets(textures):
 
     # lang
     write_json(os.path.join(assets, "lang", "en_us.json"),
-               {**{f"block.{NS}.{k}": v for k, v in LANG_EN.items()}})
+               {**{f"block.{NS}.{k}": v for k, v in LANG_EN.items()}, **LANG_GAMERULE_EN})
     write_json(os.path.join(assets, "lang", "zh_cn.json"),
-               {**{f"block.{NS}.{k}": v for k, v in LANG_ZH.items()}})
+               {**{f"block.{NS}.{k}": v for k, v in LANG_ZH.items()}, **LANG_GAMERULE_ZH})
 
     # blockstates + models
     bs_dir = os.path.join(assets, "blockstates")
@@ -1885,9 +1911,42 @@ def version_supports(ver, min_version):
     want = tuple(int(part) for part in min_version.split("."))
     return node >= want
 
+def mineable_pickaxe_values():
+    """Blocks in the mineable/pickaxe tag, derived from the variant table.
+
+    Every base and its own head are mineable like a vanilla piston; the strong tiers share one
+    head block, and the recursive rod is tagged too. Kept generated (not hand-maintained) so a
+    new variant cannot silently miss the tag on any of the four nodes again — v3 shipped five
+    variants whose heads dug at fist speed because the hand-copied lists missed them.
+    """
+    values = []
+    for vid, sticky, custom, head_kind in VARIANTS:
+        values.append(f"{NS}:{vid}")
+    for vid, sticky, custom, head_kind in VARIANTS:
+        if head_kind != "none":
+            values.append(f"{NS}:{vid}_head")
+    values.append(f"{NS}:strong_piston_head")
+    values.append(f"{NS}:recursive_piston_rod")
+    return values
+
+
+def gen_mineable_tags():
+    """Write data/minecraft/tags/block(s)/mineable/pickaxe.json for every version node."""
+    values = mineable_pickaxe_values()
+    written = []
+    for ver in ["1.19.4", "1.21.10", "1.21.11", "26.2.x"]:
+        dirname = "blocks" if ver == "1.19.4" else "block"
+        path = os.path.join(MOD, "versions", ver, "src", "main", "resources",
+                            "data", "minecraft", "tags", dirname, "mineable", "pickaxe.json")
+        write_json(path, {"values": values})
+        written.append(path)
+    return written
+
+
 def gen_version_trees():
     versions = ["1.19.4", "1.21.10", "1.21.11", "26.2.x"]
     compat = {"1.19.4": "1.19.4", "1.21.10": "1.21.10", "1.21.11": "1.21.11", "26.2.x": "~26.2"}
+    gen_mineable_tags()
     for ver in versions:
         res = os.path.join(MOD, "versions", ver, "src", "main", "resources")
         old_data = ver == "1.19.4"
@@ -1943,6 +2002,10 @@ def gen_version_trees():
                 # PistonStructureResolverMixin: hood connection rules (罩面隔断/五面黏) for the
                 #   vanilla resolver, so any piston pushing a 带罩(黏)活塞 sees them too
                 "PistonStructureResolverMixin",
+                # LevelMixin: attaches the 镐活塞's carried pickaxe to a moving piston created for
+                #   a pickaxe piston cell (vanilla moveBlocks carries no block-entity data, and the
+                #   landing would otherwise rebuild a default entity — netherite pickaxe every time)
+                "LevelMixin",
                 "PistonMovingBlockEntityAccessor",
                 "PistonMovingBlockEntityMixin",
                 "ServerLevelMixin",
@@ -1981,6 +2044,138 @@ def gen_version_trees():
                 table["random_sequence"] = f"{NS}:blocks/{vid}"
             write_json(os.path.join(res, "data", NS, loot_dirname, "blocks", vid + ".json"), table)
 
+def verify_bent_geometry():
+    """The 拐推 head's arm must bite the plate in every generated bent head model.
+
+    A bent head is a plate (16x16x4 on the local plate face) plus a 4x4 arm running along local
+    +z. When the plate sits on a side of the arm (local east/west/up/down), the arm's cross
+    section must touch the plate's inner edge — a centred arm leaves a 2px gap and the head
+    renders as a plate floating beside a bar. A local north plate sits ahead of the arm (flush at
+    z=4) and a local south plate surrounds it, so those two need overlap-or-touch along z instead.
+    This mirrors the world-space rule in PdShapes.arm (the shift lands on the one axis
+    perpendicular to both facing and plate) — the blockstate rotation is rigid, so checking the
+    generated models checks the silhouette every (facing, bend) combination renders with.
+    """
+    import glob
+
+    problems = []
+    for path in sorted(glob.glob(os.path.join(MOD, "src", "main", "resources", "assets", NS,
+                                              "models", "block", "turn_push*_head*.json"))):
+        with open(path, encoding="utf-8") as handle:
+            model = json.load(handle)
+        elements = model.get("elements") or []
+        if len(elements) != 2:
+            problems.append((os.path.basename(path), "expected exactly plate + arm elements"))
+            continue
+        plate, arm = elements[0], elements[1]
+        # the plate is the 16x16x4 slab: find which axis it is thin on
+        thin_axes = [i for i in range(3) if plate["to"][i] - plate["from"][i] == 4]
+        if len(thin_axes) != 1:
+            problems.append((os.path.basename(path), "first element is not a 4px plate"))
+            continue
+        axis = thin_axes[0]
+        plate_lo, plate_hi = plate["from"][axis], plate["to"][axis]
+        arm_lo, arm_hi = arm["from"][axis], arm["to"][axis]
+        if axis == 2:
+            # a local north/south plate is thin along the arm's own running axis: the plate sits
+            # ahead of (north) or around (south) the arm, so overlap-or-touch is the requirement
+            if arm_lo > plate_hi or arm_hi < plate_lo:
+                problems.append((os.path.basename(path),
+                                 "arm %s..%s does not reach the plate slab %s..%s along z"
+                                 % (arm_lo, arm_hi, plate_lo, plate_hi)))
+            continue
+        plate_at_tip = plate_lo == 0
+        if plate_at_tip:
+            # plate hugs the low end: the arm must reach up against it at 4
+            ok = arm_lo <= plate_hi and arm_lo == plate_hi
+        else:
+            # plate hugs the high end (12..16): the arm must reach down against it at 12
+            ok = arm_hi >= plate_lo and arm_hi == plate_lo
+        if not ok:
+            problems.append((os.path.basename(path),
+                             "arm cross %s..%s does not bite plate %s..%s on axis %d"
+                             % (arm_lo, arm_hi, plate_lo, plate_hi, axis)))
+        # along the arm axis (z) the arm must pass through or touch the plate cell's slab
+        z_lo, z_hi = arm["from"][2], arm["to"][2]
+        if z_lo > 4 or z_hi < 12:
+            problems.append((os.path.basename(path), "arm does not overlap the plate slab along z"))
+    return problems
+
+
+def verify_local_bend_table():
+    """Every world (facing, bend) combination must map onto a valid local plate direction.
+
+    The blockstates emit all 6 bends for every facing; the 6x6 table is the only thing turning
+    those onto the model-local frame, so a missing or mis-spelled entry would silently render a
+    default-orientation head. Also asserts the model set covers all six local directions, i.e.
+    every mapped value has a generated bent head model.
+    """
+    problems = []
+    facings = ("north", "south", "east", "west", "up", "down")
+    if set(_LOCAL_BEND.keys()) != set(facings):
+        problems.append(("table", "facings %s" % sorted(_LOCAL_BEND.keys())))
+    produced = set()
+    for facing in facings:
+        row = _LOCAL_BEND.get(facing)
+        if row is None:
+            continue
+        if set(row.keys()) != set(facings):
+            problems.append((facing, "bends %s" % sorted(row.keys())))
+        for bend, local in row.items():
+            if local not in facings:
+                problems.append((facing, bend, "invalid local %r" % local))
+            produced.add(local)
+    if produced != set(facings):
+        problems.append(("table", "local directions never produced: %s" % sorted(set(facings) - produced)))
+    return problems
+
+
+def verify_no_orphans(assets):
+    """No block model may exist without anything referencing it, and no blockstate without a block.
+
+    Stale generated files used to pile up here: renamed emitters left recursive_piston_base-style
+    models behind and the strong tiers left three strong_piston_N_head blockstates for blocks that
+    were never registered. Like the texture check, this runs as part of the generator instead of
+    being something to remember.
+    """
+    import glob
+    import re
+
+    assets_dir = os.path.join(assets)
+    refs = set()
+    sources = (glob.glob(os.path.join(assets_dir, "blockstates", "*.json"))
+               + glob.glob(os.path.join(assets_dir, "items", "*.json"))
+               + glob.glob(os.path.join(assets_dir, "models", "item", "*.json"))
+               + glob.glob(os.path.join(assets_dir, "models", "block", "*.json")))
+    for path in sources:
+        with open(path, encoding="utf-8") as handle:
+            data = handle.read()
+        for match in re.findall(rf"{NS}:block/([a-z0-9_/]+)", data):
+            refs.add(match)
+
+    orphan_models = []
+    for path in sorted(glob.glob(os.path.join(assets_dir, "models", "block", "*.json"))):
+        name = os.path.basename(path)[:-5]
+        if name not in refs:
+            orphan_models.append(name)
+
+    # every blockstate must belong to a block the registry actually has: the bases, their heads
+    # (except the strong tiers' shared head) and the recursive rod
+    expected_blockstates = set()
+    for vid, sticky, custom, head_kind in VARIANTS:
+        expected_blockstates.add(vid)
+        if head_kind != "none":
+            expected_blockstates.add(vid + "_head")
+    expected_blockstates.add("strong_piston_head")
+    expected_blockstates.add("recursive_piston_rod")
+    stale_blockstates = []
+    for path in sorted(glob.glob(os.path.join(assets_dir, "blockstates", "*.json"))):
+        name = os.path.basename(path)[:-5]
+        if name not in expected_blockstates:
+            stale_blockstates.append(name)
+    return orphan_models, stale_blockstates
+
+
 def verify_texture_refs(assets):
     """Every `#ns:block/...` reference must resolve to a generated texture.
 
@@ -2011,11 +2206,35 @@ def main():
     assets = gen_shared_assets(textures)
     gen_version_trees()
     print(f"Generated {len(textures)} textures + assets + version trees from {jar}")
+    failed = False
     missing = verify_texture_refs(assets)
     if missing:
         print(f"ERROR: {len(missing)} model(s) reference a texture that was never generated:")
         for name, ref in sorted(missing)[:20]:
             print(f"    {name} -> {ref}")
+        failed = True
+    bent = verify_bent_geometry()
+    if bent:
+        print(f"ERROR: {len(bent)} bent head model(s) have a plate/arm gap:")
+        for name, problem in bent[:20]:
+            print(f"    {name}: {problem}")
+        failed = True
+    table = verify_local_bend_table()
+    if table:
+        print(f"ERROR: _LOCAL_BEND table problems: {table}")
+        failed = True
+    orphan_models, stale_blockstates = verify_no_orphans(assets)
+    if orphan_models:
+        print(f"ERROR: {len(orphan_models)} block model(s) reference nothing:")
+        for name in orphan_models[:20]:
+            print(f"    {name}")
+        failed = True
+    if stale_blockstates:
+        print(f"ERROR: {len(stale_blockstates)} blockstate(s) without a registered block:")
+        for name in stale_blockstates[:20]:
+            print(f"    {name}")
+        failed = True
+    if failed:
         raise SystemExit(1)
     print("All model texture references resolve.")
 

@@ -36,5 +36,7 @@
   "block.piston_diversified.hooded_sticky_piston": "Hooded Sticky Piston",
   "block.piston_diversified.deferred_piston": "Deferred Piston",
   "block.piston_diversified.deferred_sticky_piston": "Deferred Sticky Piston",
-  "block.piston_diversified.opposing_piston": "Opposing Piston"
+  "block.piston_diversified.opposing_piston": "Opposing Piston",
+  "gamerule.piston_diversified.potato_push_limit": "Potato Push Limit",
+  "gamerule.piston_diversified.potato_push_limit.description": "How many blocks the potato piston may move per push (structure budget)"
 }

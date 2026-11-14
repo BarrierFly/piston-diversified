@@ -1,8 +1,8 @@
 # Piston Diversified / 活塞多样化
 
-A Fabric mod that adds piston variants. **Mod v3** ship 5 more pistons (hooded ×2, deferred ×2, opposing) on top of the 33 of v1/v2. Current release: **0.3.0** (1.19.4 / 1.21.10 / 1.21.11 / 26.2).
+A Fabric mod that adds piston variants. **Mod v3** ship 5 more pistons (hooded ×2, deferred ×2, opposing) on top of the 33 of v1/v2. Current release: **0.3.1** (1.19.4 / 1.21.10 / 1.21.11 / 26.2).
 
-一个添加活塞变种的 Fabric 模组。**mod v3** 在 v1/v2 的 33 种之上再实装 5 种（带罩×2、全更新置后×2、对推）。当前版本：**0.3.0**（1.19.4 / 1.21.10 / 1.21.11 / 26.2）。
+一个添加活塞变种的 Fabric 模组。**mod v3** 在 v1/v2 的 33 种之上再实装 5 种（带罩×2、全更新置后×2、对推）。当前版本：**0.3.1**（1.19.4 / 1.21.10 / 1.21.11 / 26.2）。
 
 ## Piston list / 活塞列表 (v1)
 
@@ -28,13 +28,13 @@ A Fabric mod that adds piston variants. **Mod v3** ship 5 more pistons (hooded �
 
 | Piston | 活塞 | Notes / 说明 |
 | --- | --- | --- |
-| Potato Piston | 马铃薯活塞 | Floatater-style structure selection (3 connection rules, `potato_push_limit` gamerule, default 32); the pushed structure keeps gliding through the air after the piston is gone (递归飞行). Destroy-on-push blocks and glued replaceables (grass, snow) travel with the structure; waterlogged blocks travel waterless and leave water behind; block entities are never carried — a chest in front stops the push, and so does the world border (推不动就不动). 结构选取采用三条连接规则，飞行结构递归推进；POP 类方块与黏到的可替换方块（草、雪片）随结构一起被完整带走，含水方块脱水飞行、原地留水；方块实体不会被带走——正前方的箱子会挡停推动，推到世界边界同样停住而不是丢方块。 |
+| Potato Piston | 马铃薯活塞 | Floatater-style structure selection (3 connection rules, `potato_push_limit` gamerule, default 32); the pushed structure keeps gliding through the air after the piston is gone (递归飞行). Destroy-on-push blocks and glued replaceables (grass, snow) travel with the structure; water cells travel with it and the source water stays behind; **known limitation: a waterlogged block (waterlogged=true, e.g. a waterlogged slab) is silently wiped where it sits — no drop, no residual water — because the potato's replace/landing paths still treat it as empty air**; block entities are never carried — a chest in front stops the push, and so does the world border (推不动就不动). 结构选取采用三条连接规则，飞行结构递归推进；POP 类方块与黏到的可替换方块（草、雪片）随结构一起被完整带走，水格随结构飞行、原地留水；**已知限制：含水状态方块（waterlogged=true，如含水台阶/楼梯）目前会被推出/落位路径当作空格直接抹除（无掉落物、不留水）**；方块实体不会被带走——正前方的箱子会挡停推动，推到世界边界同样停住而不是丢方块。 |
 | Pickaxe Piston | 镐活塞 | Mines the front block with its carried pickaxe instead of pushing it (silky touch / fortune apply, no durability); the tool rides on the block and the item. Blocks vanilla cannot push (obsidian and friends) are mined too when the pickaxe can harvest them. 用携带的镐瞬间挖掘前方方块（黑曜石等原版推不动的方块在下界合金镐下也可挖），镐随方块与物品无损往返。 |
 | Recursive Piston / Sticky | 递推活塞/黏塞 | Telescoping arm: while powered the head pushes out one cell at a time (head + rods against the 12 push budget). 通电时逐格伸出，头与杆计入推动上限。 |
 | Turn Push Piston / Sticky | 拐推活塞/黏塞 | Pushes the front structure sideways (placement-time bend direction) and ends in a bent head; the arrow on the retracted plate shows which way it bends (the bent head keeps the plain piston top — an arrow on that face would have to point out of itself). The sticky version pulls the block glued to the bent plate back to the head cell. 推出方向为放置时选定的拐弯方向，活塞盖上的箭头指示拐弯方向（仅收回状态可见，推出后弯头盖沿用普通活塞盖贴图）；黏性版沿拐弯方向把方块拉回头所在格。 |
 | Wall Merge Piston / Sticky | 墙并活塞/黏塞 | Wall-post rods connect side-by-side pistons; the group holds out while any base is powered and retracts together (sticky groups share the summed pull budget). 杆部连成墙，任一底座有信号则整组不收回。 |
 | 0-Tick Piston / Sticky | 0t计划刻活塞/黏塞 | Block events replaced by 0gt scheduled ticks; the extend/retract decision is re-derived from live signals when the tick runs. 以0gt计划刻代替方块事件。 |
-| Gravity Piston | 重力活塞 | Up = normal push; sideways = the head becomes a falling block; down = telescopes through air until it meets a block; a headless base cannot retract. Unlike every other head, the gravity head can be pushed and pulled by other pistons — a detached head falls like sand. 侧推头变重力方块，下推逐格伸出，无头底座不可收回；与其他活塞头不同，重力头可被其他活塞推拉，脱离的头像沙子一样下落。 |
+| Gravity Piston | 重力活塞 | Up = normal push; sideways = the head becomes a falling block; down = telescopes through air until it meets a block, **and once at least one rod is out the arm stays out — dropping the signal never retracts it, by design** (only a bare head with zero rods retracts). a headless base cannot retract. Unlike every other head, the gravity head can be pushed and pulled by other pistons — a detached head falls like sand. 侧推头变重力方块，下推逐格伸出；**设计特性：只要伸出了至少一格杆，断电不收回（保持伸出），仅杆数为 0（头紧贴底座）时可正常收回**；无头底座不可收回；与其他活塞头不同，重力头可被其他活塞推拉，脱离的头像沙子一样下落。 |
 | Strong Piston I / II / III | 强力活塞一/二/三档 | Counts unpushable blocks (obsidian, bedrock, …) as 6 / 3 / 2 pushable blocks against the 12 budget, so they really move (1.21.4+; the blocks still exist on 1.19.4). 不可推动方块按 6/3/2 折算计入推动上限并真实移动。 |
 
 ## Piston list / 活塞列表 (v3)
@@ -93,6 +93,14 @@ Requires JDK 17/21/25 (auto-provisioned via foojay). Gradle wrapper included.
 ./gradlew :1.19.4:build :1.21.10:build :1.21.11:build :26.2.x:build   # all nodes
 ```
 
+Release build (fills `build/libs/<version>/` for all four nodes) / 发布构建（产物集中到 `build/libs/<版本>/`）:
+
+```bash
+./gradlew clean
+./gradlew :1.19.4:buildAndCollect :1.21.10:buildAndCollect :1.21.11:buildAndCollect :26.2.x:buildAndCollect
+python tools/check_release_jars.py   # jar self-check / 产物自检（mixin 注入签名）
+```
+
 Multi-version via [Stonecutter](https://stonecutter.kikugie.dev/): 1.19.4 / 1.21.10 / 1.21.11 / 26.2, mojang mappings, primary version 1.21.11.
 
 多版本由 Stonecutter 管理，主版本 1.21.11，使用 mojang mappings。
@@ -101,17 +109,23 @@ Version-specific availability: the wind charge piston needs 1.20.5+, the strong 
 
 版本差异：风弹活塞需 1.20.5+，强力活塞需嘎枝之心（1.21.4+）；旧版本方块仍注册（创造栏/指令可得）但无配方。
 
-Gamerule / 规则：`potato_push_limit` (default 32) caps the potato piston's structure size.
+Gamerule / 规则：`potato_push_limit` (default 32, range 1–1024) caps the potato piston's structure size. On 1.21.11+/26.2 it is registered as `piston_diversified:potato_push_limit` (own namespace since 0.3.1; the command takes the full id; 1.19.4/1.21.10 keep the bare `potato_push_limit` name). **Upgrade note:** the first 0.3.1 load of a world saved by 0.3.0 fails to parse the whole game-rules save (the old `minecraft:potato_push_limit` id no longer exists), so for that one load **every gamerule — vanilla ones included — falls back to its default**; re-set the ones you care about, the next save is clean.
+
+规则：`potato_push_limit`（默认 32，范围 1–1024）限制马铃薯活塞单次推动的结构规模。1.21.11+/26.2 上自 0.3.1 起注册在 `piston_diversified:` 自命名空间（命令需使用完整 id；1.19.4/1.21.10 仍为不带命名空间的 `potato_push_limit`）。**升级提示：**0.3.0 存档首次用 0.3.1 加载时，整份 game_rules 存档会因旧 id `minecraft:potato_push_limit` 不存在而解析失败——**该次加载所有 gamerule（含原版规则）一律回落默认值**，需要的规则需重新设置；之后的存档是干净的。
+
+## Compatibility notes / 兼容性说明
+
+- The deferred (全更新置后) piston's batching is deliberately global while one of its move stages is open: every neighbour update emitted in that window — including ones from third-party logic another piston or block triggers — is collected and replayed at the stage tail. This matches the planned "defer everything inside the stage" behaviour, but it is a cross-mod assumption worth knowing. 全更新置后活塞的延后批次在阶段内是全局的：阶段期间任何第三方逻辑发出的邻居更新也会入批延后到阶段末回放。
 
 ## Testing / 测试
 
-`tools/piston_testbed.py` boots a headless dev server over RCON and asserts piston behaviour (data-file parse check plus 29 cases) on all four version nodes.
+`tools/piston_testbed.py` boots a headless dev server over RCON and asserts piston behaviour (data-file parse check plus 32 cases) on all four version nodes.
 
 ```bash
 python tools/piston_testbed.py --start --version 1.21.11
 ```
 
-`tools/piston_testbed.py` 启动无头开发服并通过 RCON 断言活塞行为（数据文件解析检查 + 29 项用例），四个版本节点均已跑通。
+`tools/piston_testbed.py` 启动无头开发服并通过 RCON 断言活塞行为（数据文件解析检查 + 32 项用例），四个版本节点均已跑通。
 
 ## Conversions / 转换
 
@@ -126,6 +140,17 @@ All textures are derived from the vanilla jar by `tools/gen_assets.py` (also gen
 所有贴图由 `tools/gen_assets.py` 从原版 jar 派生生成，同脚本生成模型/配方/战利品表/语言/图标。
 
 ## Changelog / 更新日志
+
+### 0.3.1
+
+- Fixed / 修复：镐活塞的携带镐在第一次伸缩或被任意活塞推/拉后就变成默认下界合金镐（移动活塞只携带方块状态、落地重建默认方块实体）。现在把镐挂到移动活塞上随行，落地写回并同步 `tool` 状态；自身收回、被原版/模组活塞推动、被拉回、马铃薯与无活塞推动路径全覆盖。The pickaxe piston's carried pickaxe survived no move — the stack now rides the moving piston and is written back on landing, on every path that moves it.
+- Fixed / 修复：`potato_push_limit` 在 1.19.4/1.21.10 的正式包里注册失败（按 Mojang 名反射查找，运行时是 intermediary 名）导致规则不存在、静默回落 32——改走 fabric-game-rule-api-v1（映射无关）。1.21.11+/26.2 同步改为自命名空间 id `piston_diversified:potato_push_limit` 并补语言键。 注意：自命名空间使 0.3.0 旧存档首次加载时整份 game_rules 解析失败（所有 gamerule 回落默认值，需重设），详见上方升级提示。The gamerule registered by Mojang-name reflection only in dev; production 1.19.4/1.21.10 silently fell back to the constant — now via the Fabric game-rule API. The 1.21.11+/26.2 id moved to the mod's own namespace.
+- Fixed / 修复：发布物 `build/libs/` 里的 jar 与源码不同步（旧签名 Mixin 会导致客户端渲染阶段崩溃）——本次 clean 全量重建，并新增 `tools/check_release_jars.py` 产物自检（校验 `PistonHeadRendererMixin$moddedHeadState` 单参签名）。Rebuilt all release jars from clean and added a release self-check for the mixin signature.
+- Fixed / 修复：`mineable/pickaxe` 标签漏掉 v3 的 5 个变种（带罩×2、全更新置后×2、对推）及其头部，四节点全部补齐并改为由 `tools/gen_assets.py` 生成，避免下次再手改四处。The mineable/pickaxe tag missed all five v3 variants and their heads on every node — now generated from the variant table.
+- Fixed / 修复：拐推弯头在水平朝向 + 南/北拐弯（以及竖直朝向 + 南/北拐弯）下杆与盖板之间留 2px 缝隙（碰撞箱/轮廓与盖板不咬合）。The bent head's arm left a 2px gap against north/south plates.
+- Fixed / 修复：1.19.4 测试床的 `initial-enabled-packs` 不含 mod 数据包，数据文件校验实际是空跑——测试床现在每次启动都会合并写入。The 1.19.4 testbed booted without the mod's datapack, so its data-file check was vacuous — the pack list is now merged in on every boot.
+- Cleaned / 清理：删除 22 个孤儿资源（3 个从不注册的 `strong_piston_*_head` blockstate、19 个无引用模型），`gen_assets.py` 新增"无未引用模型/无未注册 blockstate"与拐推几何咬合、`_LOCAL_BEND` 6×6 完备性自检。Removed 22 orphan resources and added generator self-checks (no unreferenced models, no unregistered blockstates, bent-head plate/arm bite, bend-table completeness).
+- Documented / 文档：马铃薯活塞对含水状态方块的已知限制（见活塞列表）与重力活塞下推伸出后的"保持伸出"设计特性；补全更新置后活塞的兼容性说明。Documented the potato piston's waterlogged-block limitation and the gravity piston's stay-extended behaviour as intended.
 
 ### 0.3.0
 

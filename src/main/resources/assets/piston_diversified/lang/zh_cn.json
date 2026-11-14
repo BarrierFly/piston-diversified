@@ -36,5 +36,7 @@
   "block.piston_diversified.hooded_sticky_piston": "带罩黏塞",
   "block.piston_diversified.deferred_piston": "全更新置后活塞",
   "block.piston_diversified.deferred_sticky_piston": "全更新置后黏塞",
-  "block.piston_diversified.opposing_piston": "对推活塞"
+  "block.piston_diversified.opposing_piston": "对推活塞",
+  "gamerule.piston_diversified.potato_push_limit": "马铃薯推动上限",
+  "gamerule.piston_diversified.potato_push_limit.description": "马铃薯活塞一次推动的结构预算（方块数）"
 }

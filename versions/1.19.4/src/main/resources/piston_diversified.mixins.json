@@ -11,6 +11,7 @@
     "MovingPistonBlockMixin",
     "PistonBaseBlockMixin",
     "PistonStructureResolverMixin",
+    "LevelMixin",
     "PistonMovingBlockEntityAccessor",
     "PistonMovingBlockEntityMixin",
     "ServerLevelMixin"

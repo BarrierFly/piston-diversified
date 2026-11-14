@@ -17,7 +17,7 @@ It also reloads the data packs and fails if the server reports a data file it co
 
 Usage
 -----
-    # against a server that is already running (RCON on 25575):
+    # against a server that is already running (RCON on 25585):
     python tools/piston_testbed.py
 
     # let the script boot and shut down the dev server itself:
@@ -65,11 +65,18 @@ BASE = (0, 100, 0)
 FRONT = (1, 100, 0)
 BEHIND = (-1, 100, 0)
 POWER = (0, 101, 0)  # redstone block above the piston
-CLEAR_FROM = (-4, 99, -3)
-CLEAR_TO = (12, 104, 4)
+# The clear box must cover everything ANY case can touch: the recursive pull walks blocks out to
+# ~x=14 (the check scans to x=26), the gravity arm parks its head at y=98, and a case that leaves
+# residue just outside the box poisons every case that runs after it (that is how a leftover
+# gravity head below y=99 once stalled the whole down-telescope suite).
+CLEAR_FROM = (-4, 94, -4)
+CLEAR_TO = (32, 105, 6)
 
 RCON_HOST = "127.0.0.1"
-RCON_PORT = 25575
+# A port of our own: sibling modding projects on this machine run their own RCON harnesses,
+# and a harness on the vanilla default 25575 once answered our probes with the wrong server's
+# world (its runs collided with ours mid-suite). Keep 25585 so the two never meet.
+RCON_PORT = 25585
 RCON_PASSWORD = "pdtest"
 
 CASES = [
@@ -81,6 +88,9 @@ CASES = [
 
 # v2 behaviour checks: (name, callback building its own rig, returning (label, ok) pairs)
 V2_CASES = []
+
+# The stonecutter node under test (set in main); a couple of cases need version-aware syntax.
+CURRENT_VERSION = "1.21.11"
 
 
 def register_v2(name):
@@ -413,6 +423,122 @@ def pickaxe_piston_obsidian(rcon):
     ]
     rcon.cmd("setblock %s air" % _pos(POWER))
     time.sleep(0.5)
+    clear_rig(rcon)
+    return results
+
+
+def _pickaxe_merge_tag():
+    """The carried-pickaxe NBT for a root-path `data merge`: ItemStack codec keys changed in 1.20.5.
+
+    The merge goes through the root path ({Pickaxe:{...}}) — a path-targeted `Pickaxe {…}` merge
+    is rejected with "Expected compound tag" on 1.21.11+.
+    """
+    if CURRENT_VERSION in ("1.19.4",):
+        return '{Pickaxe:{id:"minecraft:golden_pickaxe",Count:1b}}'
+    return '{Pickaxe:{id:"minecraft:golden_pickaxe",count:1}}'
+
+
+@register_v2("pickaxe piston: the carried pickaxe survives every move")
+def pickaxe_piston_roundtrip(rcon):
+    # The pickaxe rode only on the block entity, and every move replaces the cell with a vanilla
+    # moving piston that carries a block STATE only — the landing rebuilt a default (netherite)
+    # entity. Both paths that move the base have to bring the stack home now.
+    results = []
+
+    # --- own extend/retract cycle (the retract animation replaces the base itself) ---
+    clear_rig(rcon)
+    rcon.cmd("setblock %s piston_diversified:pickaxe_piston[facing=east,extended=false,tool=golden]" % _pos(BASE))
+    rcon.cmd("data merge block %s %s" % (_pos(BASE), _pickaxe_merge_tag()))
+    rcon.cmd("setblock %s redstone_block" % _pos(POWER))
+    extended = False
+    for _ in range(40):
+        if rcon.has_block(FRONT, "piston_diversified:pickaxe_piston_head"):
+            extended = True
+            break
+        time.sleep(0.1)
+    results.append(("head slid out (empty front pushes like vanilla)", extended))
+    rcon.cmd("setblock %s air" % _pos(POWER))
+    retracted = False
+    for _ in range(40):
+        if rcon.has_block(BASE, "piston_diversified:pickaxe_piston[extended=false]"):
+            retracted = True
+            break
+        time.sleep(0.1)
+    time.sleep(0.5)
+    kept = "golden_pickaxe" in rcon.cmd("data get block %s Pickaxe" % _pos(BASE))
+    results.append(("base retracted", retracted))
+    results.append(("pickaxe still golden after the full cycle", kept))
+    clear_rig(rcon)
+
+    # --- pushed by a vanilla piston (vanilla moveBlocks carries no block-entity data) ---
+    clear_rig(rcon)
+    rcon.cmd("setblock %s piston_diversified:pickaxe_piston[facing=east,extended=false,tool=golden]" % _pos(BASE))
+    rcon.cmd("data merge block %s %s" % (_pos(BASE), _pickaxe_merge_tag()))
+    rcon.cmd("setblock %s minecraft:piston[facing=east,extended=false]" % _pos(BEHIND))
+    rcon.cmd("setblock %s redstone_block" % _pos((BEHIND[0], BEHIND[1] + 1, BEHIND[2])))
+    pushed = False
+    for _ in range(40):
+        if rcon.has_block(FRONT, "piston_diversified:pickaxe_piston[facing=east,tool=golden]"):
+            pushed = True
+            break
+        time.sleep(0.1)
+    time.sleep(0.5)
+    carried = "golden_pickaxe" in rcon.cmd("data get block %s Pickaxe" % _pos(FRONT))
+    results.append(("vanilla piston pushed the pickaxe piston one cell east (state intact)", pushed))
+    results.append(("pickaxe still golden after being pushed", carried))
+    rcon.cmd("setblock %s air" % _pos((BEHIND[0], BEHIND[1] + 1, BEHIND[2])))
+    clear_rig(rcon)
+    return results
+
+
+@register_v2("gamerule potato_push_limit: registered and settable")
+def gamerule_potato_push_limit(rcon):
+    # 1.21.11+/26.2 register the rule under the mod's own namespace id; 1.19.4/1.21.10 keep the
+    # bare name. Either way the command must accept it — the old reflection path silently failed
+    # on production 1.19.4/1.21.10 jars, leaving NO rule at all.
+    name = "piston_diversified:potato_push_limit" if CURRENT_VERSION in ("1.21.11", "26.2.x") else "potato_push_limit"
+    query_default = rcon.cmd("gamerule %s" % name)
+    rcon.cmd("gamerule %s 8" % name)
+    query_changed = rcon.cmd("gamerule %s" % name)
+    rcon.cmd("gamerule %s 32" % name)
+    results = [
+        ("rule registered (query answers with the default 32)", "32" in query_default),
+        ("set to 8 and read back", "8" in query_changed),
+    ]
+    return results
+
+
+@register_v2("gravity piston: down-telescoped arm stays out (intended)")
+def gravity_down_stays_extended(rcon):
+    # A down-facing gravity piston that telescoped out at least one rod keeps the arm out when
+    # the power drops (0.3.1 README pins this as intended); only a bare head (zero rods) retracts.
+    # The arm needs a moment to quiesce — the chain schedules one more tick after the last
+    # telescope, and dropping the power while that tick is pending runs the retract chain instead.
+    clear_rig(rcon)
+    rcon.cmd("setblock %s piston_diversified:gravity_piston[facing=down,extended=false]" % _pos(BASE))
+    rcon.cmd("setblock 0 97 0 minecraft:stone")  # stops the chain after the first rod
+    rcon.cmd("setblock %s redstone_block" % _pos(POWER))
+    telescoped = False
+    for _ in range(60):
+        if rcon.has_block((0, 99, 0), "piston_diversified:recursive_piston_rod") \
+                and rcon.has_block((0, 98, 0), "piston_diversified:gravity_piston_head"):
+            telescoped = True
+            break
+        time.sleep(0.1)
+    time.sleep(1.0)  # let the pending chain tick fire and find nothing to do
+    results = [("powered: rod at y=99 and head at y=98 (one rod out)", telescoped)]
+    rcon.cmd("setblock %s air" % _pos(POWER))
+    time.sleep(2.5)
+    results.append(("unpowered: the head is still out (no retraction)",
+                    rcon.has_block((0, 98, 0), "piston_diversified:gravity_piston_head")))
+    results.append(("unpowered: the rod is still there",
+                    rcon.has_block((0, 99, 0), "piston_diversified:recursive_piston_rod")))
+    results.append(("unpowered: the base is still extended",
+                    rcon.has_block(BASE, "piston_diversified:gravity_piston[extended=true]")))
+    # the telescoped arm reaches below the clear box (y 99..104): the head parks at y=98 and
+    # survives clear_rig, and the next run's telescope then hits it as an obstacle — clear the
+    # whole column explicitly
+    rcon.cmd("fill 0 95 0 0 104 0 air")
     clear_rig(rcon)
     return results
 
@@ -794,6 +920,34 @@ def patch_properties(version, updates):
     return run_dir
 
 
+def ensure_datapack_enabled(version):
+    """Add the mod's data pack to initial-enabled-packs, merging into whatever is already there.
+
+    Modern servers auto-enable mod packs and write the expanded list back, but 1.19.4 does not:
+    a properties file that predates the mod keeps `vanilla,fabric` and the whole mod datapack
+    stays disabled — the "Loaded 7 recipes" server. Every data-file assertion downstream is
+    meaningless in that state, so the pack list is pinned here on every boot.
+    """
+    run_dir = os.path.join(MOD_ROOT, "versions", version, "run")
+    path = os.path.join(run_dir, "server.properties")
+    lines = []
+    if os.path.exists(path):
+        with open(path, "r", encoding="utf-8") as handle:
+            lines = handle.read().splitlines()
+    packs = None
+    for index, line in enumerate(lines):
+        if line.startswith("initial-enabled-packs="):
+            packs = line.split("=", 1)[1].split(",")
+            if "piston_diversified" not in packs:
+                packs.append("piston_diversified")
+            lines[index] = "initial-enabled-packs=%s" % ",".join(packs)
+            break
+    if packs is None:
+        lines.append("initial-enabled-packs=vanilla,fabric,piston_diversified")
+    with open(path, "w", encoding="utf-8") as handle:
+        handle.write("\n".join(lines) + "\n")
+
+
 def start_server(version, log_path):
     command = [os.path.join(MOD_ROOT, "gradlew"), ":%s:runServer" % version, "--console=plain"]
     if os.name == "nt":
@@ -975,6 +1129,7 @@ def run_v2_case(rcon, name, fn):
 
 
 def main():
+    global CURRENT_VERSION
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--version", default="1.21.11", help="stonecutter node to test (default 1.21.11)")
     parser.add_argument("--start", action="store_true", help="boot and shut down the dev server")
@@ -994,6 +1149,8 @@ def main():
         "gamemode": "creative",
         "difficulty": "peaceful",
     })
+    ensure_datapack_enabled(args.version)
+    CURRENT_VERSION = args.version
 
     process = None
     try:
@@ -1002,6 +1159,14 @@ def main():
         elif not os.path.exists(os.path.join(run_dir, "server.properties")):
             print("note: no run/server.properties yet — start the server once, or use --start")
         rcon = wait_for_rcon()
+        # identity check: the suite must talk to THIS mod's server, never a foreign harness that
+        # happens to share the port. The mod gamerule is the cheapest fingerprint — it exists on
+        # every node (1.19.4 hides mod data packs from `datapack list`, so that query is no good).
+        rule_name = "piston_diversified:potato_push_limit" if args.version in ("1.21.11", "26.2.x") else "potato_push_limit"
+        answer = rcon.cmd("gamerule %s" % rule_name)
+        if "Incorrect argument" in answer or "Unknown" in answer or "Incorrect" in answer:
+            raise RuntimeError("RCON answered from a server that does not know the mod gamerule — "
+                               "another server is listening on the testbed port")
         print("connected to RCON, world spawn ticking check:", rcon.cmd("time query gametime").strip())
         rcon.cmd("forceload add -32 -32 32 32")
 

@@ -1,8 +1,0 @@
-{
-  "parent": "minecraft:block/piston_extended",
-  "textures": {
-    "bottom": "piston_diversified:block/turn_push_piston_bottom",
-    "side": "piston_diversified:block/turn_push_piston_side",
-    "inside": "piston_diversified:block/turn_push_piston_inner"
-  }
-}

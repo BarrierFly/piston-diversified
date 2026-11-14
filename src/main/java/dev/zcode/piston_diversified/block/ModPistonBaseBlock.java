@@ -3,6 +3,7 @@ package dev.zcode.piston_diversified.block;
 import com.google.common.collect.Lists;
 import dev.zcode.piston_diversified.PdHelpers;
 import dev.zcode.piston_diversified.duck.PistonDuck;
+import dev.zcode.piston_diversified.entity.PickaxePistonBlockEntity;
 import dev.zcode.piston_diversified.logic.PdResolver;
 import com.google.common.collect.Maps;
 import java.util.List;
@@ -459,6 +460,12 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
         // of the base fails on it. Vanilla's retract therefore clears the head before resolving;
         // variants that pre-check their pull (递推黏塞, 墙并黏塞) must clear it themselves too.
         this.clearHeadCell(level, pos, direction);
+        // The retract animation replaces the base with a source moving piston, which the LevelMixin
+        // carry hook skips (it looks "backwards along the slide", which here is the head cell, not
+        // the data). Capture the 镐活塞 stack before the base block entity is destroyed.
+        ItemStack carriedPickaxe = level.getBlockEntity(pos) instanceof PickaxePistonBlockEntity pickaxeBe
+            ? pickaxeBe.getPickaxe()
+            : ItemStack.EMPTY;
         BlockState movingState = Blocks.MOVING_PISTON
             .defaultBlockState()
             .setValue(MovingPistonBlock.FACING, direction)
@@ -473,6 +480,9 @@ public abstract class ModPistonBaseBlock extends PistonBaseBlock {
         BlockEntity retractBe = MovingPistonBlock.newMovingBlockEntity(pos, movingState, restoredBase, direction, false, true);
         this.markFast(retractBe);
         markClientSync(retractBe);
+        if (!carriedPickaxe.isEmpty() && retractBe instanceof PistonDuck duck) {
+            duck.pistonDiversified$setCarriedPickaxe(carriedPickaxe);
+        }
         level.setBlockEntity(retractBe);
         level.updateNeighborsAt(pos, movingState.getBlock());
         movingState.updateNeighbourShapes(level, pos, 2);

@@ -33,6 +33,11 @@
     "piston_diversified:strong_piston_1",
     "piston_diversified:strong_piston_2",
     "piston_diversified:strong_piston_3",
+    "piston_diversified:hooded_piston",
+    "piston_diversified:hooded_sticky_piston",
+    "piston_diversified:deferred_piston",
+    "piston_diversified:deferred_sticky_piston",
+    "piston_diversified:opposing_piston",
     "piston_diversified:honey_piston_head",
     "piston_diversified:projectile_piston_head",
     "piston_diversified:chain_piston_head",
@@ -63,6 +68,11 @@
     "piston_diversified:st_piston_head",
     "piston_diversified:st_sticky_piston_head",
     "piston_diversified:gravity_piston_head",
+    "piston_diversified:hooded_piston_head",
+    "piston_diversified:hooded_sticky_piston_head",
+    "piston_diversified:deferred_piston_head",
+    "piston_diversified:deferred_sticky_piston_head",
+    "piston_diversified:opposing_piston_head",
     "piston_diversified:strong_piston_head",
     "piston_diversified:recursive_piston_rod"
   ]

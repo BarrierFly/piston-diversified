@@ -108,7 +108,7 @@ public class WallMergePistonBlock extends ModPistonBaseBlock {
             return;
         }
 
-        boolean pullAllowed = this.computeGroupPullAllowed(level, group, direction);
+        boolean pullAllowed = this.decideGroupPullAndClearHeads(level, group, direction);
         for (BlockPos memberPos : group) {
             BlockState memberState = level.getBlockState(memberPos);
             if (!(memberState.getBlock() instanceof WallMergePistonBlock member)
@@ -129,11 +129,14 @@ public class WallMergePistonBlock extends ModPistonBaseBlock {
      * fit the summed limits (12 per sticky member); any failure means nobody pulls. Non-sticky
      * groups never pull.
      *
-     * <p>Runs on both sides: the client has to reach the same verdict or it would animate a pull
-     * the server refused (or the other way round). Heads are cleared first because a piston head
-     * is push-resistant and would fail every member's resolve.</p>
+     * <p>This "decide" method is not a pure predicate: it ALWAYS clears every sticky member's
+     * head cell (that is the group's retract actually happening), on both sides — the client has
+     * to reach the same verdict or it would animate a pull the server refused (or the other way
+     * round), and both sides must end headless for the same reason. Heads are cleared first
+     * because a piston head is push-resistant and would fail every member's resolve. Do not call
+     * it speculatively.</p>
      */
-    private boolean computeGroupPullAllowed(Level level, List<BlockPos> group, Direction facing) {
+    private boolean decideGroupPullAndClearHeads(Level level, List<BlockPos> group, Direction facing) {
         if (!this.sticky) {
             return false;
         }
